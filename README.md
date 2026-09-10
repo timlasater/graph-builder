@@ -39,3 +39,5 @@ npm run build
 ```
 
 The next milestone adds more graph elements, summary statistics, and error bars.
+
+See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.
