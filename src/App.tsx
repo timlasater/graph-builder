@@ -35,6 +35,7 @@ function LayerTool({ element, onAdd }: { element: { id: GraphElement; label: str
 }
 
 type ResizeDirection = 'horizontal' | 'vertical' | 'both'
+type SidePanel = 'variables' | 'properties'
 
 function LayerCanvas({ onResizeStart, onResizeKey }: { onResizeStart: (direction: ResizeDirection, event: ReactPointerEvent<HTMLButtonElement>) => void; onResizeKey: (direction: ResizeDirection, event: ReactKeyboardEvent<HTMLButtonElement>) => void }) {
   const { isOver, setNodeRef } = useDroppable({ id: 'layer-canvas' })
@@ -65,6 +66,8 @@ function App() {
   const [dragColumnId, setDragColumnId] = useState<string>()
   const [dragElement, setDragElement] = useState<GraphElement>()
   const [canvasSize, setCanvasSize] = useState<{ width?: number; height?: number }>({})
+  const [panelWidths, setPanelWidths] = useState({ variables: 250, properties: 280 })
+  const [panelVisibility, setPanelVisibility] = useState({ variables: true, properties: true })
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
   const columnFor = (id?: string) => dataset.columns.find((column) => column.id === id)
   const selected = columnFor(selectedColumn)
@@ -97,6 +100,16 @@ function App() {
     if ((!horizontal && !vertical) || (direction === 'horizontal' && !horizontal) || (direction === 'vertical' && !vertical)) return
     event.preventDefault(); const bounds = event.currentTarget.closest('.graph-card')?.getBoundingClientRect(); if (!bounds) return
     setCanvasSize((current) => ({ width: direction === 'vertical' ? current.width : Math.max(280, Math.min(1400, (current.width ?? bounds.width) + horizontal)), height: direction === 'horizontal' ? current.height : Math.max(260, Math.min(1100, (current.height ?? bounds.height) + vertical)) }))
+  }
+  const startPanelResize = (panel: SidePanel, event: ReactPointerEvent<HTMLButtonElement>) => {
+    event.preventDefault(); const startX = event.clientX; const startWidth = panelWidths[panel]
+    const move = (pointer: PointerEvent) => { const delta = pointer.clientX - startX; setPanelWidths((current) => ({ ...current, [panel]: Math.max(panel === 'variables' ? 170 : 220, Math.min(panel === 'variables' ? 420 : 480, startWidth + (panel === 'variables' ? delta : -delta))) })) }
+    const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop) }
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', stop, { once: true })
+  }
+  const resizePanelByKey = (panel: SidePanel, event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    const delta = event.key === 'ArrowLeft' ? -16 : event.key === 'ArrowRight' ? 16 : 0; if (!delta) return
+    event.preventDefault(); setPanelWidths((current) => ({ ...current, [panel]: Math.max(panel === 'variables' ? 170 : 220, Math.min(panel === 'variables' ? 420 : 480, current[panel] + (panel === 'variables' ? delta : -delta))) }))
   }
 
   const handleDragEnd = ({ active, over, delta }: DragEndEvent) => {
@@ -134,6 +147,8 @@ function App() {
           <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span></div>
           <div className="document-name"><span className="status-dot" />{dataset.name}</div>
           <div className="toolbar-actions">
+            <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
+            <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
             <ImportDataButton onImport={setDataset} />
             <button onClick={undo} disabled={!past.length} title="Undo">↶</button>
             <button onClick={redo} disabled={!future.length} title="Redo">↷</button>
@@ -141,8 +156,8 @@ function App() {
           </div>
         </header>
 
-        <main className="workspace">
-          <VariablesDropPanel>
+        <main className="workspace" style={{ gridTemplateColumns: `${panelVisibility.variables ? panelWidths.variables : 0}px minmax(0, 1fr) ${panelVisibility.properties ? panelWidths.properties : 0}px` }}>
+          {panelVisibility.variables && <VariablesDropPanel>
             <div className="panel-heading">
               <div><span className="eyebrow">DATA</span><h2>Variables</h2></div>
               <span className="count-badge">{dataset.columns.length}</span>
@@ -156,7 +171,8 @@ function App() {
             </div>
             <div className="modeling-key"><span><i className="continuous" /> Continuous</span><span><i className="nominal" /> Nominal</span><span><i className="ordinal" /> Ordinal</span></div>
             <div className="data-summary"><strong>{dataset.rows.length}</strong> rows <span>•</span> <strong>{dataset.columns.length}</strong> columns {dataset.warnings.length > 0 && <span className="warning-count">⚠ {dataset.warnings.length}</span>} <button onClick={() => setShowDataTable(true)}>View data table</button></div>
-          </VariablesDropPanel>
+          </VariablesDropPanel>}
+          {panelVisibility.variables && <button className="panel-resize-divider variables-divider" aria-label="Resize Variables panel" title="Drag to resize Variables; use arrow keys for fine adjustment" style={{ left: panelWidths.variables - 4 }} onPointerDown={(event) => startPanelResize('variables', event)} onKeyDown={(event) => resizePanelByKey('variables', event)} />}
 
           <section className="builder-area">
             <div className="element-toolbar">
@@ -188,7 +204,8 @@ function App() {
             </div>
           </section>
 
-          <aside className="properties-panel panel" tabIndex={0} aria-label="Properties panel">
+          {panelVisibility.properties && <button className="panel-resize-divider properties-divider" aria-label="Resize Properties panel" title="Drag to resize Properties; use arrow keys for fine adjustment" style={{ right: panelWidths.properties - 4 }} onPointerDown={(event) => startPanelResize('properties', event)} onKeyDown={(event) => resizePanelByKey('properties', event)} />}
+          {panelVisibility.properties && <aside className="properties-panel panel" tabIndex={0} aria-label="Properties panel">
             <div className="panel-heading"><div><span className="eyebrow">FORMAT</span><h2>Properties</h2></div></div>
             {selected && <section className="property-section column-properties">
               <h3>Selected column</h3>
@@ -230,7 +247,7 @@ function App() {
               <label className="toggle-row"><span>Show grid lines</span><input type="checkbox" checked={spec.showGrid} onChange={(event) => updateSpec({ showGrid: event.target.checked })} /></label>
             </section>
             <div className="coming-next"><span>COMING NEXT</span><strong>Statistical transformations</strong><p>Selectable confidence levels, observation overlays, precomputed errors, regression diagnostics, and normalization.</p></div>
-          </aside>
+          </aside>}
         </main>
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
