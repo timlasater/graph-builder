@@ -1,0 +1,5 @@
+Batch,Pressure psi,Emitted Dose,Accepted
+A,20,58.2,true
+A,30,62.7,true
+B,20,61.1,true
+B,30,,false

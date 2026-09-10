@@ -1,0 +1,100 @@
+import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
+import type { CellValue, DataColumn, DataType, Dataset } from './types'
+
+export interface ImportedSheet {
+  name: string
+  dataset: Dataset
+}
+
+const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+
+const normalizedHeader = (value: unknown, index: number, used: Set<string>) => {
+  const base = String(value ?? '').trim() || `Column ${index + 1}`
+  let name = base
+  let suffix = 2
+  while (used.has(name.toLocaleLowerCase())) name = `${base} ${suffix++}`
+  used.add(name.toLocaleLowerCase())
+  return name
+}
+
+const columnId = (name: string, index: number) => {
+  const slug = name.toLocaleLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+  return `${slug || 'column'}_${index}`
+}
+
+const looksLikeDate = (value: unknown) => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return true
+  if (typeof value !== 'string' || !/[-/:T]/.test(value)) return false
+  return !Number.isNaN(Date.parse(value))
+}
+
+export const inferDataType = (values: unknown[]): DataType => {
+  const present = values.filter((value) => !isBlank(value))
+  if (!present.length) return 'text'
+  if (present.every((value) => typeof value === 'boolean' || /^(true|false|yes|no)$/i.test(String(value).trim()))) return 'boolean'
+  if (present.every((value) => typeof value === 'number' ? Number.isFinite(value) : Number.isFinite(Number(String(value).replace(/,/g, ''))))) return 'number'
+  if (present.every(looksLikeDate)) return 'date'
+  return 'text'
+}
+
+export const coerceValue = (value: unknown, type: DataType): CellValue => {
+  if (isBlank(value)) return null
+  if (type === 'number') return typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''))
+  if (type === 'boolean') return typeof value === 'boolean' ? value : /^(true|yes)$/i.test(String(value).trim())
+  if (type === 'date') {
+    const date = value instanceof Date ? value : new Date(String(value))
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString()
+  }
+  return String(value)
+}
+
+export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset => {
+  const nonempty = matrix.filter((row) => row.some((value) => !isBlank(value)))
+  if (!nonempty.length) throw new Error('The selected file or worksheet is empty.')
+  const width = Math.max(...nonempty.map((row) => row.length))
+  const usedNames = new Set<string>()
+  const headers = Array.from({ length: width }, (_, index) => normalizedHeader(nonempty[0][index], index, usedNames))
+  const sourceRows = nonempty.slice(1)
+  const types = headers.map((_, columnIndex) => inferDataType(sourceRows.map((row) => row[columnIndex])))
+  const columns: DataColumn[] = headers.map((columnName, index) => ({
+    id: columnId(columnName, index),
+    name: columnName,
+    dataType: types[index],
+    modelingType: types[index] === 'number' || types[index] === 'date' ? 'continuous' : 'nominal',
+  }))
+
+  return {
+    name,
+    columns,
+    rows: sourceRows.map((sourceRow, rowIndex) => ({
+      id: `row-${rowIndex + 1}`,
+      excluded: false,
+      values: Object.fromEntries(columns.map((column, columnIndex) => [column.id, coerceValue(sourceRow[columnIndex], column.dataType)])),
+    })),
+  }
+}
+
+export const importTabularFile = async (file: File): Promise<ImportedSheet[]> => {
+  const extension = file.name.split('.').pop()?.toLocaleLowerCase()
+  const baseName = file.name.replace(/\.[^.]+$/, '')
+  if (extension === 'csv' || extension === 'tsv' || extension === 'txt') {
+    const text = await file.text()
+    const parsed = Papa.parse<string[]>(text, {
+      delimiter: extension === 'tsv' ? '\t' : '',
+      skipEmptyLines: 'greedy',
+    })
+    if (parsed.errors.length && !parsed.data.length) throw new Error(parsed.errors[0].message)
+    return [{ name: baseName, dataset: datasetFromMatrix(parsed.data, baseName) }]
+  }
+
+  if (extension === 'xlsx' || extension === 'xls') {
+    const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true })
+    return workbook.SheetNames.map((sheetName) => ({
+      name: sheetName,
+      dataset: datasetFromMatrix(XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, raw: true, defval: null }), `${baseName} · ${sheetName}`),
+    }))
+  }
+
+  throw new Error('Choose a CSV, TSV, XLSX, or XLS file.')
+}
