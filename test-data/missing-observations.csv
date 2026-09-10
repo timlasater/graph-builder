@@ -1,0 +1,4 @@
+Prototype,Pressure,Dose,Recorded At
+A,20,52.1,2026-01-01
+A,30,,2026-01-02
+B,,59.2,invalid-date

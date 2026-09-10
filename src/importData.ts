@@ -1,6 +1,6 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
-import type { CellValue, DataColumn, DataType, Dataset } from './types'
+import type { CellValue, DataColumn, DataType, Dataset, DataWarning } from './types'
 
 export interface ImportedSheet {
   name: string
@@ -40,7 +40,7 @@ export const inferDataType = (values: unknown[]): DataType => {
 
 export const coerceValue = (value: unknown, type: DataType): CellValue => {
   if (isBlank(value)) return null
-  if (type === 'number') return typeof value === 'number' ? value : Number(String(value).replace(/,/g, ''))
+  if (type === 'number') { const numeric = typeof value === 'number' ? value : Number(String(value).replace(/,/g, '')); return Number.isFinite(numeric) ? numeric : null }
   if (type === 'boolean') return typeof value === 'boolean' ? value : /^(true|yes)$/i.test(String(value).trim())
   if (type === 'date') {
     const date = value instanceof Date ? value : new Date(String(value))
@@ -54,7 +54,16 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
   if (!nonempty.length) throw new Error('The selected file or worksheet is empty.')
   const width = Math.max(...nonempty.map((row) => row.length))
   const usedNames = new Set<string>()
-  const headers = Array.from({ length: width }, (_, index) => normalizedHeader(nonempty[0][index], index, usedNames))
+  const warnings: DataWarning[] = []
+  const rawHeaders = Array.from({ length: width }, (_, index) => nonempty[0][index])
+  const seenHeaders = new Set<string>()
+  rawHeaders.forEach((value, index) => {
+    const heading = String(value ?? '').trim()
+    if (!heading) warnings.push({ code: 'empty-heading', message: `Column ${index + 1} had an empty heading and was renamed.` })
+    else if (seenHeaders.has(heading.toLocaleLowerCase())) warnings.push({ code: 'duplicate-heading', message: `Duplicate heading “${heading}” was renamed.` })
+    seenHeaders.add(heading.toLocaleLowerCase())
+  })
+  const headers = rawHeaders.map((value, index) => normalizedHeader(value, index, usedNames))
   const sourceRows = nonempty.slice(1)
   const types = headers.map((_, columnIndex) => inferDataType(sourceRows.map((row) => row[columnIndex])))
   const columns: DataColumn[] = headers.map((columnName, index) => ({
@@ -63,10 +72,18 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
     dataType: types[index],
     modelingType: types[index] === 'number' || types[index] === 'date' ? 'continuous' : 'nominal',
   }))
+  columns.forEach((column, columnIndex) => {
+    const present = sourceRows.map((row) => row[columnIndex]).filter((value) => !isBlank(value))
+    const kinds = new Set(present.map((value) => inferDataType([value])))
+    if (kinds.size > 1) warnings.push({ code: 'mixed-types', columnId: column.id, message: `${column.name} contains mixed value types and was imported as ${column.dataType}.` })
+    const dateLike = present.filter(looksLikeDate).length
+    if (dateLike > 0 && dateLike < present.length) warnings.push({ code: 'invalid-date', columnId: column.id, message: `${column.name} contains values mixed with invalid dates.` })
+  })
 
   return {
     name,
     columns,
+    warnings,
     rows: sourceRows.map((sourceRow, rowIndex) => ({
       id: `row-${rowIndex + 1}`,
       excluded: false,

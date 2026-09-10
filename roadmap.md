@@ -56,6 +56,8 @@ Keep these checks passing. Add focused tests with each behavioral change. Do not
 
 ## Phase 2 completion — Data quality and formulas
 
+Status: complete (September 2026). Import diagnostics, missingness summaries, Excel paste, stable-ID calculated columns, value labels, persistent filters, dataset undo/redo, and representative fixtures are implemented and tested.
+
 Finish the remaining data-table capabilities before expanding the plot engine.
 
 Deliverables:
@@ -79,6 +81,8 @@ Acceptance criteria:
 - Import and formula tests cover blank cells, duplicate headings, mixed types, and invalid formulas.
 
 ## Phase 3 completion — Full Graph Builder interaction
+
+Status: complete (September 2026). Ordered multi-variable axes, layered marks/summaries/fits, per-layer overrides, Shape/Weight/Page roles, suggestions, compatibility feedback, and atomic interaction history are implemented and tested.
 
 Extend the existing role system instead of creating graph-specific configuration dialogs.
 
@@ -131,6 +135,8 @@ Acceptance criteria:
 - Each plot type has transformation tests and at least one interaction test.
 
 ## Phase 5 — Statistical transformation engine
+
+Status: in progress. Mean layers now support tested SD, SE, 95% Student's t confidence-interval, and range error bars from raw observations; the remaining deliverables below are not yet complete.
 
 This is the highest-risk phase. Build statistics as a standalone tested module before wiring controls into the UI.
 
@@ -265,9 +271,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Start with a narrow Phase 2 vertical slice: add persistent filters and an import-warning model, expose warnings in the UI, and ensure graphs and the data table use the same filtered/included row set. This establishes the data pipeline needed by later statistics and linked selection.
-
-Do not start formula columns and the statistical engine simultaneously. Finish and test the shared active-row/filter pipeline first.
+Begin Phase 4 with histogram transformations and controls, keeping plot-specific calculations outside `GraphCanvas` and covered by transformation tests.
 
 ## Definition of done for every task
 

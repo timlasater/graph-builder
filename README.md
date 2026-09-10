@@ -7,6 +7,12 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Three-panel desktop-style interface
 - Typed example engineering dataset
 - Drag variables onto X, Y, Color, Group X, Group Y, Wrap, Overlay, and Size roles
+- Multiple ordered assignments on X and Y, with drag reordering and Swap X/Y
+- Shape, Frequency/Weight, and Page roles with subset stepping
+- Layered points, lines, bars, replicate-mean lines (weighted when requested), and linear fits
+- Per-layer variable overrides, colors, marker sizes, and line widths
+- Type-aware graph suggestions and centralized compatibility feedback
+- Mean-line error bars for sample SD, standard error, 95% Student's t confidence intervals, and range
 - Grouped panels and wrapped facet grids
 - Overlay traces and numeric marker-size mapping
 - Move assigned variables directly between roles or drag them back to the Variables panel
@@ -16,10 +22,15 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Automatic numeric, text, Boolean, and date/time inference
 - Editable, sortable, filterable, paginated data table with row exclusion
 - Column renaming and manual data/modeling-type controls
+- Import-quality warnings and per-column missing-value summaries
+- Rectangular tab-separated paste from Excel
+- Drag-to-filter drop target with categorical checklists and numeric bounds, shared by the data table and graph
+- Restricted calculated columns with atomic errors and domain warnings
+- Optional value labels such as `1 = Prototype A`
 - Interactive points, lines, and bar charts
 - Hover tooltips and Plotly zoom controls
 - Editable title, subtitle, grid lines, and marker size
-- Undo and redo for graph changes
+- Undo and redo for graph and complete dataset changes
 
 ## Run locally
 
@@ -38,6 +49,6 @@ npm test
 npm run build
 ```
 
-The next milestone adds more graph elements, summary statistics, and error bars.
+Phases 2 and 3 are complete. The next milestone expands plot types and the layer transformation engine.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.

@@ -14,6 +14,7 @@ export const sampleDataset: Dataset = {
     { id: 'run', name: 'Run', dataType: 'number', modelingType: 'ordinal' },
     { id: 'passed', name: 'Passed', dataType: 'boolean', modelingType: 'nominal' },
   ],
+  warnings: [],
   rows: prototypes.flatMap((prototype, prototypeIndex) =>
     pressures.flatMap((pressure, pressureIndex) =>
       offsets.map((offset, runIndex) => {

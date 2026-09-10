@@ -20,5 +20,12 @@ describe('tabular data import', () => {
     expect(dataset.columns[0].dataType).toBe('number')
     expect(dataset.rows[0].values[dataset.columns[1].id]).toBeNull()
     expect(dataset.rows).toHaveLength(2)
+    expect(dataset.warnings.map((warning) => warning.code)).toEqual(['duplicate-heading', 'empty-heading'])
+  })
+
+  it('warns about mixed values and invalid dates', () => {
+    const dataset = datasetFromMatrix([['Recorded'], ['2026-01-01'], ['not-a-date']], 'Dates')
+    expect(dataset.warnings.map((warning) => warning.code)).toContain('mixed-types')
+    expect(dataset.warnings.map((warning) => warning.code)).toContain('invalid-date')
   })
 })
