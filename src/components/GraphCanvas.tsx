@@ -1,4 +1,4 @@
-import { linearFit, stableCategoryOrder } from '../plotTransforms'
+import { aggregateBars, histogramBins, linearFit, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
 import { errorBarExtent, summaryStatistics } from '../statistics'
 import { rowMatchesFilters, useBuilderStore } from '../store'
 import type { DataColumn, DataRow, GraphLayer } from '../types'
@@ -37,7 +37,7 @@ export function GraphCanvas() {
   const displayValue = (column: DataColumn, value: unknown) => column.valueLabels?.[String(value)] ?? value
   const pairsFor = (layer: GraphLayer) => {
     const x = layer.x ? [columnFor(layer.x)].filter((column): column is DataColumn => Boolean(column)) : sharedX
-    const y = layer.y ? [columnFor(layer.y)].filter((column): column is DataColumn => Boolean(column)) : sharedY
+    const y = layer.element === 'histogram' ? sharedY.slice(0, 1) : layer.y ? [columnFor(layer.y)].filter((column): column is DataColumn => Boolean(column)) : sharedY
     return x.flatMap((xColumn) => y.map((yColumn) => ({ xColumn, yColumn })))
   }
   const legendEntries = new Set<string>()
@@ -60,23 +60,56 @@ export function GraphCanvas() {
         const errorType = layer.errorBar ?? 'sd'; const extents = summaries.map((summary) => errorBarExtent(summary, errorType)); const errorLabel = errorType === 'ci95' ? '95% CI' : errorType.toUpperCase()
         return { ...base, type: 'scatter', mode: 'lines+markers', x: groups, y: summaries.map((summary) => summary.mean), marker: { color, size: layer.markerSize ?? spec.markerSize }, customdata: summaries.map((summary) => [summary.n]), error_y: errorType === 'none' ? undefined : { type: 'data', visible: true, symmetric: false, array: extents.map((extent) => extent?.plus ?? 0), arrayminus: extents.map((extent) => extent?.minus ?? 0), color, thickness: 1.5, width: 4 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>Mean ${yColumn.name}: %{y:.4g}<br>n: %{customdata[0]}<br>Error bars: ${errorLabel}<extra></extra>` }
       }
+      if (layer.element === 'histogram') {
+        const panelValues = facet.rows.map((row) => row.values[xColumn.id] === null ? Number.NaN : Number(row.values[xColumn.id])).filter(Number.isFinite); const domain: [number, number] | undefined = panelValues.length ? [Math.min(...panelValues), Math.max(...panelValues)] : undefined
+        const bins = histogramBins(rows.map((row) => row.values[xColumn.id] === null ? Number.NaN : Number(row.values[xColumn.id])), layer.binCount ?? 10, domain)
+        return { ...base, type: 'bar', x: bins.centers, y: bins.counts, width: bins.centers.map(() => bins.width * 0.94), marker: { color, opacity: 0.82 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>Count: %{y}<extra></extra>` }
+      }
+      if (layer.element === 'box') return { ...base, type: 'box', x: rows.map((row) => String(displayValue(xColumn, row.values[xColumn.id]))), y: rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])), marker: { color, size: layer.markerSize ?? spec.markerSize }, line: { color, width: layer.lineWidth ?? 2 }, quartilemethod: 'linear', boxpoints: layer.boxPoints === 'none' ? false : layer.boxPoints ?? 'outliers', jitter: layer.boxPoints === 'all' ? 0.28 : 0, pointpos: 0, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
+      if (layer.element === 'bar') {
+        const bars = aggregateBars(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])), layer.barAggregation ?? 'mean')
+        return { ...base, type: 'bar', x: bars.map((bar) => bar.key), y: bars.map((bar) => bar.value), customdata: bars.map((bar) => [bar.n]), marker: { color, opacity: 0.84 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${layer.barAggregation ?? 'mean'}: %{y:.4g}<br>n: %{customdata[0]}<extra></extra>` }
+      }
+      if (layer.element === 'area') {
+        const series = sortedSeries(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])))
+        const stackable = layer.stack && stackCompatibility(facet.rows, xColumn.id, colorColumn?.id ?? overlayColumn?.id).compatible
+        return { ...base, type: 'scatter', mode: 'lines', x: series.map((point) => point.x), y: series.map((point) => point.y), fill: 'tozeroy', stackgroup: stackable ? `stack-${facetIndex}-${xColumn.id}-${yColumn.id}` : undefined, line: { color, width: layer.lineWidth ?? 2.5 }, fillcolor: `${color}55` }
+      }
       const sizingColumn = sizeColumn ?? weightColumn; const sizeValues = sizingColumn ? rows.map((row) => row.values[sizingColumn.id]) : rows.map(() => layer.markerSize ?? spec.markerSize)
       const shapeValues = shapeColumn ? uniqueValues(includedRows, shapeColumn.id) : []
-      return { ...base, type: layer.element === 'bar' ? 'bar' : 'scatter', mode: layer.element === 'line' ? 'lines+markers' : 'markers', x: rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), y: rows.map((row) => displayValue(yColumn, row.values[yColumn.id])), marker: { color, size: scaleMarkerSizes(sizeValues, layer.markerSize ?? spec.markerSize), symbol: shapeColumn ? rows.map((row) => symbols[Math.max(0, shapeValues.indexOf(String(row.values[shapeColumn.id]))) % symbols.length]) : undefined, opacity: 0.82 }, customdata: rows.map((row) => row.id) }
+      const series = layer.element === 'line' ? sortedSeries(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id]))) : undefined
+      return { ...base, type: 'scatter', mode: layer.element === 'line' ? 'lines+markers' : 'markers', x: series ? series.map((point) => point.x) : rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), y: series ? series.map((point) => point.y) : rows.map((row) => displayValue(yColumn, row.values[yColumn.id])), marker: { color, size: scaleMarkerSizes(sizeValues, layer.markerSize ?? spec.markerSize), symbol: shapeColumn ? rows.map((row) => symbols[Math.max(0, shapeValues.indexOf(String(row.values[shapeColumn.id]))) % symbols.length]) : undefined, opacity: 0.82 }, customdata: rows.map((row) => row.id) }
     })
   })))
 
-  const xCategories = sharedX.length === 1 && sharedX[0].modelingType !== 'continuous' ? stableCategoryOrder(includedRows.map((row) => row.values[sharedX[0].id]), sharedX[0]) : undefined
+  const categoricalXLayer = spec.layers.some((layer) => layer.element === 'box' || layer.element === 'bar')
+  const xCategories = sharedX.length === 1 && (sharedX[0].modelingType !== 'continuous' || categoricalXLayer) ? stableCategoryOrder(includedRows.map((row) => row.values[sharedX[0].id]), sharedX[0]) : undefined
   const yCategories = sharedY.length === 1 && sharedY[0].modelingType !== 'continuous' ? stableCategoryOrder(includedRows.map((row) => row.values[sharedY[0].id]), sharedY[0]) : undefined
   const horizontalGap = facetColumns > 1 ? 0.08 : 0; const verticalGap = facetRows > 1 ? 0.13 : 0; const cellWidth = (1 - horizontalGap * (facetColumns - 1)) / facetColumns; const cellHeight = (1 - verticalGap * (facetRows - 1)) / facetRows
-  const axes: Record<string, unknown> = {}; const annotations: unknown[] = []; const xTitle = sharedX.map(columnLabel).join(' / '); const yTitle = sharedY.map(columnLabel).join(' / ')
+  const axes: Record<string, unknown> = {}; const annotations: unknown[] = []; const shapes: unknown[] = []; const xTitle = sharedX.map(columnLabel).join(' / '); const yTitle = spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / ')
   facets.forEach((facet, index) => {
     const number = index + 1; const xStart = facet.column * (cellWidth + horizontalGap); const yTop = 1 - facet.row * (cellHeight + verticalGap); const xKey = number === 1 ? 'xaxis' : `xaxis${number}`; const yKey = number === 1 ? 'yaxis' : `yaxis${number}`
     axes[xKey] = { domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, title: facet.row === facetRows - 1 ? xTitle : '', gridcolor: spec.showGrid ? '#e5e9ed' : 'transparent', zeroline: false, ...(xCategories ? { type: 'category', categoryorder: 'array', categoryarray: xCategories } : {}) }
     axes[yKey] = { domain: [yTop - cellHeight, yTop], anchor: number === 1 ? 'x' : `x${number}`, title: !groupYColumn && facet.column === 0 ? yTitle : '', gridcolor: spec.showGrid ? '#e5e9ed' : 'transparent', zeroline: false, ...(yCategories ? { type: 'category', categoryorder: 'array', categoryarray: yCategories } : {}) }
     if (facet.label) annotations.push({ text: `<b>${facet.label}</b>`, x: xStart + cellWidth / 2, y: yTop + 0.035, xref: 'paper', yref: 'paper', showarrow: false, font: { size: 10, color: '#53656e' } })
+    const xRef = number === 1 ? 'x' : `x${number}`; const yRef = number === 1 ? 'y' : `y${number}`
+    spec.referenceLines?.forEach((line) => {
+      const shape = line.axis === 'x'
+        ? { type: 'line', xref: xRef, yref: `${yRef} domain`, x0: line.value, x1: line.value, y0: 0, y1: 1, line: { color: line.color, width: 2, dash: 'dash' } }
+        : { type: 'line', xref: `${xRef} domain`, yref: yRef, x0: 0, x1: 1, y0: line.value, y1: line.value, line: { color: line.color, width: 2, dash: 'dash' } }
+      shapes.push(shape)
+      if (line.label) annotations.push(line.axis === 'x' ? { text: line.label, x: line.value, y: 0.98, xref: xRef, yref: `${yRef} domain`, showarrow: false, xanchor: 'left', font: { size: 10, color: line.color } } : { text: line.label, x: 0.98, y: line.value, xref: `${xRef} domain`, yref: yRef, showarrow: false, xanchor: 'right', font: { size: 10, color: line.color } })
+    })
+    spec.referenceRegions?.forEach((region) => {
+      const shape = region.axis === 'x'
+        ? { type: 'rect', xref: xRef, yref: `${yRef} domain`, x0: region.min, x1: region.max, y0: 0, y1: 1, fillcolor: `${region.color}28`, line: { width: 0 }, layer: 'below' }
+        : { type: 'rect', xref: `${xRef} domain`, yref: yRef, x0: 0, x1: 1, y0: region.min, y1: region.max, fillcolor: `${region.color}28`, line: { width: 0 }, layer: 'below' }
+      shapes.push(shape)
+      if (region.label) annotations.push(region.axis === 'x' ? { text: region.label, x: (region.min + region.max) / 2, y: 0.98, xref: xRef, yref: `${yRef} domain`, showarrow: false, font: { size: 10, color: region.color } } : { text: region.label, x: 0.98, y: (region.min + region.max) / 2, xref: `${xRef} domain`, yref: yRef, showarrow: false, xanchor: 'right', font: { size: 10, color: region.color } })
+    })
   })
   if (!wrapColumn && groupXColumn) groupXValues.forEach((value, column) => annotations.push({ text: `<b>${value}</b>`, x: column * (cellWidth + horizontalGap) + cellWidth / 2, y: 1.035, xref: 'paper', yref: 'paper', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
   if (!wrapColumn && groupYColumn) groupYValues.forEach((value, row) => annotations.push({ text: `<b>${value}</b>`, x: -0.075, y: 1 - row * (cellHeight + verticalGap) - cellHeight / 2, xref: 'paper', yref: 'paper', xanchor: 'right', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
-  return <PlotlyChart data={data} layout={{ ...axes, autosize: true, title: { text: `<b>${spec.title}</b><br><span style="font-size:12px;color:#68737d">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, paper_bgcolor: '#ffffff', plot_bgcolor: '#fbfcfd', font: { family: 'Segoe UI, sans-serif', color: '#24313a', size: 12 }, margin: { l: groupYColumn ? 148 : 66, r: 24, t: groupXColumn ? 126 : 100, b: 74 }, legend: { orientation: 'h', x: 0, y: -0.2 }, hovermode: 'closest', bargap: 0.18 }} config={{ responsive: true, displaylogo: false, doubleClickDelay: 500, modeBarButtonsToRemove: ['sendDataToCloud', 'lasso2d'] }} />
+  const stackedBars = spec.layers.some((layer) => layer.element === 'bar' && layer.stack && stackCompatibility(includedRows, layer.x ?? spec.x[0], layer.color ?? spec.color ?? spec.overlay).compatible)
+  return <PlotlyChart data={data} layout={{ ...axes, autosize: true, title: { text: `<b>${spec.title}</b><br><span style="font-size:12px;color:#68737d">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: '#ffffff', plot_bgcolor: '#fbfcfd', font: { family: 'Segoe UI, sans-serif', color: '#24313a', size: 12 }, margin: { l: groupYColumn ? 148 : 66, r: 24, t: groupXColumn ? 126 : 100, b: 74 }, legend: { orientation: 'h', x: 0, y: -0.2 }, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: 0.18 }} config={{ responsive: true, displaylogo: false, doubleClickDelay: 500, modeBarButtonsToRemove: ['sendDataToCloud', 'lasso2d'] }} />
 }

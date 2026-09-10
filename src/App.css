@@ -13,11 +13,11 @@
 .toolbar-actions .secondary { border: 1px solid #ffffff35; padding: 0 10px; font-size: 12px; }
 .toolbar-actions .import-button { background: #13828b; padding: 0 13px; font-size: 12px; font-weight: 650; }
 .visually-hidden { position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.workspace { flex: 1; display: grid; grid-template-columns: 250px minmax(520px, 1fr) 264px; min-height: calc(100vh - 56px); }
+.workspace { flex: 1; height: calc(100vh - 56px); min-height: 0; overflow: hidden; display: grid; grid-template-columns: minmax(190px, 250px) minmax(0, 1fr) minmax(240px, 280px); }
 .panel { background: var(--panel); padding: 18px 16px; }
-.variables-panel { border-right: 1px solid var(--line); position: relative; }
+.variables-panel { border-right: 1px solid var(--line); position: relative; min-height: 0; overflow-y: auto; }
 .variables-panel.drop-active { background: #e4f1f1; box-shadow: inset 0 0 0 2px #63a9ad; }
-.properties-panel { border-left: 1px solid var(--line); }
+.properties-panel { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; border-left: 1px solid var(--line); }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .panel-heading h2 { font-size: 17px; margin: 2px 0 0; font-weight: 650; }
 .eyebrow, .tool-label { font-size: 9px; letter-spacing: 1.2px; font-weight: 750; color: #7a8992; }
@@ -44,26 +44,40 @@
 .data-summary { position: absolute; bottom: 16px; color: #6f7e87; font-size: 10px; }
 .data-summary span { margin: 0 3px; }
 .data-summary button { display: block; border: 0; background: transparent; padding: 8px 0 0; color: var(--teal); font-size: 11px; cursor: pointer; }
-.builder-area { background: #edf1f3; display: flex; flex-direction: column; min-width: 0; }
-.element-toolbar { height: 49px; border-bottom: 1px solid var(--line); background: #f7f9fa; display: flex; align-items: center; gap: 6px; padding: 0 14px; }
+.builder-area { background: #edf1f3; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.element-toolbar { height: 49px; border-bottom: 1px solid var(--line); background: #f7f9fa; display: flex; align-items: center; gap: 6px; padding: 0 14px; overflow-x: auto; overflow-y: hidden; }
 .tool-label { margin-right: 5px; }
 .element-toolbar button { display: flex; align-items: center; gap: 5px; height: 31px; border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 0 9px; font-size: 11px; cursor: pointer; }
 .element-toolbar button span { font-size: 15px; color: #607780; }
+.element-toolbar button { flex: 0 0 auto; }
 .element-toolbar button:hover { background: #e9eef0; }
 .element-toolbar button:disabled { cursor: default; opacity: 0.58; background: transparent; }
 .element-toolbar .suggest-button:not(:disabled) { color: var(--teal); background: var(--teal-soft); border-color: #b8d8da; }
+.reference-controls { display: grid; gap: 6px; margin-top: 10px; }
+.reference-heading { display: flex; align-items: center; justify-content: space-between; margin-top: 5px; font-size: 10px; color: #53656e; }
+.reference-heading button, .reference-row button { border: 1px solid #ccd7da; border-radius: 4px; background: #f7fafb; color: #40545e; cursor: pointer; font-size: 10px; }
+.reference-row { display: grid; grid-template-columns: 42px 58px minmax(54px, 1fr) 28px 24px; gap: 4px; }
+.reference-row.region { grid-template-columns: 42px 54px 54px 28px 24px; }
+.reference-row input, .reference-row select { min-width: 0; width: 100%; padding: 4px; border: 1px solid #ccd7da; border-radius: 4px; font-size: 10px; }
+.reference-row input[type="color"] { padding: 2px; }
+.setting-warning { display: block; margin: -4px 0 7px; color: #9a5a22; line-height: 1.35; }
 .element-toolbar button.active { color: var(--teal); background: var(--teal-soft); border-color: #b8d8da; font-weight: 650; }
 .toolbar-spacer { flex: 1; }
 .offline-pill { color: #548063; background: #e5f3e9; border: 1px solid #c8e3d0; border-radius: 20px; font-size: 10px; padding: 4px 9px; }
-.graph-builder-grid { flex: 1; display: grid; grid-template-columns: 132px minmax(390px, 1fr) 116px; grid-template-rows: 58px minmax(340px, 1fr) 64px; gap: 8px; padding: 12px; min-height: 0; }
+.graph-builder-grid { flex: 1; display: grid; gap: 8px; padding: 12px; min-width: 0; min-height: 0; overflow: auto; align-content: start; }
 .filter-zone { grid-column: 1; grid-row: 1; }
 .filter-drop-zone { flex-direction: column; gap: 3px; cursor: default; }.filter-drop-zone.filled { cursor: pointer; }.filter-drop-zone.filled:hover { border-color: #5a969b; background: #edf7f7; }
 .group-x-zone { grid-column: 2; grid-row: 1; }
 .wrap-zone { grid-column: 3; grid-row: 1; }
 .group-y-zone { grid-column: 1; grid-row: 3; }
 .y-zone { grid-column: 1; grid-row: 2; }
-.graph-card { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; border: 1px solid #cfd7db; border-radius: 7px; background: white; box-shadow: 0 2px 8px #42566013; overflow: hidden; }
+.graph-card { position: relative; grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; border: 1px solid #cfd7db; border-radius: 7px; background: white; box-shadow: 0 2px 8px #42566013; overflow: hidden; }
 .graph-card.layer-drop-active { border: 2px solid #18858c; box-shadow: 0 0 0 4px #38a5ab2b; }
+.canvas-resize-handle { position: absolute; z-index: 8; margin: 0; padding: 0; border: 0; background: transparent; touch-action: none; }
+.canvas-resize-handle.horizontal { top: 12px; right: -1px; bottom: 18px; width: 8px; cursor: ew-resize; }
+.canvas-resize-handle.vertical { right: 18px; bottom: -1px; left: 12px; height: 8px; cursor: ns-resize; }
+.canvas-resize-handle.corner { right: 1px; bottom: 1px; width: 16px; height: 16px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 45%, #91a2aa 46%, #91a2aa 54%, transparent 55%, transparent 68%, #91a2aa 69%, #91a2aa 77%, transparent 78%); }
+.canvas-resize-handle:focus-visible { outline: 2px solid #16838b; outline-offset: -2px; }
 .x-zone { grid-column: 2; grid-row: 3; }
 .encoding-zones { grid-column: 3; grid-row: 2 / 4; display: grid; grid-template-rows: repeat(6, minmax(46px, 1fr)); gap: 6px; }
 .drop-zone { width: 100%; height: 100%; border: 1px dashed #aebac0; border-radius: 6px; background: #ffffff85; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 7px; transition: .15s ease; }

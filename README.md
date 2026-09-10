@@ -9,7 +9,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Drag variables onto X, Y, Color, Group X, Group Y, Wrap, Overlay, and Size roles
 - Multiple ordered assignments on X and Y, with drag reordering and Swap X/Y
 - Shape, Frequency/Weight, and Page roles with subset stepping
-- Layered points, lines, bars, replicate-mean lines (weighted when requested), and linear fits
+- Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, replicate-mean lines, and linear fits
 - Per-layer variable overrides, colors, marker sizes, and line widths
 - Type-aware graph suggestions and centralized compatibility feedback
 - Mean-line error bars for sample SD, standard error, 95% Student's t confidence intervals, and range
@@ -30,6 +30,8 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Interactive points, lines, and bar charts
 - Hover tooltips and Plotly zoom controls
 - Editable title, subtitle, grid lines, and marker size
+- Reference lines and shaded specification/acceptance regions across facets
+- Resizable graph canvas with a viewport-fitted default and an independently scrolling Properties panel
 - Undo and redo for graph and complete dataset changes
 
 ## Run locally
@@ -49,6 +51,6 @@ npm test
 npm run build
 ```
 
-Phases 2 and 3 are complete. The next milestone expands plot types and the layer transformation engine.
+Phases 2, 3, and 4 are complete. Phase 5 expands the standalone statistical transformation engine.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.

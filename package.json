@@ -17,7 +17,7 @@
     "ag-grid-community": "^36.1.0",
     "ag-grid-react": "^36.1.0",
     "papaparse": "^5.7.0",
-    "plotly.js-basic-dist-min": "^4.1.0",
+    "plotly.js-dist-min": "^4.1.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",

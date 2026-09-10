@@ -1,8 +1,10 @@
 export type DataType = 'number' | 'text' | 'date' | 'boolean'
 export type ModelingType = 'continuous' | 'nominal' | 'ordinal'
 export type GraphRole = 'x' | 'y' | 'color' | 'groupX' | 'groupY' | 'wrap' | 'overlay' | 'size' | 'shape' | 'weight' | 'page'
-export type GraphElement = 'points' | 'line' | 'bar' | 'summary' | 'fit'
+export type GraphElement = 'points' | 'line' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit'
 export type ErrorBarType = 'none' | 'sd' | 'se' | 'ci95' | 'range'
+export type BarAggregation = 'mean' | 'sum' | 'count'
+export type BoxPointMode = 'outliers' | 'all' | 'none'
 
 export type CellValue = string | number | boolean | null
 
@@ -65,7 +67,12 @@ export interface GraphSpec {
   activeLayerId: string
   showGrid: boolean
   markerSize: number
+  referenceLines?: ReferenceLine[]
+  referenceRegions?: ReferenceRegion[]
 }
+
+export interface ReferenceLine { id: string; axis: 'x' | 'y'; value: number; label?: string; color: string }
+export interface ReferenceRegion { id: string; axis: 'x' | 'y'; min: number; max: number; label?: string; color: string }
 
 export interface GraphLayer {
   id: string
@@ -78,4 +85,8 @@ export interface GraphLayer {
   markerSize?: number
   lineWidth?: number
   errorBar?: ErrorBarType
+  binCount?: number
+  boxPoints?: BoxPointMode
+  barAggregation?: BarAggregation
+  stack?: boolean
 }

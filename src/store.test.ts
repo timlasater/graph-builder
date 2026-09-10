@@ -64,6 +64,15 @@ describe('data history and filters', () => {
     expect(after.x).toEqual(before.x); expect(after.y).toEqual(before.y); expect(after.color).toBe(before.color)
     expect(after.layers[0].element).toBe('bar')
   })
+
+  it('adds and configures a Phase 4 layer through undoable store actions', () => {
+    useBuilderStore.getState().addLayer('histogram')
+    const layer = useBuilderStore.getState().spec.layers.at(-1)!
+    useBuilderStore.getState().updateLayer(layer.id, { binCount: 12 })
+    expect(useBuilderStore.getState().spec.layers.at(-1)).toMatchObject({ element: 'histogram', binCount: 12 })
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().spec.layers.at(-1)?.binCount).toBeUndefined()
+  })
 })
 
 describe('role assignment moves', () => {

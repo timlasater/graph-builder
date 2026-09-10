@@ -109,6 +109,8 @@ Acceptance criteria:
 
 ## Phase 4 — Plot types and layer engine
 
+Status: complete (September 2026). Histogram, box-plot, aggregated grouped/stacked bar, area/stacked-area, multi-layer, and reference-line/region paths are implemented with transformation tests and stacking validation.
+
 Implement plotting paths in this order:
 
 1. Histograms
@@ -271,7 +273,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Begin Phase 4 with histogram transformations and controls, keeping plot-specific calculations outside `GraphCanvas` and covered by transformation tests.
+Continue Phase 5 with selectable confidence levels, individual-observation overlays, precomputed summary/error inputs, the remaining descriptive statistics, and regression diagnostics.
 
 ## Definition of done for every task
 
