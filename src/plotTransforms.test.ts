@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateBars, boxSummary, histogramBins, linearFit, numericOrNaN, sortedSeries, stableCategoryOrder, stackCompatibility, weightedMean } from './plotTransforms'
+import { aggregateBars, boxSummary, histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, sortedSeries, stableCategoryOrder, stackCompatibility, weightedMean } from './plotTransforms'
 import type { DataRow } from './types'
 
 describe('layer transformations', () => {
+  it('applies and edits a persistent categorical order', () => {
+    expect(orderByPreference(['A', 'B', 'C'], ['C', 'A'])).toEqual(['C', 'A', 'B'])
+    expect(orderByPreference(['A', 'B', 'C'], ['C', 'C', 'A'])).toEqual(['C', 'A', 'B'])
+    expect(moveOrderedValue(['A', 'B', 'C'], 'C', 'A')).toEqual(['C', 'A', 'B'])
+    expect(moveOrderedValue(['A', 'B'], 'missing', 'A')).toEqual(['A', 'B'])
+  })
   it('computes weighted summaries', () => expect(weightedMean([10, 20], [1, 3])).toBe(17.5))
   it('computes a linear fit', () => expect(linearFit([1, 2, 3], [2, 4, 6])).toMatchObject({ x: [1, 3], y: [2, 6], slope: 2, intercept: 0 }))
   it('does not fit degenerate inputs', () => expect(linearFit([1, 1], [2, 3])).toBeNull())

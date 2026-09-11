@@ -67,6 +67,9 @@ export interface GraphSpec {
   activeLayerId: string
   showGrid: boolean
   markerSize: number
+  legendOrder?: string[]
+  seriesColors?: Record<string, string>
+  hiddenSeries?: string[]
   referenceLines?: ReferenceLine[]
   referenceRegions?: ReferenceRegion[]
 }

@@ -26,6 +26,20 @@ export const weightedMean = (values: number[], weights?: number[]) => {
 
 export const numericOrNaN = (value: unknown) => value === null || value === undefined || value === '' ? Number.NaN : Number(value)
 
+export const orderByPreference = (values: string[], preferred: string[] = []) => {
+  const available = new Set(values); const used = new Set<string>()
+  const ordered: string[] = []
+  preferred.forEach((value) => { if (available.has(value) && !used.has(value)) { used.add(value); ordered.push(value) } })
+  return [...ordered, ...values.filter((value) => !used.has(value))]
+}
+
+export const moveOrderedValue = (values: string[], source: string, target: string) => {
+  const from = values.indexOf(source); const to = values.indexOf(target)
+  if (from < 0 || to < 0 || from === to) return values
+  const next = [...values]; const [moved] = next.splice(from, 1); next.splice(to, 0, moved)
+  return next
+}
+
 export const linearFit = (x: number[], y: number[], weights?: number[]) => {
   const pairs = x.map((value, index) => ({ x: value, y: y[index], weight: weights?.[index] ?? 1 })).filter((pair) => Number.isFinite(pair.x) && Number.isFinite(pair.y) && Number.isFinite(pair.weight) && pair.weight > 0)
   if (pairs.length < 2) return null

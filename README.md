@@ -32,6 +32,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Hover tooltips and Plotly zoom controls
 - Editable title, subtitle, grid lines, and marker size
 - Reference lines and shaded specification/acceptance regions across facets
+- Draggable legend ordering with matching categorical bar order, per-series colors, and click-to-hide visibility
 - Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
 - Undo and redo for graph and complete dataset changes
 

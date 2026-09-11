@@ -84,6 +84,15 @@ describe('data history and filters', () => {
     expect(useBuilderStore.getState().spec.layers.at(-1)).toMatchObject({ errorBar: 'sd', confidenceLevel: 0.95, showObservations: false })
   })
 
+  it('stores and undoes interactive legend order, colors, and visibility', () => {
+    useBuilderStore.getState().updateSpec({ legendOrder: ['series-b', 'series-a'], seriesColors: { 'series-b': '#ff0000' }, hiddenSeries: ['series-a'] })
+    expect(useBuilderStore.getState().spec).toMatchObject({ legendOrder: ['series-b', 'series-a'], seriesColors: { 'series-b': '#ff0000' }, hiddenSeries: ['series-a'] })
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().spec.legendOrder).toBeUndefined()
+    expect(useBuilderStore.getState().spec.seriesColors).toBeUndefined()
+    expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
+  })
+
   it('recalculates formula columns after source edits and appended rows', () => {
     useBuilderStore.getState().addCalculatedColumn('Dose ratio', '[dose] / [pressure]')
     const calculated = useBuilderStore.getState().dataset.columns.at(-1)!

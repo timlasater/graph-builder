@@ -15,3 +15,16 @@ button { color: inherit; }
   width: 100%;
   height: 100%;
 }
+.chart-with-legend { width: 100%; height: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.chart-with-legend .plotly-chart { flex: 1 1 auto; height: auto; min-height: 0; }
+.interactive-legend { flex: 0 0 auto; min-height: 42px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; padding: 5px 34px 8px; border-top: 1px solid #edf0f2; background: #fff; }
+.legend-help { color: #8a979e; font-size: 10px; margin-right: 2px; }
+.interactive-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 4px 7px 4px 4px; border: 1px solid transparent; border-radius: 5px; color: #394850; background: #fff; font-size: 11px; cursor: grab; user-select: none; }
+.interactive-legend-item:hover { border-color: #cbd7db; background: #f7fafb; }
+.interactive-legend-item:focus-visible { outline: 2px solid #16838b; outline-offset: 1px; }
+.interactive-legend-item:active { cursor: grabbing; }
+.interactive-legend-item.hidden { opacity: .5; }
+.legend-grip { color: #94a1a7; font-size: 13px; }
+.legend-color { width: 18px; height: 18px; padding: 0; border: 1px solid #aebbc0; border-radius: 4px; background: transparent; cursor: pointer; }
+.legend-label { padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.interactive-legend-item.hidden .legend-label { text-decoration: line-through; }

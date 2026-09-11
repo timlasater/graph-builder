@@ -191,6 +191,8 @@ Acceptance criteria:
 
 ## Phase 7 — Axes and appearance
 
+Status: not started as a milestone. Interactive legend reordering, matching categorical bar order, per-series recoloring, and item visibility were implemented early during Phase 5.
+
 Deliverables:
 
 - Automatic/manual axis bounds, linear/log scale, reversed axes, and force-zero option
