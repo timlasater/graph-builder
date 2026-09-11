@@ -10,8 +10,16 @@ describe('summary statistics', () => {
     expect(studentTCritical(0.95, 1)).toBeCloseTo(12.7062, 3)
     expect(studentTCritical(0.95, 4)).toBeCloseTo(2.77645, 4)
   })
+  it('computes selectable two-sided Student t confidence intervals', () => {
+    const values = [2, 4, 4, 4, 5, 5, 7, 9]
+    const interval90 = summaryStatistics(values, undefined, 0.9).confidenceInterval
+    const interval99 = summaryStatistics(values, undefined, 0.99).confidenceInterval
+    expect(interval90).toBeCloseTo(1.432, 3)
+    expect(interval99).toBeCloseTo(2.64536, 5)
+    expect(interval99!).toBeGreaterThan(interval90!)
+  })
   it('returns no uncertainty for a one-observation group', () => {
-    expect(summaryStatistics([7])).toMatchObject({ n: 1, mean: 7, sd: null, se: null, ci95: null })
+    expect(summaryStatistics([7])).toMatchObject({ n: 1, mean: 7, sd: null, se: null, confidenceInterval: null })
   })
   it('omits invalid values and supports asymmetric ranges', () => {
     const result = summaryStatistics([2, Number.NaN, 5, 9])

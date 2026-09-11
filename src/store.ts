@@ -139,7 +139,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     }),
   addLayer: (element) => set((state) => {
     const id = `layer-${crypto.randomUUID()}`
-    const layer: GraphLayer = { id, name: layerName(element), element, ...(element === 'summary' ? { errorBar: 'sd' as const } : {}) }
+    const layer: GraphLayer = { id, name: layerName(element), element, ...(element === 'summary' ? { errorBar: 'sd' as const, confidenceLevel: 0.95, showObservations: false } : {}) }
     return withHistory(state, { spec: { ...state.spec, layers: [...state.spec.layers, layer], activeLayerId: id } })
   }),
   removeLayer: (layerId) => set((state) => {

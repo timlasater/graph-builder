@@ -46,7 +46,7 @@ export function GraphCanvas() {
   const data = facets.flatMap((facet, facetIndex) => spec.layers.flatMap((layer, layerIndex) => pairsFor(layer).flatMap(({ xColumn, yColumn }) => {
     const colorColumn = columnFor(layer.color ?? spec.color); const overlayColumn = columnFor(spec.overlay)
     const keys = [...new Set(facet.rows.map((row) => [colorColumn && String(row.values[colorColumn.id]), overlayColumn && String(row.values[overlayColumn.id])].filter(Boolean).join(' · ') || 'All observations'))]
-    return keys.map((key, traceIndex) => {
+    return keys.flatMap<unknown>((key, traceIndex) => {
       const rows = facet.rows.filter((row) => ([colorColumn && String(row.values[colorColumn.id]), overlayColumn && String(row.values[overlayColumn.id])].filter(Boolean).join(' · ') || 'All observations') === key)
       const axisNumber = facetIndex + 1; const colorKey = colorColumn ? String(rows[0]?.values[colorColumn.id]) : key; const colorIndex = Math.max(0, uniqueValues(includedRows, colorColumn?.id).indexOf(colorKey)); const color = layer.colorHex ?? palette[colorColumn ? colorIndex % palette.length : (layerIndex + traceIndex) % palette.length]
       const nameParts = [spec.layers.length > 1 && layer.name, (sharedX.length > 1 || sharedY.length > 1) && `${yColumn.name} vs ${xColumn.name}`, key].filter(Boolean)
@@ -58,9 +58,14 @@ export function GraphCanvas() {
       }
       if (layer.element === 'summary') {
         const groups = [...new Set(rows.map((row) => String(row.values[xColumn.id])))]
-        const summaries = groups.map((group) => { const grouped = rows.filter((row) => String(row.values[xColumn.id]) === group); return summaryStatistics(grouped.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])), weightColumn ? grouped.map((row) => row.values[weightColumn.id] === null ? Number.NaN : Number(row.values[weightColumn.id])) : undefined) })
-        const errorType = layer.errorBar ?? 'sd'; const extents = summaries.map((summary) => errorBarExtent(summary, errorType)); const errorLabel = errorType === 'ci95' ? '95% CI' : errorType.toUpperCase()
-        return { ...base, type: 'scatter', mode: 'lines+markers', x: groups, y: summaries.map((summary) => summary.mean), marker: { color, size: layer.markerSize ?? spec.markerSize }, customdata: summaries.map((summary) => [summary.n]), error_y: errorType === 'none' ? undefined : { type: 'data', visible: true, symmetric: false, array: extents.map((extent) => extent?.plus ?? 0), arrayminus: extents.map((extent) => extent?.minus ?? 0), color, thickness: 1.5, width: 4 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>Mean ${yColumn.name}: %{y:.4g}<br>n: %{customdata[0]}<br>Error bars: ${errorLabel}<extra></extra>` }
+        const confidence = layer.confidenceLevel ?? 0.95
+        const summaries = groups.map((group) => { const grouped = rows.filter((row) => String(row.values[xColumn.id]) === group); return summaryStatistics(grouped.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? grouped.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, confidence) })
+        const errorType = layer.errorBar ?? 'sd'; const extents = summaries.map((summary) => errorBarExtent(summary, errorType)); const errorLabel = errorType === 'ci' ? `${Math.round(confidence * 100)}% CI` : errorType.toUpperCase()
+        const summaryTrace = { ...base, type: 'scatter', mode: 'lines+markers', x: groups, y: summaries.map((summary) => summary.mean), marker: { color, size: layer.markerSize ?? spec.markerSize }, customdata: summaries.map((summary) => [summary.n]), error_y: errorType === 'none' ? undefined : { type: 'data', visible: true, symmetric: false, array: extents.map((extent) => extent?.plus ?? 0), arrayminus: extents.map((extent) => extent?.minus ?? 0), color, thickness: 1.5, width: 4 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>Mean ${yColumn.name}: %{y:.4g}<br>n: %{customdata[0]}<br>Error bars: ${errorLabel}<extra></extra>` }
+        if (!layer.showObservations) return summaryTrace
+        const observationRows = rows.filter((row) => Number.isFinite(numericOrNaN(row.values[yColumn.id])))
+        const observationTrace = { ...base, name: `${legendKey} observations`, showlegend: false, type: 'scatter', mode: 'markers', x: observationRows.map((row) => displayValue(xColumn, row.values[xColumn.id])), y: observationRows.map((row) => numericOrNaN(row.values[yColumn.id])), marker: { color, size: Math.max(4, (layer.markerSize ?? spec.markerSize) - 2), opacity: 0.48 }, customdata: observationRows.map((row) => row.id), hovertemplate: `<b>${legendKey} observation</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y:.4g}<br>Row: %{customdata}<extra></extra>` }
+        return [observationTrace, summaryTrace]
       }
       if (layer.element === 'histogram') {
         const panelValues = facet.rows.map((row) => row.values[xColumn.id] === null ? Number.NaN : Number(row.values[xColumn.id])).filter(Number.isFinite); const domain: [number, number] | undefined = panelValues.length ? [Math.min(...panelValues), Math.max(...panelValues)] : undefined

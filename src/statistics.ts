@@ -45,20 +45,20 @@ export const studentTCritical = (confidence: number, degreesOfFreedom: number) =
   return (low + high) / 2
 }
 
-export interface SummaryStatistics { n: number; mean: number | null; sd: number | null; se: number | null; ci95: number | null; minimum: number | null; maximum: number | null }
+export interface SummaryStatistics { n: number; mean: number | null; sd: number | null; se: number | null; confidenceInterval: number | null; minimum: number | null; maximum: number | null }
 
-export const summaryStatistics = (values: number[], weights?: number[]): SummaryStatistics => {
+export const summaryStatistics = (values: number[], weights?: number[], confidence = 0.95): SummaryStatistics => {
   const usable = values.map((value, index) => ({ value, weight: weights?.[index] ?? 1 })).filter(({ value, weight }) => Number.isFinite(value) && Number.isFinite(weight) && weight > 0)
-  if (!usable.length) return { n: 0, mean: null, sd: null, se: null, ci95: null, minimum: null, maximum: null }
+  if (!usable.length) return { n: 0, mean: null, sd: null, se: null, confidenceInterval: null, minimum: null, maximum: null }
   const weightTotal = usable.reduce((sum, item) => sum + item.weight, 0); const mean = usable.reduce((sum, item) => sum + item.value * item.weight, 0) / weightTotal
   const variance = weightTotal > 1 ? usable.reduce((sum, item) => sum + item.weight * (item.value - mean) ** 2, 0) / (weightTotal - 1) : null
-  const sd = variance === null ? null : Math.sqrt(variance); const se = sd === null ? null : sd / Math.sqrt(weightTotal); const critical = studentTCritical(0.95, weightTotal - 1)
-  return { n: weightTotal, mean, sd, se, ci95: se !== null && critical !== null ? se * critical : null, minimum: Math.min(...usable.map((item) => item.value)), maximum: Math.max(...usable.map((item) => item.value)) }
+  const sd = variance === null ? null : Math.sqrt(variance); const se = sd === null ? null : sd / Math.sqrt(weightTotal); const critical = studentTCritical(confidence, weightTotal - 1)
+  return { n: weightTotal, mean, sd, se, confidenceInterval: se !== null && critical !== null ? se * critical : null, minimum: Math.min(...usable.map((item) => item.value)), maximum: Math.max(...usable.map((item) => item.value)) }
 }
 
 export const errorBarExtent = (summary: SummaryStatistics, type: ErrorBarType) => {
   if (summary.mean === null || type === 'none') return null
   if (type === 'range') return summary.minimum === null || summary.maximum === null ? null : { plus: summary.maximum - summary.mean, minus: summary.mean - summary.minimum }
-  const amount = type === 'sd' ? summary.sd : type === 'se' ? summary.se : summary.ci95
+  const amount = type === 'sd' ? summary.sd : type === 'se' ? summary.se : summary.confidenceInterval
   return amount === null ? null : { plus: amount, minus: amount }
 }

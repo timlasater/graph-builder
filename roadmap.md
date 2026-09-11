@@ -138,7 +138,7 @@ Acceptance criteria:
 
 ## Phase 5 — Statistical transformation engine
 
-Status: in progress. Mean layers now support tested SD, SE, 95% Student's t confidence-interval, and range error bars from raw observations; the remaining deliverables below are not yet complete.
+Status: in progress. Mean layers now support tested SD, SE, selectable two-sided Student's t confidence intervals, range error bars, and optional source-observation overlays; the remaining deliverables below are not yet complete.
 
 This is the highest-risk phase. Build statistics as a standalone tested module before wiring controls into the UI.
 
@@ -273,7 +273,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Continue Phase 5 with selectable confidence levels, individual-observation overlays, precomputed summary/error inputs, the remaining descriptive statistics, and regression diagnostics.
+Continue Phase 5 with precomputed summary/error inputs, the remaining descriptive statistics, normalization transformations, and regression diagnostics.
 
 ## Definition of done for every task
 

@@ -74,6 +74,16 @@ describe('data history and filters', () => {
     expect(useBuilderStore.getState().spec.layers.at(-1)?.binCount).toBeUndefined()
   })
 
+  it('stores and undoes Phase 5 mean-layer confidence and observation settings', () => {
+    useBuilderStore.getState().addLayer('summary')
+    const layer = useBuilderStore.getState().spec.layers.at(-1)!
+    expect(layer).toMatchObject({ errorBar: 'sd', confidenceLevel: 0.95, showObservations: false })
+    useBuilderStore.getState().updateLayer(layer.id, { errorBar: 'ci', confidenceLevel: 0.99, showObservations: true })
+    expect(useBuilderStore.getState().spec.layers.at(-1)).toMatchObject({ errorBar: 'ci', confidenceLevel: 0.99, showObservations: true })
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().spec.layers.at(-1)).toMatchObject({ errorBar: 'sd', confidenceLevel: 0.95, showObservations: false })
+  })
+
   it('recalculates formula columns after source edits and appended rows', () => {
     useBuilderStore.getState().addCalculatedColumn('Dose ratio', '[dose] / [pressure]')
     const calculated = useBuilderStore.getState().dataset.columns.at(-1)!

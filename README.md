@@ -12,7 +12,8 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, replicate-mean lines, and linear fits
 - Per-layer variable overrides, colors, marker sizes, and line widths
 - Type-aware graph suggestions and centralized compatibility feedback
-- Mean-line error bars for sample SD, standard error, 95% Student's t confidence intervals, and range
+- Mean-line error bars for sample SD, standard error, selectable two-sided Student's t confidence intervals, and range
+- Optional source-observation overlays on mean layers
 - Grouped panels and wrapped facet grids
 - Overlay traces and numeric marker-size mapping
 - Move assigned variables directly between roles or drag them back to the Variables panel

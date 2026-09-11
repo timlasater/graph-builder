@@ -2,7 +2,7 @@ export type DataType = 'number' | 'text' | 'date' | 'boolean'
 export type ModelingType = 'continuous' | 'nominal' | 'ordinal'
 export type GraphRole = 'x' | 'y' | 'color' | 'groupX' | 'groupY' | 'wrap' | 'overlay' | 'size' | 'shape' | 'weight' | 'page'
 export type GraphElement = 'points' | 'line' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit'
-export type ErrorBarType = 'none' | 'sd' | 'se' | 'ci95' | 'range'
+export type ErrorBarType = 'none' | 'sd' | 'se' | 'ci' | 'range'
 export type BarAggregation = 'mean' | 'sum' | 'count'
 export type BoxPointMode = 'outliers' | 'all' | 'none'
 
@@ -85,6 +85,8 @@ export interface GraphLayer {
   markerSize?: number
   lineWidth?: number
   errorBar?: ErrorBarType
+  confidenceLevel?: number
+  showObservations?: boolean
   binCount?: number
   boxPoints?: BoxPointMode
   barAggregation?: BarAggregation
