@@ -73,6 +73,18 @@ describe('data history and filters', () => {
     useBuilderStore.getState().undo()
     expect(useBuilderStore.getState().spec.layers.at(-1)?.binCount).toBeUndefined()
   })
+
+  it('recalculates formula columns after source edits and appended rows', () => {
+    useBuilderStore.getState().addCalculatedColumn('Dose ratio', '[dose] / [pressure]')
+    const calculated = useBuilderStore.getState().dataset.columns.at(-1)!
+    const firstRow = useBuilderStore.getState().dataset.rows[0]
+
+    useBuilderStore.getState().updateCell(firstRow.id, 'dose', 100)
+    expect(useBuilderStore.getState().dataset.rows[0].values[calculated.id]).toBe(5)
+
+    useBuilderStore.getState().appendRows([['Prototype D', 25, 50, 99, true]])
+    expect(useBuilderStore.getState().dataset.rows.at(-1)?.values[calculated.id]).toBe(2)
+  })
 })
 
 describe('role assignment moves', () => {

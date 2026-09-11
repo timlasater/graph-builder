@@ -198,7 +198,7 @@ function App() {
                 <DropZone role="color" label="Color" columns={singleton(spec.color)} onClear={(id) => moveAssignment(id, undefined, 'color')} />
                 <DropZone role="shape" label="Shape" columns={singleton(spec.shape)} onClear={(id) => moveAssignment(id, undefined, 'shape')} />
                 <DropZone role="size" label="Size" columns={singleton(spec.size)} onClear={(id) => moveAssignment(id, undefined, 'size')} />
-                <DropZone role="weight" label="Freq / Weight" columns={singleton(spec.weight)} onClear={(id) => moveAssignment(id, undefined, 'weight')} />
+                <DropZone role="weight" label="Frequency" columns={singleton(spec.weight)} onClear={(id) => moveAssignment(id, undefined, 'weight')} />
                 <DropZone role="page" label="Page" columns={singleton(spec.page)} onClear={(id) => moveAssignment(id, undefined, 'page')} />
               </div>
             </div>
@@ -254,7 +254,7 @@ function App() {
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}
-      {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size and Weight require numeric data</span></div>}
+      {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size requires numeric data · Frequency requires whole-number counts</span></div>}
       {dragElement && <div className="drag-preview" role="status"><strong>{dragElement}</strong><span>Drop onto the graph to add this layer without changing role assignments</span></div>}
     </DndContext>
   )

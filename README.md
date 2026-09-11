@@ -8,7 +8,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Typed example engineering dataset
 - Drag variables onto X, Y, Color, Group X, Group Y, Wrap, Overlay, and Size roles
 - Multiple ordered assignments on X and Y, with drag reordering and Swap X/Y
-- Shape, Frequency/Weight, and Page roles with subset stepping
+- Shape, Frequency, and Page roles with subset stepping
 - Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, replicate-mean lines, and linear fits
 - Per-layer variable overrides, colors, marker sizes, and line widths
 - Type-aware graph suggestions and centralized compatibility feedback

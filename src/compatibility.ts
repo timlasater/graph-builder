@@ -14,10 +14,16 @@ const removeFromRole = (spec: GraphSpec, role: GraphRole, columnId: string) => {
   if (role === 'page') delete spec.pageValue
 }
 
-export const resolveAssignment = (source: GraphSpec, column: DataColumn, toRole?: GraphRole, fromRole?: GraphRole, targetIndex?: number): AssignmentResult => {
+export const resolveAssignment = (source: GraphSpec, column: DataColumn, toRole?: GraphRole, fromRole?: GraphRole, targetIndex?: number, rows: DataRow[] = []): AssignmentResult => {
   const spec = structuredClone(source)
   if (toRole && numericRoles.includes(toRole) && column.dataType !== 'number') {
-    return { spec: source, accepted: false, message: `${column.name} must be numeric for ${toRole === 'weight' ? 'Frequency/Weight' : 'Size'}.` }
+    return { spec: source, accepted: false, message: `${column.name} must be numeric for ${toRole === 'weight' ? 'Frequency' : 'Size'}.` }
+  }
+  if (toRole === 'weight' && rows.some((row) => {
+    const value = row.values[column.id]
+    return value !== null && (!Number.isInteger(Number(value)) || Number(value) < 0)
+  })) {
+    return { spec: source, accepted: false, message: `${column.name} cannot be used as Frequency because it contains negative or fractional values.` }
   }
   if (fromRole) removeFromRole(spec, fromRole, column.id)
   if (!toRole) return { spec, accepted: true }
@@ -57,3 +63,5 @@ export const suggestElement = (x: DataColumn[], y: DataColumn[], rows: DataRow[]
 }
 
 export const suggestedElement = (x: DataColumn[], y: DataColumn[], rows: DataRow[] = []) => suggestElement(x, y, rows).element
+
+export const requiresYAssignment = (layers: GraphSpec['layers']) => layers.some((layer) => layer.element !== 'histogram')

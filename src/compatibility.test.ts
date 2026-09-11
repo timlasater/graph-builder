@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveAssignment, suggestElement, suggestedElement } from './compatibility'
+import { requiresYAssignment, resolveAssignment, suggestElement, suggestedElement } from './compatibility'
 import type { DataColumn, DataRow, GraphSpec } from './types'
 
 const numeric: DataColumn = { id: 'n', name: 'Number', dataType: 'number', modelingType: 'continuous' }
@@ -19,6 +19,12 @@ describe('role compatibility', () => {
     const result = resolveAssignment(spec, category, 'weight')
     expect(result.accepted).toBe(false); expect(result.spec).toBe(spec); expect(result.message).toContain('numeric')
   })
+  it('rejects negative or fractional frequency counts', () => {
+    const fractional = resolveAssignment(spec, numeric, 'weight', undefined, undefined, [row('1', { n: 1.5 })])
+    const negative = resolveAssignment(spec, numeric, 'weight', undefined, undefined, [row('1', { n: -1 })])
+    expect(fractional.accepted).toBe(false); expect(negative.accepted).toBe(false)
+    expect(resolveAssignment(spec, numeric, 'weight', undefined, undefined, [row('1', { n: 0 }), row('2', { n: 3 })]).accepted).toBe(true)
+  })
   it('resolves wrap and grouping conflicts predictably', () => {
     const grouped = { ...spec, groupX: 'c' }
     expect(resolveAssignment(grouped, category, 'wrap').spec.groupX).toBeUndefined()
@@ -37,5 +43,10 @@ describe('role compatibility', () => {
     expect(suggestedElement([ordinal], [numeric])).toBe('line')
     expect(suggestedElement([date], [numeric])).toBe('line')
     expect(suggestedElement([numeric], [numeric])).toBe('fit')
+  })
+  it('allows X-only histograms but requires Y for other or mixed layers', () => {
+    expect(requiresYAssignment([{ id: 'h', name: 'Histogram', element: 'histogram' }])).toBe(false)
+    expect(requiresYAssignment([{ id: 'p', name: 'Points', element: 'points' }])).toBe(true)
+    expect(requiresYAssignment([{ id: 'h', name: 'Histogram', element: 'histogram' }, { id: 'p', name: 'Points', element: 'points' }])).toBe(true)
   })
 })

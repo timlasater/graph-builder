@@ -24,34 +24,38 @@ export const weightedMean = (values: number[], weights?: number[]) => {
   return totalWeight ? usable.reduce((sum, item) => sum + item.value * item.weight, 0) / totalWeight : null
 }
 
-export const linearFit = (x: number[], y: number[]) => {
-  const pairs = x.map((value, index) => ({ x: value, y: y[index] })).filter((pair) => Number.isFinite(pair.x) && Number.isFinite(pair.y))
+export const numericOrNaN = (value: unknown) => value === null || value === undefined || value === '' ? Number.NaN : Number(value)
+
+export const linearFit = (x: number[], y: number[], weights?: number[]) => {
+  const pairs = x.map((value, index) => ({ x: value, y: y[index], weight: weights?.[index] ?? 1 })).filter((pair) => Number.isFinite(pair.x) && Number.isFinite(pair.y) && Number.isFinite(pair.weight) && pair.weight > 0)
   if (pairs.length < 2) return null
-  const meanX = pairs.reduce((sum, pair) => sum + pair.x, 0) / pairs.length
-  const meanY = pairs.reduce((sum, pair) => sum + pair.y, 0) / pairs.length
-  const denominator = pairs.reduce((sum, pair) => sum + (pair.x - meanX) ** 2, 0)
+  const weightTotal = pairs.reduce((sum, pair) => sum + pair.weight, 0)
+  const meanX = pairs.reduce((sum, pair) => sum + pair.x * pair.weight, 0) / weightTotal
+  const meanY = pairs.reduce((sum, pair) => sum + pair.y * pair.weight, 0) / weightTotal
+  const denominator = pairs.reduce((sum, pair) => sum + pair.weight * (pair.x - meanX) ** 2, 0)
   if (!denominator) return null
-  const slope = pairs.reduce((sum, pair) => sum + (pair.x - meanX) * (pair.y - meanY), 0) / denominator
+  const slope = pairs.reduce((sum, pair) => sum + pair.weight * (pair.x - meanX) * (pair.y - meanY), 0) / denominator
   const intercept = meanY - slope * meanX
   const bounds = [Math.min(...pairs.map((pair) => pair.x)), Math.max(...pairs.map((pair) => pair.x))]
   return { x: bounds, y: bounds.map((value) => intercept + slope * value), slope, intercept }
 }
 
-export const histogramBins = (values: number[], requestedBins = 10, domain?: [number, number]) => {
-  const usable = values.filter(Number.isFinite); if (!usable.length) return { centers: [], counts: [], width: 0 }
-  const minimum = domain?.[0] ?? Math.min(...usable); const maximum = domain?.[1] ?? Math.max(...usable); const binCount = Math.max(1, Math.round(requestedBins))
-  if (minimum === maximum) return { centers: [minimum], counts: [usable.length], width: 1 }
+export const histogramBins = (values: number[], requestedBins = 10, domain?: [number, number], weights?: number[]) => {
+  const usable = values.map((value, index) => ({ value, weight: weights?.[index] ?? 1 })).filter((item) => Number.isFinite(item.value) && Number.isFinite(item.weight) && item.weight > 0); if (!usable.length) return { centers: [], counts: [], width: 0 }
+  const minimum = domain?.[0] ?? Math.min(...usable.map((item) => item.value)); const maximum = domain?.[1] ?? Math.max(...usable.map((item) => item.value)); const binCount = Math.max(1, Math.round(requestedBins))
+  if (minimum === maximum) return { centers: [minimum], counts: [usable.reduce((sum, item) => sum + item.weight, 0)], width: 1 }
   const width = (maximum - minimum) / binCount; const counts = Array.from({ length: binCount }, () => 0)
-  usable.forEach((value) => { counts[Math.min(binCount - 1, Math.floor((value - minimum) / width))] += 1 })
+  usable.forEach(({ value, weight }) => { counts[Math.max(0, Math.min(binCount - 1, Math.floor((value - minimum) / width)))] += weight })
   return { centers: counts.map((_, index) => minimum + (index + 0.5) * width), counts, width }
 }
 
-export const aggregateBars = (x: unknown[], y: number[], aggregation: 'mean' | 'sum' | 'count' = 'mean') => {
+export const aggregateBars = (x: unknown[], y: number[], aggregation: 'mean' | 'sum' | 'count' = 'mean', weights?: number[]) => {
   const groups = [...new Set(x.filter((value) => value !== null).map(String))]
   return groups.map((key) => {
-    const values = y.filter((value, index) => String(x[index]) === key && Number.isFinite(value))
-    const value = aggregation === 'count' ? values.length : aggregation === 'sum' ? values.reduce((sum, item) => sum + item, 0) : values.length ? values.reduce((sum, item) => sum + item, 0) / values.length : null
-    return { key, value, n: values.length }
+    const values = y.map((value, index) => ({ value, weight: weights?.[index] ?? 1, key: String(x[index]) })).filter((item) => item.key === key && Number.isFinite(item.value) && Number.isFinite(item.weight) && item.weight > 0)
+    const n = values.reduce((sum, item) => sum + item.weight, 0)
+    const value = aggregation === 'count' ? n : aggregation === 'sum' ? values.reduce((sum, item) => sum + item.value * item.weight, 0) : n ? values.reduce((sum, item) => sum + item.value * item.weight, 0) / n : null
+    return { key, value, n }
   })
 }
 

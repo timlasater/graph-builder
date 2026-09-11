@@ -72,3 +72,34 @@ export const calculateColumn = (name: string, formula: string, columns: DataColu
   const warnings: DataWarning[] = values.flatMap((value, index) => value === null ? [{ code: 'formula' as const, columnId: id, rowId: rows[index].id, message: `${name}: row ${index + 1} produced a missing value (invalid domain or division by zero).` }] : [])
   return { column: { id, name: name.trim(), dataType: 'number' as const, modelingType: 'continuous' as const, formula: stableFormula }, values, warnings }
 }
+
+export const recalculateFormulaColumns = (columns: DataColumn[], sourceRows: DataRow[]) => {
+  const formulaColumns = columns.filter((column) => column.formula)
+  const rows = sourceRows.map((row) => ({ ...row, values: { ...row.values } }))
+  const warnings: DataWarning[] = []
+
+  for (const column of formulaColumns) {
+    for (const [index, row] of rows.entries()) {
+      try {
+        const value = evaluateFormula(column.formula!, row, columns)
+        row.values[column.id] = value
+        if (value === null) warnings.push({
+          code: 'formula',
+          columnId: column.id,
+          rowId: row.id,
+          message: `${column.name}: row ${index + 1} produced a missing value (invalid domain or division by zero).`,
+        })
+      } catch (error) {
+        row.values[column.id] = null
+        warnings.push({
+          code: 'formula',
+          columnId: column.id,
+          rowId: row.id,
+          message: `${column.name}: ${error instanceof Error ? error.message : 'formula evaluation failed.'}`,
+        })
+      }
+    }
+  }
+
+  return { rows, warnings }
+}

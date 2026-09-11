@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { sampleDataset } from './sampleData'
 import { coerceValue } from './importData'
-import { calculateColumn } from './formula'
+import { calculateColumn, recalculateFormulaColumns } from './formula'
 import { elementLabel, resolveAssignment, sameAssignments, suggestElement } from './compatibility'
 import type { CellValue, DataColumn, Dataset, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
 
@@ -71,6 +71,10 @@ interface BuilderState {
 interface HistoryEntry { dataset: Dataset; spec: GraphSpec; filters: RowFilter[] }
 const snapshot = (state: Pick<BuilderState, 'dataset' | 'spec' | 'filters'>): HistoryEntry => structuredClone({ dataset: state.dataset, spec: state.spec, filters: state.filters })
 const withHistory = (state: BuilderState, patch: Partial<BuilderState>) => ({ ...patch, past: [...state.past, snapshot(state)], future: [] })
+const withRecalculatedFormulas = (dataset: Dataset, rows: Dataset['rows']): Dataset => {
+  const result = recalculateFormulaColumns(dataset.columns, rows)
+  return { ...dataset, rows: result.rows, warnings: [...dataset.warnings.filter((warning) => warning.code !== 'formula'), ...result.warnings] }
+}
 
 export const rowMatchesFilters = (row: Dataset['rows'][number], filters: RowFilter[]) => filters.every((filter) => {
   const actual = row.values[filter.columnId]; const expected = filter.value
@@ -89,9 +93,9 @@ export const rowMatchesFilters = (row: Dataset['rows'][number], filters: RowFilt
   return filter.operator === 'gt' ? left > right : filter.operator === 'gte' ? left >= right : filter.operator === 'lt' ? left < right : left <= right
 })
 
-export const moveRoleAssignment = (spec: GraphSpec, columnId: string, toRole?: GraphRole, fromRole?: GraphRole, targetIndex?: number, columns: DataColumn[] = sampleDataset.columns): GraphSpec => {
+export const moveRoleAssignment = (spec: GraphSpec, columnId: string, toRole?: GraphRole, fromRole?: GraphRole, targetIndex?: number, columns: DataColumn[] = sampleDataset.columns, rows = sampleDataset.rows): GraphSpec => {
   const column = columns.find((item) => item.id === columnId)
-  return column ? resolveAssignment(spec, column, toRole, fromRole, targetIndex).spec : spec
+  return column ? resolveAssignment(spec, column, toRole, fromRole, targetIndex, rows).spec : spec
 }
 const layerName = elementLabel
 
@@ -111,7 +115,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
       }
       const column = state.dataset.columns.find((item) => item.id === columnId)
       if (!column) return state
-      const result = resolveAssignment(state.spec, column, role)
+      const result = resolveAssignment(state.spec, column, role, undefined, undefined, state.dataset.rows)
       if (result.accepted && role === 'page') result.spec.pageValue = state.dataset.rows[0]?.values[column.id]
       return result.accepted ? withHistory(state, { spec: result.spec, compatibilityMessage: undefined }) : { compatibilityMessage: result.message }
     }),
@@ -119,7 +123,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     set((state) => {
       const column = state.dataset.columns.find((item) => item.id === columnId)
       if (!column) return state
-      const result = resolveAssignment(state.spec, column, toRole, fromRole, targetIndex)
+      const result = resolveAssignment(state.spec, column, toRole, fromRole, targetIndex, state.dataset.rows)
       if (result.accepted && toRole === 'page' && result.spec.pageValue === undefined) result.spec.pageValue = state.dataset.rows[0]?.values[column.id]
       if (!result.accepted) return { compatibilityMessage: result.message }
       if (sameAssignments(state.spec, result.spec)) return state
@@ -167,19 +171,21 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     const typeChanged = nextType !== previousColumn.dataType
     const convertedRows = typeChanged ? state.dataset.rows.map((row) => ({ ...row, values: { ...row.values, [columnId]: coerceValue(row.values[columnId], nextType) } })) : state.dataset.rows
     const lossCount = typeChanged ? convertedRows.filter((row, index) => state.dataset.rows[index].values[columnId] !== null && row.values[columnId] === null).length : 0
-    return withHistory(state, { dataset: {
+    const dataset = {
       ...state.dataset,
       columns: state.dataset.columns.map((column) => column.id === columnId ? { ...column, ...patch } : column),
-        rows: convertedRows,
-        warnings: lossCount ? [...state.dataset.warnings, { code: nextType === 'date' ? 'invalid-date' : 'lossy-coercion', columnId, message: `${previousColumn.name}: ${lossCount} value(s) could not be converted to ${nextType} and became missing.` }] : state.dataset.warnings,
-      } })
+      rows: convertedRows,
+      warnings: lossCount ? [...state.dataset.warnings, { code: nextType === 'date' ? 'invalid-date' as const : 'lossy-coercion' as const, columnId, message: `${previousColumn.name}: ${lossCount} value(s) could not be converted to ${nextType} and became missing.` }] : state.dataset.warnings,
+    }
+    return withHistory(state, { dataset: withRecalculatedFormulas(dataset, convertedRows) })
   }),
   updateCell: (rowId, columnId, value) => set((state) => {
     const column = state.dataset.columns.find((candidate) => candidate.id === columnId)
     if (!column) return state
-    return withHistory(state, { dataset: { ...state.dataset, rows: state.dataset.rows.map((row) => row.id === rowId ? {
+    const rows = state.dataset.rows.map((row) => row.id === rowId ? {
       ...row, values: { ...row.values, [columnId]: coerceValue(value, column.dataType) },
-    } : row) } })
+    } : row)
+    return withHistory(state, { dataset: withRecalculatedFormulas(state.dataset, rows) })
   }),
   setRowExcluded: (rowId, excluded) => set((state) => withHistory(state, {
     dataset: { ...state.dataset, rows: state.dataset.rows.map((row) => row.id === rowId ? { ...row, excluded } : row) },
@@ -195,10 +201,11 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   }),
   setValueLabels: (columnId, labels) => set((state) => withHistory(state, { dataset: { ...state.dataset, columns: state.dataset.columns.map((column) => column.id === columnId ? { ...column, valueLabels: labels } : column) } })),
   appendRows: (matrix) => set((state) => {
-    if (!matrix.length || matrix.some((row) => row.length !== state.dataset.columns.length)) throw new Error(`Paste ${state.dataset.columns.length} columns per row.`)
+    const inputColumns = state.dataset.columns.filter((column) => !column.formula)
+    if (!matrix.length || matrix.some((row) => row.length !== inputColumns.length)) throw new Error(`Paste ${inputColumns.length} non-calculated columns per row.`)
     const start = state.dataset.rows.length
-    const rows = matrix.map((values, index) => ({ id: `row-${start + index + 1}`, excluded: false, values: Object.fromEntries(state.dataset.columns.map((column, columnIndex) => [column.id, coerceValue(values[columnIndex], column.dataType)])) }))
-    return withHistory(state, { dataset: { ...state.dataset, rows: [...state.dataset.rows, ...rows] } })
+    const rows = matrix.map((values, index) => ({ id: `row-${start + index + 1}`, excluded: false, values: Object.fromEntries(inputColumns.map((column, columnIndex) => [column.id, coerceValue(values[columnIndex], column.dataType)])) }))
+    return withHistory(state, { dataset: withRecalculatedFormulas(state.dataset, [...state.dataset.rows, ...rows]) })
   }),
   undo: () => set((state) => {
     const previous = state.past.at(-1)

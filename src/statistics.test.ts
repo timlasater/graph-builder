@@ -22,6 +22,6 @@ describe('summary statistics', () => {
   })
   it('uses positive frequency weights in the mean and sample variance', () => {
     const result = summaryStatistics([10, 20], [1, 3])
-    expect(result.mean).toBe(17.5); expect(result.sd).toBeCloseTo(5, 10)
+    expect(result.mean).toBe(17.5); expect(result.sd).toBeCloseTo(5, 10); expect(result.n).toBe(4)
   })
 })

@@ -82,7 +82,7 @@ Acceptance criteria:
 
 ## Phase 3 completion — Full Graph Builder interaction
 
-Status: complete (September 2026). Ordered multi-variable axes, layered marks/summaries/fits, per-layer overrides, Shape/Weight/Page roles, suggestions, compatibility feedback, and atomic interaction history are implemented and tested.
+Status: complete (September 2026). Ordered multi-variable axes, layered marks/summaries/fits, per-layer overrides, Shape/Frequency/Page roles, suggestions, compatibility feedback, and atomic interaction history are implemented and tested.
 
 Extend the existing role system instead of creating graph-specific configuration dialogs.
 
@@ -93,7 +93,7 @@ Deliverables:
 - A layer model allowing points, lines, bars, summaries, and fits on the same graph
 - Per-layer variable and formatting settings
 - Swap X/Y action
-- Shape role and Frequency/Weight role
+- Shape role and Frequency role for nonnegative whole-number observation counts
 - Page role for stepping through subsets
 - Type-aware graph suggestions that remain user-overridable
 - Clear drag previews and compatibility messages

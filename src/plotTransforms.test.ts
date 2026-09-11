@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateBars, boxSummary, histogramBins, linearFit, sortedSeries, stableCategoryOrder, stackCompatibility, weightedMean } from './plotTransforms'
+import { aggregateBars, boxSummary, histogramBins, linearFit, numericOrNaN, sortedSeries, stableCategoryOrder, stackCompatibility, weightedMean } from './plotTransforms'
 import type { DataRow } from './types'
 
 describe('layer transformations', () => {
   it('computes weighted summaries', () => expect(weightedMean([10, 20], [1, 3])).toBe(17.5))
   it('computes a linear fit', () => expect(linearFit([1, 2, 3], [2, 4, 6])).toMatchObject({ x: [1, 3], y: [2, 6], slope: 2, intercept: 0 }))
   it('does not fit degenerate inputs', () => expect(linearFit([1, 1], [2, 3])).toBeNull())
+  it('does not turn missing regression values into zeroes', () => {
+    expect(numericOrNaN(null)).toBeNaN()
+    expect(linearFit([1, numericOrNaN(null), 3], [2, 100, 6])).toMatchObject({ slope: 2, intercept: 0 })
+  })
+  it('applies frequency weights to fits, histograms, and bar summaries', () => {
+    expect(linearFit([1, 2, 3], [1, 10, 3], [1, 0, 1])).toMatchObject({ slope: 1, intercept: 0 })
+    expect(histogramBins([0, 1], 2, undefined, [2, 3]).counts).toEqual([2, 3])
+    expect(aggregateBars(['A', 'A'], [10, 20], 'mean', [1, 3])[0]).toEqual({ key: 'A', value: 17.5, n: 4 })
+    expect(aggregateBars(['A', 'A'], [10, 20], 'count', [1, 3])[0].value).toBe(4)
+  })
   it('bins numeric observations without dropping the maximum', () => expect(histogramBins([0, 1, 2, 3, 4], 2)).toEqual({ centers: [1, 3], counts: [2, 3], width: 2 }))
   it('uses a supplied shared histogram domain', () => expect(histogramBins([2, 3], 2, [0, 4])).toEqual({ centers: [1, 3], counts: [0, 2], width: 2 }))
   it('aggregates bars by mean, sum, or count', () => {

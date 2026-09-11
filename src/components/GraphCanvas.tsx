@@ -1,4 +1,5 @@
-import { aggregateBars, histogramBins, linearFit, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
+import { requiresYAssignment } from '../compatibility'
+import { aggregateBars, histogramBins, linearFit, numericOrNaN, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
 import { errorBarExtent, summaryStatistics } from '../statistics'
 import { rowMatchesFilters, useBuilderStore } from '../store'
 import type { DataColumn, DataRow, GraphLayer } from '../types'
@@ -23,7 +24,7 @@ export function GraphCanvas() {
   const groupXColumn = columnFor(spec.groupX); const groupYColumn = columnFor(spec.groupY); const wrapColumn = columnFor(spec.wrap)
   const sizeColumn = columnFor(spec.size); const weightColumn = columnFor(spec.weight); const shapeColumn = columnFor(spec.shape); const pageColumn = columnFor(spec.page)
   const pageValues = pageColumn ? [...new Map(dataset.rows.map((row) => [String(row.values[pageColumn.id]), row.values[pageColumn.id]])).values()] : []
-  if (!sharedX.length || !sharedY.length) return <div className="empty-canvas"><div className="empty-illustration">↗</div><h2>Build a graph</h2><p>Drag one or more variables to X and Y.</p></div>
+  if (!sharedX.length || (requiresYAssignment(spec.layers) && !sharedY.length)) return <div className="empty-canvas"><div className="empty-illustration">↗</div><h2>Build a graph</h2><p>{requiresYAssignment(spec.layers) ? 'Drag one or more variables to X and Y.' : 'Drag a numeric variable to X.'}</p></div>
 
   const includedRows = dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, filters) && (!pageColumn || spec.pageValue === undefined || row.values[pageColumn.id] === spec.pageValue))
   let facetRows = 1; let facetColumns = 1; let facets: Facet[]; let groupXValues = ['']; let groupYValues = ['']
@@ -37,7 +38,8 @@ export function GraphCanvas() {
   const displayValue = (column: DataColumn, value: unknown) => column.valueLabels?.[String(value)] ?? value
   const pairsFor = (layer: GraphLayer) => {
     const x = layer.x ? [columnFor(layer.x)].filter((column): column is DataColumn => Boolean(column)) : sharedX
-    const y = layer.element === 'histogram' ? sharedY.slice(0, 1) : layer.y ? [columnFor(layer.y)].filter((column): column is DataColumn => Boolean(column)) : sharedY
+    if (layer.element === 'histogram') return x.map((xColumn) => ({ xColumn, yColumn: xColumn }))
+    const y = layer.y ? [columnFor(layer.y)].filter((column): column is DataColumn => Boolean(column)) : sharedY
     return x.flatMap((xColumn) => y.map((yColumn) => ({ xColumn, yColumn })))
   }
   const legendEntries = new Set<string>()
@@ -51,7 +53,7 @@ export function GraphCanvas() {
       const legendKey = nameParts.join(' · '); const showlegend = !legendEntries.has(legendKey); legendEntries.add(legendKey)
       const base = { name: legendKey, legendgroup: legendKey, showlegend, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: overlayColumn && traceIndex % 2 ? 'dash' : 'solid' }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
       if (layer.element === 'fit') {
-        const fit = linearFit(rows.map((row) => Number(row.values[xColumn.id])), rows.map((row) => Number(row.values[yColumn.id])))
+        const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined)
         return fit ? { ...base, type: 'scatter', mode: 'lines', x: fit.x, y: fit.y } : { ...base, type: 'scatter', mode: 'lines', x: [], y: [] }
       }
       if (layer.element === 'summary') {
@@ -62,12 +64,12 @@ export function GraphCanvas() {
       }
       if (layer.element === 'histogram') {
         const panelValues = facet.rows.map((row) => row.values[xColumn.id] === null ? Number.NaN : Number(row.values[xColumn.id])).filter(Number.isFinite); const domain: [number, number] | undefined = panelValues.length ? [Math.min(...panelValues), Math.max(...panelValues)] : undefined
-        const bins = histogramBins(rows.map((row) => row.values[xColumn.id] === null ? Number.NaN : Number(row.values[xColumn.id])), layer.binCount ?? 10, domain)
+        const bins = histogramBins(rows.map((row) => numericOrNaN(row.values[xColumn.id])), layer.binCount ?? 10, domain, weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined)
         return { ...base, type: 'bar', x: bins.centers, y: bins.counts, width: bins.centers.map(() => bins.width * 0.94), marker: { color, opacity: 0.82 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>Count: %{y}<extra></extra>` }
       }
       if (layer.element === 'box') return { ...base, type: 'box', x: rows.map((row) => String(displayValue(xColumn, row.values[xColumn.id]))), y: rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])), marker: { color, size: layer.markerSize ?? spec.markerSize }, line: { color, width: layer.lineWidth ?? 2 }, quartilemethod: 'linear', boxpoints: layer.boxPoints === 'none' ? false : layer.boxPoints ?? 'outliers', jitter: layer.boxPoints === 'all' ? 0.28 : 0, pointpos: 0, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
       if (layer.element === 'bar') {
-        const bars = aggregateBars(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])), layer.barAggregation ?? 'mean')
+        const bars = aggregateBars(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), layer.barAggregation ?? 'mean', weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined)
         return { ...base, type: 'bar', x: bars.map((bar) => bar.key), y: bars.map((bar) => bar.value), customdata: bars.map((bar) => [bar.n]), marker: { color, opacity: 0.84 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${layer.barAggregation ?? 'mean'}: %{y:.4g}<br>n: %{customdata[0]}<extra></extra>` }
       }
       if (layer.element === 'area') {
@@ -75,7 +77,7 @@ export function GraphCanvas() {
         const stackable = layer.stack && stackCompatibility(facet.rows, xColumn.id, colorColumn?.id ?? overlayColumn?.id).compatible
         return { ...base, type: 'scatter', mode: 'lines', x: series.map((point) => point.x), y: series.map((point) => point.y), fill: 'tozeroy', stackgroup: stackable ? `stack-${facetIndex}-${xColumn.id}-${yColumn.id}` : undefined, line: { color, width: layer.lineWidth ?? 2.5 }, fillcolor: `${color}55` }
       }
-      const sizingColumn = sizeColumn ?? weightColumn; const sizeValues = sizingColumn ? rows.map((row) => row.values[sizingColumn.id]) : rows.map(() => layer.markerSize ?? spec.markerSize)
+      const sizeValues = sizeColumn ? rows.map((row) => row.values[sizeColumn.id]) : rows.map(() => layer.markerSize ?? spec.markerSize)
       const shapeValues = shapeColumn ? uniqueValues(includedRows, shapeColumn.id) : []
       const series = layer.element === 'line' ? sortedSeries(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id]))) : undefined
       return { ...base, type: 'scatter', mode: layer.element === 'line' ? 'lines+markers' : 'markers', x: series ? series.map((point) => point.x) : rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), y: series ? series.map((point) => point.y) : rows.map((row) => displayValue(yColumn, row.values[yColumn.id])), marker: { color, size: scaleMarkerSizes(sizeValues, layer.markerSize ?? spec.markerSize), symbol: shapeColumn ? rows.map((row) => symbols[Math.max(0, shapeValues.indexOf(String(row.values[shapeColumn.id]))) % symbols.length]) : undefined, opacity: 0.82 }, customdata: rows.map((row) => row.id) }

@@ -53,7 +53,7 @@ export const summaryStatistics = (values: number[], weights?: number[]): Summary
   const weightTotal = usable.reduce((sum, item) => sum + item.weight, 0); const mean = usable.reduce((sum, item) => sum + item.value * item.weight, 0) / weightTotal
   const variance = weightTotal > 1 ? usable.reduce((sum, item) => sum + item.weight * (item.value - mean) ** 2, 0) / (weightTotal - 1) : null
   const sd = variance === null ? null : Math.sqrt(variance); const se = sd === null ? null : sd / Math.sqrt(weightTotal); const critical = studentTCritical(0.95, weightTotal - 1)
-  return { n: usable.length, mean, sd, se, ci95: se !== null && critical !== null ? se * critical : null, minimum: Math.min(...usable.map((item) => item.value)), maximum: Math.max(...usable.map((item) => item.value)) }
+  return { n: weightTotal, mean, sd, se, ci95: se !== null && critical !== null ? se * critical : null, minimum: Math.min(...usable.map((item) => item.value)), maximum: Math.max(...usable.map((item) => item.value)) }
 }
 
 export const errorBarExtent = (summary: SummaryStatistics, type: ErrorBarType) => {
