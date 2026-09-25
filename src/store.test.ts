@@ -105,6 +105,18 @@ describe('data history and filters', () => {
     expect(useBuilderStore.getState().filters).toEqual([])
   })
 
+  it('loads refreshed source rows and a saved plot setup in one undoable action', () => {
+    const originalRows = useBuilderStore.getState().dataset.rows.length
+    const saved = { ...useBuilderStore.getState().spec, title: 'Latest results' }
+    const refreshed = { ...sampleDataset, rows: [...sampleDataset.rows, { id: 'new-row', excluded: false, values: { ...sampleDataset.rows[0].values } }], source: { fileName: 'results.xlsx', sheetName: 'Results', handleId: 'handle-1' } }
+    useBuilderStore.getState().applyPlotSetup(saved, [], refreshed)
+    expect(useBuilderStore.getState().dataset.rows).toHaveLength(originalRows + 1)
+    expect(useBuilderStore.getState().dataset.source?.handleId).toBe('handle-1')
+    expect(useBuilderStore.getState().spec.title).toBe('Latest results')
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().dataset.rows).toHaveLength(originalRows)
+  })
+
   it('recalculates formula columns after source edits and appended rows', () => {
     useBuilderStore.getState().addCalculatedColumn('Dose ratio', '[dose] / [pressure]')
     const calculated = useBuilderStore.getState().dataset.columns.at(-1)!

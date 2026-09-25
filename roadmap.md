@@ -263,6 +263,7 @@ Deliverables:
 
 - Tauri wrapper using the existing frontend
 - Native open/save dialogs
+- Silent reopening by an exact Windows source path so updated data can load without a browser permission prompt
 - Windows installer and uninstall flow
 - File association for `.graphbuilder.json`
 - Recent-project list

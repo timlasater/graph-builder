@@ -147,12 +147,13 @@
 .plot-setup-save button, .plot-setup-list button { padding: 7px 10px; border: 1px solid #0c6971; border-radius: 5px; background: var(--teal); color: white; cursor: pointer; font-size: 11px; }
 .plot-setup-message { margin: 0 0 10px; padding: 7px 9px; border-radius: 5px; background: #edf6f6; color: #28646a; font-size: 11px; }
 .plot-setup-list { min-height: 100px; max-height: 360px; overflow: auto; display: grid; align-content: start; gap: 7px; }
-.plot-setup-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto 28px; align-items: center; gap: 8px; padding: 11px; border: 1px solid #d6dfe2; border-radius: 7px; }
+.plot-setup-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 28px; align-items: center; gap: 8px; padding: 11px; border: 1px solid #d6dfe2; border-radius: 7px; }
 .plot-setup-list article > div { min-width: 0; display: grid; gap: 3px; }
 .plot-setup-list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .plot-setup-list span { overflow: hidden; color: #76848c; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .plot-setup-list small { color: #9a5a22; font-size: 9px; }.plot-setup-list small.compatible { color: #37734f; }
 .plot-setup-list button:disabled { opacity: .45; cursor: default; }
+.plot-setup-list .setup-reconnect { border-color: #b9c7cc; background: white; color: #49616c; }
 .plot-setup-list .setup-remove { width: 28px; height: 28px; padding: 0; border-color: #d5dcdf; background: white; color: #7c5552; font-size: 17px; }
 .plot-setup-empty { display: grid; gap: 5px; padding: 24px; border: 1px dashed #cbd5d9; border-radius: 7px; color: #74828a; text-align: center; }
 .plot-setup-empty strong { color: #4e6069; }

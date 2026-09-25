@@ -55,7 +55,7 @@ interface BuilderState {
   clearCompatibilityMessage: () => void
   setSelectedColumn: (columnId?: string) => void
   setDataset: (dataset: Dataset) => void
-  applyPlotSetup: (spec: GraphSpec, filters: RowFilter[]) => void
+  applyPlotSetup: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
   updateColumn: (columnId: string, patch: Partial<Pick<DataColumn, 'name' | 'dataType' | 'modelingType' | 'unit'>>) => void
   updateCell: (rowId: string, columnId: string, value: CellValue) => void
   setRowExcluded: (rowId: string, excluded: boolean) => void
@@ -165,7 +165,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   clearCompatibilityMessage: () => set({ compatibilityMessage: undefined }),
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
   setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), filters: [], past: [], future: [], selectedColumn: undefined }),
-  applyPlotSetup: (spec, filters) => set((state) => withHistory(state, { spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined })),
+  applyPlotSetup: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
   updateColumn: (columnId, patch) => set((state) => {
     const previousColumn = state.dataset.columns.find((column) => column.id === columnId)
     if (!previousColumn) return state

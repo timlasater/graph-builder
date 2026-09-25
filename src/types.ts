@@ -29,6 +29,13 @@ export interface Dataset {
   columns: DataColumn[]
   rows: DataRow[]
   warnings: DataWarning[]
+  source?: DatasetSource
+}
+
+export interface DatasetSource {
+  fileName: string
+  sheetName?: string
+  handleId?: string
 }
 
 export interface DataWarning {

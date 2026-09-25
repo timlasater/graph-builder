@@ -33,7 +33,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Editable title, subtitle, grid lines, and marker size
 - Reference lines and shaded specification/acceptance regions across facets
 - Draggable legend ordering with matching categorical bar order, per-series colors, and click-to-hide visibility
-- Locally saved plot setups that restore roles, layers, formatting, legend choices, and filters for a compatible source dataset
+- Locally saved plot setups that can reopen the latest contents of a browser-approved source file and restore roles, layers, formatting, legend choices, and filters
 - Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
 - Undo and redo for graph and complete dataset changes
 

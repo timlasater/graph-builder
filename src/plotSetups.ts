@@ -8,6 +8,9 @@ export interface SavedPlotSetup {
   name: string
   sourceName: string
   sourceSignature: string
+  sourceFileName?: string
+  sourceSheetName?: string
+  sourceHandleId?: string
   createdAt: string
   updatedAt: string
   spec: GraphSpec
@@ -45,6 +48,9 @@ export const makePlotSetup = (name: string, dataset: Dataset, spec: GraphSpec, f
     name: trimmedName,
     sourceName: dataset.name,
     sourceSignature: datasetSignature(dataset),
+    sourceFileName: dataset.source?.fileName ?? previous?.sourceFileName,
+    sourceSheetName: dataset.source?.sheetName ?? previous?.sourceSheetName,
+    sourceHandleId: dataset.source?.handleId ?? previous?.sourceHandleId,
     createdAt: previous?.createdAt ?? now,
     updatedAt: now,
     spec: structuredClone(spec),
@@ -53,4 +59,3 @@ export const makePlotSetup = (name: string, dataset: Dataset, spec: GraphSpec, f
 }
 
 export const isSetupCompatible = (setup: SavedPlotSetup, dataset: Dataset) => setup.sourceSignature === datasetSignature(dataset)
-
