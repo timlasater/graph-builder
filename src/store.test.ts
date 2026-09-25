@@ -93,6 +93,18 @@ describe('data history and filters', () => {
     expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
   })
 
+  it('loads and undoes a saved plot setup atomically', () => {
+    const original = structuredClone(useBuilderStore.getState().spec)
+    const saved = { ...original, title: 'Saved setup', x: ['run'], y: ['dose'] }
+    const filters = [{ id: 'saved-filter', columnId: 'prototype', operator: 'equals' as const, value: 'Prototype B' }]
+    useBuilderStore.getState().applyPlotSetup(saved, filters)
+    expect(useBuilderStore.getState().spec.title).toBe('Saved setup')
+    expect(useBuilderStore.getState().filters).toEqual(filters)
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().spec).toEqual(original)
+    expect(useBuilderStore.getState().filters).toEqual([])
+  })
+
   it('recalculates formula columns after source edits and appended rows', () => {
     useBuilderStore.getState().addCalculatedColumn('Dose ratio', '[dose] / [pressure]')
     const calculated = useBuilderStore.getState().dataset.columns.at(-1)!

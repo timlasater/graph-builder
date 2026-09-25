@@ -5,6 +5,7 @@ import { DropZone } from './components/DropZone'
 import { GraphCanvas } from './components/GraphCanvas'
 import { ActiveFiltersPopup, FilterDropZone, FilterPopup } from './components/FilterDropZone'
 import { ImportDataButton } from './components/ImportDataButton'
+import { PlotSetupModal } from './components/PlotSetupModal'
 import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
 import { stackCompatibility } from './plotTransforms'
@@ -60,6 +61,7 @@ function ReferenceControls({ spec, updateSpec }: { spec: GraphSpec; updateSpec: 
 function App() {
   const { dataset, spec, filters, past, future, selectedColumn, compatibilityMessage, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, reset } = useBuilderStore()
   const [showDataTable, setShowDataTable] = useState(false)
+  const [showPlotSetups, setShowPlotSetups] = useState(false)
   const [variableSearch, setVariableSearch] = useState('')
   const [filterColumnId, setFilterColumnId] = useState<string>()
   const [showActiveFilters, setShowActiveFilters] = useState(false)
@@ -144,7 +146,7 @@ function App() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragCancel={() => { setDragColumnId(undefined); setDragElement(undefined) }} onDragEnd={handleDragEnd}>
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span></div>
+          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowPlotSetups(true)}>Plot setups</button></div>
           <div className="document-name"><span className="status-dot" />{dataset.name}</div>
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
@@ -251,6 +253,7 @@ function App() {
         </main>
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
+      {showPlotSetups && <PlotSetupModal onClose={() => setShowPlotSetups(false)} />}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}

@@ -5,6 +5,7 @@
 .brand { font-weight: 650; letter-spacing: .1px; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: #19a0a8; font-size: 12px; font-weight: 800; }
 .version { padding: 2px 7px; border: 1px solid #ffffff35; border-radius: 20px; color: #b8c5ca; font-size: 10px; text-transform: uppercase; letter-spacing: .8px; }
+.brand-setup { height: 30px; padding: 0 10px; border: 1px solid #ffffff35; border-radius: 5px; background: #ffffff12; color: #fff; font-size: 11px; cursor: pointer; }
 .document-name { justify-self: center; color: #dae2e5; font-size: 13px; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #71d6a2; box-shadow: 0 0 0 3px #71d6a222; }
 .toolbar-actions { justify-self: end; }
@@ -133,6 +134,29 @@
 .sheet-list button:hover { border-color: #5d9da1; background: #edf6f6; }
 .sheet-list strong { font-size: 12px; }
 .sheet-list span { color: #7c8991; font-size: 10px; }
+.plot-setup-backdrop { z-index: 115; }
+.plot-setup-dialog { width: min(640px, 94vw); max-height: min(760px, 90vh); display: flex; flex-direction: column; padding: 22px; border-radius: 9px; background: white; box-shadow: 0 20px 70px #17272f66; }
+.plot-setup-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.plot-setup-dialog h2 { margin: 3px 0 5px; font-size: 20px; }
+.plot-setup-dialog header p { max-width: 500px; margin: 0; color: #718089; font-size: 11px; line-height: 1.45; }
+.plot-setup-save { display: grid; gap: 8px; margin: 18px 0 12px; padding: 13px; border: 1px solid #d6dfe2; border-radius: 7px; background: #f7fafb; }
+.plot-setup-save label { display: grid; gap: 5px; color: #5d6e77; font-size: 10px; font-weight: 650; }
+.plot-setup-save input { height: 34px; padding: 0 9px; border: 1px solid #c8d3d7; border-radius: 5px; background: white; color: var(--ink); }
+.plot-setup-save > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.plot-setup-save small { overflow: hidden; color: #78868e; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.plot-setup-save button, .plot-setup-list button { padding: 7px 10px; border: 1px solid #0c6971; border-radius: 5px; background: var(--teal); color: white; cursor: pointer; font-size: 11px; }
+.plot-setup-message { margin: 0 0 10px; padding: 7px 9px; border-radius: 5px; background: #edf6f6; color: #28646a; font-size: 11px; }
+.plot-setup-list { min-height: 100px; max-height: 360px; overflow: auto; display: grid; align-content: start; gap: 7px; }
+.plot-setup-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto 28px; align-items: center; gap: 8px; padding: 11px; border: 1px solid #d6dfe2; border-radius: 7px; }
+.plot-setup-list article > div { min-width: 0; display: grid; gap: 3px; }
+.plot-setup-list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.plot-setup-list span { overflow: hidden; color: #76848c; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.plot-setup-list small { color: #9a5a22; font-size: 9px; }.plot-setup-list small.compatible { color: #37734f; }
+.plot-setup-list button:disabled { opacity: .45; cursor: default; }
+.plot-setup-list .setup-remove { width: 28px; height: 28px; padding: 0; border-color: #d5dcdf; background: white; color: #7c5552; font-size: 17px; }
+.plot-setup-empty { display: grid; gap: 5px; padding: 24px; border: 1px dashed #cbd5d9; border-radius: 7px; color: #74828a; text-align: center; }
+.plot-setup-empty strong { color: #4e6069; }
+.plot-setup-help { margin: 13px 0 0; color: #78868e; font-size: 10px; line-height: 1.45; }
 .dialog-cancel { margin-top: 18px; padding: 7px 12px; border: 1px solid #ccd5d9; border-radius: 5px; background: white; cursor: pointer; }
 .import-error { position: fixed; top: 68px; right: 18px; z-index: 120; max-width: 360px; display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid #dca8a6; border-radius: 6px; background: #fff1f0; color: #803d39; box-shadow: 0 8px 24px #24313a2b; font-size: 11px; }
 .import-error button { border: 0; background: transparent; cursor: pointer; font-size: 18px; }

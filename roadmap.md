@@ -215,6 +215,8 @@ Acceptance criteria:
 
 ## Phase 8 — Projects and export
 
+Status: not started as a milestone. Versioned local plot-setup presets that reapply graph specifications and filters to a compatible open dataset were implemented early; full projects still require dataset persistence, migrations, and export.
+
 Deliverables:
 
 - Versioned `.graphbuilder.json` project format
