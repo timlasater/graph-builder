@@ -81,7 +81,7 @@ export const boxSummary = (values: number[]) => {
   return { q1, median, q3, lowerWhisker: inliers[0], upperWhisker: inliers.at(-1)!, outliers: sorted.filter((value) => value < lowerFence || value > upperFence) }
 }
 
-export const sortedSeries = (x: unknown[], y: number[]) => x.map((value, index) => ({ x: value, y: y[index] })).filter((point) => point.x !== null && Number.isFinite(point.y)).sort((left, right) => {
+export const sortedSeries = (x: unknown[], y: number[]) => x.map((value, index) => ({ x: value, y: y[index], index })).filter((point) => point.x !== null && Number.isFinite(point.y)).sort((left, right) => {
   const numeric = Number(left.x) - Number(right.x); return Number.isFinite(numeric) ? numeric : String(left.x).localeCompare(String(right.x), undefined, { numeric: true })
 })
 

@@ -168,6 +168,7 @@
 .data-dialog header p { margin: 0; color: #75838b; font-size: 11px; }
 .dialog-close { width: 32px; height: 32px; border: 1px solid #d3dadd; border-radius: 5px; background: #f6f8f9; cursor: pointer; font-size: 20px; }
 .data-grid { flex: 1; min-height: 0; --ag-font-family: "Segoe UI", sans-serif; --ag-font-size: 12px; --ag-header-background-color: #eef3f4; --ag-selected-row-background-color: #dff0f0; --ag-border-color: #d5dde0; }
+.data-grid .linked-row-selected { background: #dceff0 !important; box-shadow: inset 3px 0 #13828b; }
 .data-tools { position: relative; display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
 .data-tools summary, .data-tools > button { padding: 7px 10px; border: 1px solid #ccd7da; border-radius: 5px; background: #f7fafb; color: #31444d; cursor: pointer; font-size: 11px; list-style: none; }
 .data-tools details { position: relative; }
@@ -179,6 +180,7 @@
 .filter-dialog { width: min(430px, 92vw); max-height: min(620px, 88vh); display: flex; flex-direction: column; padding: 20px; border-radius: 9px; background: white; box-shadow: 0 20px 70px #17272f66; }
 .filter-dialog > header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }.filter-dialog h2 { margin: 3px 0 0; font-size: 19px; }
 .filter-select-actions { display: flex; gap: 7px; padding-bottom: 10px; border-bottom: 1px solid #e0e5e7; }.filter-select-actions button { border: 0; background: transparent; padding: 4px 0; color: var(--teal); font-size: 11px; cursor: pointer; }.filter-select-actions button + button { margin-left: 8px; }
+.filter-level-search { min-width: 0; flex: 1; height: 30px; padding: 0 9px; border: 1px solid #c8d3d7; border-radius: 5px; }
 .filter-checklist { min-height: 80px; max-height: 360px; overflow: auto; padding: 7px 2px; }.filter-checklist label { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; padding: 7px 5px; border-radius: 4px; font-size: 12px; }.filter-checklist label:hover { background: #f0f5f6; }.filter-checklist input { accent-color: var(--teal); }.filter-checklist small { color: #839098; }
 .filter-bounds { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }.filter-bounds p { grid-column: 1 / -1; margin: 0; color: #718089; font-size: 11px; }.filter-bounds label { display: grid; gap: 6px; color: #60717a; font-size: 10px; }.filter-bounds input { height: 34px; padding: 0 9px; border: 1px solid #cbd5d8; border-radius: 5px; font: inherit; }
 .filter-dialog footer { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; margin-top: 16px; padding-top: 13px; border-top: 1px solid #e0e5e7; }.filter-dialog footer .dialog-cancel { margin: 0; }.filter-apply { padding: 8px 12px; border: 1px solid #0c6971; border-radius: 5px; background: var(--teal); color: white; cursor: pointer; }

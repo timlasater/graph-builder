@@ -238,6 +238,7 @@ function App() {
               <h3>Graph</h3>
               <label>Title<input value={spec.title} onChange={(event) => updateSpec({ title: event.target.value })} /></label>
               <label>Subtitle<input value={spec.subtitle} onChange={(event) => updateSpec({ subtitle: event.target.value })} /></label>
+              <label>Facet scales<select value={spec.facetScale ?? 'shared'} onChange={(event) => updateSpec({ facetScale: event.target.value as 'shared' | 'independent' })}><option value="shared">Shared across panels</option><option value="independent">Independent per panel</option></select></label>
               <ReferenceControls spec={spec} updateSpec={updateSpec} />
             </section>
             <section className="property-section">
@@ -248,7 +249,7 @@ function App() {
               <h3>Axes</h3>
               <label className="toggle-row"><span>Show grid lines</span><input type="checkbox" checked={spec.showGrid} onChange={(event) => updateSpec({ showGrid: event.target.checked })} /></label>
             </section>
-            <div className="coming-next"><span>PHASE 5</span><strong>Statistical transformations</strong><p>Next: precomputed errors, descriptive summaries, regression diagnostics, and normalization.</p></div>
+            <div className="coming-next"><span>PHASE 6</span><strong>Linked exploration</strong><p>Filters, graph/table selection, group highlighting, page stepping, and facet-scale controls.</p></div>
           </aside>}
         </main>
       </div>

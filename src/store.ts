@@ -40,6 +40,7 @@ interface BuilderState {
   future: HistoryEntry[]
   filters: RowFilter[]
   selectedColumn?: string
+  selectedRowIds: string[]
   assign: (role: GraphRole, columnId?: string) => void
   moveAssignment: (columnId: string, toRole?: GraphRole, fromRole?: GraphRole, targetIndex?: number) => void
   updateSpec: (patch: Partial<GraphSpec>) => void
@@ -54,6 +55,8 @@ interface BuilderState {
   compatibilityMessage?: string
   clearCompatibilityMessage: () => void
   setSelectedColumn: (columnId?: string) => void
+  setSelectedRowIds: (rowIds: string[]) => void
+  clearRowSelection: () => void
   setDataset: (dataset: Dataset) => void
   applyPlotSetup: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
   updateColumn: (columnId: string, patch: Partial<Pick<DataColumn, 'name' | 'dataType' | 'modelingType' | 'unit'>>) => void
@@ -86,6 +89,12 @@ export const rowMatchesFilters = (row: Dataset['rows'][number], filters: RowFilt
     const numeric = Number(actual)
     return Number.isFinite(numeric) && (filter.min === undefined || numeric >= filter.min) && (filter.max === undefined || numeric <= filter.max)
   }
+  if (filter.operator === 'dateBetween') {
+    const timestamp = Date.parse(String(actual ?? ''))
+    const start = filter.start ? Date.parse(filter.start) : Number.NEGATIVE_INFINITY
+    const end = filter.end ? Date.parse(filter.end) : Number.POSITIVE_INFINITY
+    return Number.isFinite(timestamp) && timestamp >= start && timestamp <= end
+  }
   if (filter.operator === 'contains') return String(actual ?? '').toLocaleLowerCase().includes(String(expected ?? '').toLocaleLowerCase())
   if (filter.operator === 'equals') return String(actual ?? '') === String(expected ?? '')
   if (filter.operator === 'notEquals') return String(actual ?? '') !== String(expected ?? '')
@@ -106,6 +115,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   past: [],
   future: [],
   filters: [],
+  selectedRowIds: [],
   compatibilityMessage: undefined,
   assign: (role, columnId) =>
     set((state) => {
@@ -164,7 +174,9 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   setPageValue: (pageValue) => set((state) => withHistory(state, { spec: { ...state.spec, pageValue } })),
   clearCompatibilityMessage: () => set({ compatibilityMessage: undefined }),
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
-  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), filters: [], past: [], future: [], selectedColumn: undefined }),
+  setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
+  clearRowSelection: () => set({ selectedRowIds: [] }),
+  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), filters: [], past: [], future: [], selectedColumn: undefined, selectedRowIds: [] }),
   applyPlotSetup: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
   updateColumn: (columnId, patch) => set((state) => {
     const previousColumn = state.dataset.columns.find((column) => column.id === columnId)
@@ -226,6 +238,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     future: [],
     filters: [],
     selectedColumn: undefined,
+    selectedRowIds: [],
     compatibilityMessage: undefined,
   }),
 }))

@@ -22,8 +22,14 @@ button { color: inherit; }
 .interactive-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 4px 7px 4px 4px; border: 1px solid transparent; border-radius: 5px; color: #394850; background: #fff; font-size: 11px; user-select: none; }
 .interactive-legend-item:hover { border-color: #cbd7db; background: #f7fafb; }
 .interactive-legend-item.hidden { opacity: .5; }
+.interactive-legend-item.deemphasized { opacity: .38; }
 .legend-color { width: 18px; height: 18px; padding: 0; border: 1px solid #aebbc0; border-radius: 4px; background: transparent; cursor: pointer; }
+.legend-highlight { width: 17px; height: 17px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #aab5ba; cursor: pointer; font-size: 11px; }
+.legend-highlight.active { color: #f0a128; text-shadow: 0 0 0 2px #f8dfad; }
 .legend-label { padding: 0; border: 0; background: transparent; color: inherit; cursor: grab; }
 .legend-label:focus-visible { outline: 2px solid #16838b; outline-offset: 2px; }
 .legend-label:active { cursor: grabbing; }
 .interactive-legend-item.hidden .legend-label { text-decoration: line-through; }
+.graph-selection-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; padding: 4px 12px; border-top: 1px solid #dce5e8; background: #edf7f7; color: #35515b; font-size: 10px; }
+.graph-selection-bar span { max-width: 240px; overflow: hidden; color: #708088; text-overflow: ellipsis; white-space: nowrap; }
+.graph-selection-bar button { padding: 4px 8px; border: 1px solid #b7c9ce; border-radius: 4px; background: white; color: #315d65; cursor: pointer; font-size: 10px; }

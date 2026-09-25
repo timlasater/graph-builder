@@ -37,6 +37,22 @@ describe('data history and filters', () => {
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'prototype', operator: 'in', values: ['Prototype A'] }])).toBe(true)
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'pressure', operator: 'between', min: 10, max: 25 }])).toBe(true)
   })
+  it('matches date ranges and missing-value filters', () => {
+    const row = { ...sampleDataset.rows[0], values: { ...sampleDataset.rows[0].values, run: '2026-09-25T12:00:00Z', passed: null } }
+    expect(rowMatchesFilters(row, [{ id: 'date', columnId: 'run', operator: 'dateBetween', start: '2026-09-25T00:00', end: '2026-09-25T23:59' }])).toBe(true)
+    expect(rowMatchesFilters(row, [{ id: 'missing', columnId: 'passed', operator: 'isMissing' }])).toBe(true)
+    expect(rowMatchesFilters(row, [{ id: 'present', columnId: 'dose', operator: 'isNotMissing' }])).toBe(true)
+  })
+  it('keeps linked row selection separate from undoable graph history', () => {
+    const ids = sampleDataset.rows.slice(0, 2).map((row) => row.id)
+    useBuilderStore.getState().setSelectedRowIds(ids)
+    expect(useBuilderStore.getState().selectedRowIds).toEqual(ids)
+    useBuilderStore.getState().updateSpec({ title: 'Linked selection' })
+    useBuilderStore.getState().clearRowSelection()
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().selectedRowIds).toEqual([])
+    expect(useBuilderStore.getState().spec.title).not.toBe('Linked selection')
+  })
   it('undoes a bulk exclusion in one step', () => {
     const ids = sampleDataset.rows.slice(0, 3).map((row) => row.id)
     useBuilderStore.getState().setRowsExcluded(ids, true)

@@ -48,11 +48,13 @@ export interface DataWarning {
 export interface RowFilter {
   id: string
   columnId: string
-  operator: 'equals' | 'notEquals' | 'contains' | 'gt' | 'gte' | 'lt' | 'lte' | 'isMissing' | 'isNotMissing' | 'in' | 'between'
+  operator: 'equals' | 'notEquals' | 'contains' | 'gt' | 'gte' | 'lt' | 'lte' | 'isMissing' | 'isNotMissing' | 'in' | 'between' | 'dateBetween'
   value?: CellValue
   values?: CellValue[]
   min?: number
   max?: number
+  start?: string
+  end?: string
 }
 
 export interface GraphSpec {
@@ -77,6 +79,8 @@ export interface GraphSpec {
   legendOrder?: string[]
   seriesColors?: Record<string, string>
   hiddenSeries?: string[]
+  highlightedSeries?: string
+  facetScale?: 'shared' | 'independent'
   referenceLines?: ReferenceLine[]
   referenceRegions?: ReferenceRegion[]
 }
