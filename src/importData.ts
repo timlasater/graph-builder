@@ -53,27 +53,32 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
   const nonempty = matrix.filter((row) => row.some((value) => !isBlank(value)))
   if (!nonempty.length) throw new Error('The selected file or worksheet is empty.')
   const width = Math.max(...nonempty.map((row) => row.length))
+  const sourceRows = nonempty.slice(1)
+  const keptColumnIndexes = Array.from({ length: width }, (_, index) => index).filter((index) =>
+    !isBlank(nonempty[0][index]) || sourceRows.some((row) => !isBlank(row[index])),
+  )
   const usedNames = new Set<string>()
   const warnings: DataWarning[] = []
-  const rawHeaders = Array.from({ length: width }, (_, index) => nonempty[0][index])
+  const rawHeaders = keptColumnIndexes.map((index) => nonempty[0][index])
   const seenHeaders = new Set<string>()
   rawHeaders.forEach((value, index) => {
+    const sourceIndex = keptColumnIndexes[index]
     const heading = String(value ?? '').trim()
-    if (!heading) warnings.push({ code: 'empty-heading', message: `Column ${index + 1} had an empty heading and was renamed.` })
+    if (!heading) warnings.push({ code: 'empty-heading', message: `Column ${sourceIndex + 1} had an empty heading and was renamed.` })
     else if (seenHeaders.has(heading.toLocaleLowerCase())) warnings.push({ code: 'duplicate-heading', message: `Duplicate heading “${heading}” was renamed.` })
     seenHeaders.add(heading.toLocaleLowerCase())
   })
-  const headers = rawHeaders.map((value, index) => normalizedHeader(value, index, usedNames))
-  const sourceRows = nonempty.slice(1)
-  const types = headers.map((_, columnIndex) => inferDataType(sourceRows.map((row) => row[columnIndex])))
+  const headers = rawHeaders.map((value, index) => normalizedHeader(value, keptColumnIndexes[index], usedNames))
+  const types = headers.map((_, columnIndex) => inferDataType(sourceRows.map((row) => row[keptColumnIndexes[columnIndex]])))
   const columns: DataColumn[] = headers.map((columnName, index) => ({
-    id: columnId(columnName, index),
+    id: columnId(columnName, keptColumnIndexes[index]),
     name: columnName,
     dataType: types[index],
     modelingType: types[index] === 'number' || types[index] === 'date' ? 'continuous' : 'nominal',
   }))
   columns.forEach((column, columnIndex) => {
-    const present = sourceRows.map((row) => row[columnIndex]).filter((value) => !isBlank(value))
+    const sourceColumnIndex = keptColumnIndexes[columnIndex]
+    const present = sourceRows.map((row) => row[sourceColumnIndex]).filter((value) => !isBlank(value))
     const kinds = new Set(present.map((value) => inferDataType([value])))
     if (kinds.size > 1) warnings.push({ code: 'mixed-types', columnId: column.id, message: `${column.name} contains mixed value types and was imported as ${column.dataType}.` })
     const dateLike = present.filter(looksLikeDate).length
@@ -87,7 +92,7 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
     rows: sourceRows.map((sourceRow, rowIndex) => ({
       id: `row-${rowIndex + 1}`,
       excluded: false,
-      values: Object.fromEntries(columns.map((column, columnIndex) => [column.id, coerceValue(sourceRow[columnIndex], column.dataType)])),
+      values: Object.fromEntries(columns.map((column, columnIndex) => [column.id, coerceValue(sourceRow[keptColumnIndexes[columnIndex]], column.dataType)])),
     })),
   }
 }

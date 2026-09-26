@@ -23,6 +23,18 @@ describe('tabular data import', () => {
     expect(dataset.warnings.map((warning) => warning.code)).toEqual(['duplicate-heading', 'empty-heading'])
   })
 
+  it('omits entirely empty columns without dropping blank-headed columns that contain data', () => {
+    const dataset = datasetFromMatrix([
+      ['Dose', '', '', 'Pressure', ''],
+      [12, null, null, 101, null],
+      [14, '', '', 103, ''],
+    ], 'Sparse worksheet')
+
+    expect(dataset.columns.map((column) => column.name)).toEqual(['Dose', 'Pressure'])
+    expect(dataset.rows[1].values[dataset.columns[1].id]).toBe(103)
+    expect(dataset.warnings).toEqual([])
+  })
+
   it('warns about mixed values and invalid dates', () => {
     const dataset = datasetFromMatrix([['Recorded'], ['2026-01-01'], ['not-a-date']], 'Dates')
     expect(dataset.warnings.map((warning) => warning.code)).toContain('mixed-types')
