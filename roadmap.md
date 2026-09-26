@@ -171,6 +171,10 @@ Acceptance criteria:
 
 ## Phase 6 — Filtering and linked exploration
 
+Status: in progress (September 2026). Searchable categorical checklists, numeric/date ranges, missing-value filters, graph/table row selection, box/lasso selection, bulk include/exclude, series highlighting, Page-role stepping, and shared/independent facet scales are implemented. Filters are shared by the graph and table; excluded rows remain visible in the table with their excluded state so they can be restored. The graph and its summaries use only non-excluded rows matching the filters and current Page value.
+
+Verification still needed before calling this phase complete: exercise the full interactions in the running app and measure selection/filter responsiveness at the 5,000-row / 50,000-cell maximum. Current automated tests cover filter matching and store selection state, but do not measure that maximum-size interaction performance.
+
 Deliverables:
 
 - Persistent categorical, numeric-range, date, and missing-value filters
@@ -278,7 +282,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Continue Phase 5 with precomputed summary/error inputs, the remaining descriptive statistics, normalization transformations, and regression diagnostics.
+Finish the Phase 6 interaction and performance checks at 5,000 rows / 50,000 cells, then update its status when every acceptance criterion is verified. Phase 5 still needs precomputed summary/error inputs, the remaining descriptive statistics, normalization transformations, and regression diagnostics.
 
 ## Definition of done for every task
 

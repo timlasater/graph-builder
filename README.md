@@ -33,6 +33,9 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Editable title, subtitle, grid lines, and marker size
 - Reference lines and shaded specification/acceptance regions across facets
 - Draggable legend ordering with matching categorical bar order, per-series colors, and click-to-hide visibility
+- Searchable categorical filters, numeric and date ranges, and missing/non-missing filters shared by the graph and table
+- Linked graph/table row selection, including box/lasso selection and bulk include/exclude actions
+- Group highlighting, Page-role subset stepping, and shared or independent facet scales
 - Locally saved plot setups that can reopen the latest contents of a browser-approved source file and restore roles, layers, formatting, legend choices, and filters
 - Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
 - Undo and redo for graph and complete dataset changes
@@ -54,6 +57,6 @@ npm test
 npm run build
 ```
 
-Phases 2, 3, and 4 are complete. Phase 5 expands the standalone statistical transformation engine.
+Phases 2, 3, and 4 are complete. Phases 5 and 6 are in progress: Phase 5 still has statistical features outstanding, and Phase 6's linked filtering and exploration features are implemented but still need responsiveness validation at the roadmap's 5,000-row / 50,000-cell target.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.
