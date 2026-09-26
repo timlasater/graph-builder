@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AgGridReact } from 'ag-grid-react'
-import { AllCommunityModule, ModuleRegistry, type CellValueChangedEvent, type ColDef } from 'ag-grid-community'
+import { AllCommunityModule, ModuleRegistry, type CellValueChangedEvent, type ColDef, type GridApi, type GridReadyEvent, type RowClickedEvent } from 'ag-grid-community'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-quartz.css'
 import { rowMatchesFilters, useBuilderStore } from '../store'
@@ -13,6 +13,8 @@ export function DataTableModal({ onClose }: { onClose: () => void }) {
   const { dataset, filters, selectedRowIds, setSelectedRowIds, clearRowSelection, updateCell, setRowExcluded, setRowsExcluded, setFilters, addCalculatedColumn, appendRows } = useBuilderStore()
   const selectedSet = new Set(selectedRowIds)
   const [formulaName, setFormulaName] = useState(''); const [formula, setFormula] = useState(''); const [paste, setPaste] = useState(''); const [message, setMessage] = useState<string>()
+  const gridApiRef = useRef<GridApi<GridRow> | null>(null)
+  const selectionAnchorRef = useRef<string | undefined>(undefined)
   const inputColumnCount = dataset.columns.filter((column) => !column.formula).length
   const activeRows = useMemo(() => dataset.rows.filter((row) => rowMatchesFilters(row, filters)), [dataset.rows, filters])
   const rows = useMemo<GridRow[]>(() => activeRows.map((row) => ({ __id: row.id, __excluded: row.excluded, ...row.values })), [activeRows])
@@ -24,6 +26,33 @@ export function DataTableModal({ onClose }: { onClose: () => void }) {
   const safely = (action: () => void) => { try { action(); setMessage(undefined) } catch (error) { setMessage(error instanceof Error ? error.message : 'The operation failed.') } }
   const addFilter = () => dataset.columns[0] && setFilters([...filters, { id: crypto.randomUUID(), columnId: dataset.columns[0].id, operator: 'equals', value: '' }])
   const updateFilter = (id: string, patch: Partial<RowFilter>) => setFilters(filters.map((item) => item.id === id ? { ...item, ...patch } : item))
+  const revealFirstSelectedRow = useCallback((api = gridApiRef.current) => {
+    if (!api || !selectedRowIds.length) return
+    const rowIndex = rows.findIndex((row) => row.__id === selectedRowIds[0])
+    if (rowIndex < 0) return
+    const pageSize = api.paginationGetPageSize()
+    api.paginationGoToPage(Math.floor(rowIndex / pageSize))
+    requestAnimationFrame(() => api.ensureIndexVisible(rowIndex, 'middle'))
+  }, [rows, selectedRowIds])
+  useEffect(() => { revealFirstSelectedRow() }, [revealFirstSelectedRow])
+  const rowClicked = (event: RowClickedEvent<GridRow>) => {
+    if (!event.data) return
+    const sourceEvent = event.event as MouseEvent | undefined
+    const rowId = event.data.__id
+    if (sourceEvent?.shiftKey && selectionAnchorRef.current) {
+      const anchorIndex = event.api.getRowNode(selectionAnchorRef.current)?.rowIndex
+      const clickedIndex = event.node.rowIndex
+      if (anchorIndex !== null && anchorIndex !== undefined && clickedIndex !== null) {
+        const start = Math.min(anchorIndex, clickedIndex); const end = Math.max(anchorIndex, clickedIndex)
+        const rangeIds = Array.from({ length: end - start + 1 }, (_, offset) => event.api.getDisplayedRowAtIndex(start + offset)?.data?.__id).filter((id): id is string => Boolean(id))
+        setSelectedRowIds(rangeIds)
+        return
+      }
+    }
+    selectionAnchorRef.current = rowId
+    if (sourceEvent?.ctrlKey || sourceEvent?.metaKey) setSelectedRowIds(selectedSet.has(rowId) ? selectedRowIds.filter((id) => id !== rowId) : [...selectedRowIds, rowId])
+    else setSelectedRowIds([rowId])
+  }
 
   return <div className="modal-backdrop data-modal-backdrop" role="presentation"><section className="data-dialog" role="dialog" aria-modal="true" aria-labelledby="data-table-title">
     <header><div><span className="eyebrow">DATA TABLE</span><h2 id="data-table-title">{dataset.name}</h2><p>{activeRows.length} of {dataset.rows.length} rows · {dataset.columns.length} columns · Double-click a cell to edit</p></div><button className="dialog-close" onClick={onClose} aria-label="Close data table">×</button></header>
@@ -38,6 +67,6 @@ export function DataTableModal({ onClose }: { onClose: () => void }) {
       <button disabled={!selectedRowIds.length} onClick={clearRowSelection}>Clear selection</button>
     </div>
     {message && <div className="data-message" role="alert">{message}</div>}
-    <div className="ag-theme-quartz data-grid"><AgGridReact<GridRow> theme="legacy" rowData={rows} columnDefs={columns} onCellValueChanged={cellChanged} onRowClicked={(event) => { if (!event.data) return; const sourceEvent = event.event as MouseEvent | undefined; const additive = Boolean(sourceEvent?.ctrlKey || sourceEvent?.metaKey || sourceEvent?.shiftKey); setSelectedRowIds(additive ? (selectedSet.has(event.data.__id) ? selectedRowIds.filter((id) => id !== event.data!.__id) : [...selectedRowIds, event.data.__id]) : [event.data.__id]) }} rowClassRules={{ 'linked-row-selected': ({ data }) => Boolean(data && selectedSet.has(data.__id)) }} getRowId={({ data }) => data.__id} pagination paginationPageSize={100} paginationPageSizeSelector={[50, 100, 250]} animateRows={false} /></div>
+    <div className="ag-theme-quartz data-grid"><AgGridReact<GridRow> theme="legacy" rowData={rows} columnDefs={columns} onGridReady={(event: GridReadyEvent<GridRow>) => { gridApiRef.current = event.api; revealFirstSelectedRow(event.api) }} onCellValueChanged={cellChanged} onRowClicked={rowClicked} rowClassRules={{ 'linked-row-selected': ({ data }) => Boolean(data && selectedSet.has(data.__id)) }} getRowId={({ data }) => data.__id} pagination paginationPageSize={100} paginationPageSizeSelector={[50, 100, 250]} animateRows={false} /></div>
   </section></div>
 }

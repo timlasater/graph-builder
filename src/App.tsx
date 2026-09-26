@@ -196,12 +196,12 @@ function App() {
               <LayerCanvas onResizeStart={startCanvasResize} onResizeKey={resizeCanvasByKey} />
               <div className="x-zone"><DropZone role="x" label="X" columns={columnsFor(spec.x)} onClear={(id) => moveAssignment(id, undefined, 'x')} /></div>
               <div className="encoding-zones">
+                <DropZone role="page" label="Page" columns={singleton(spec.page)} onClear={(id) => moveAssignment(id, undefined, 'page')} />
                 <DropZone role="overlay" label="Overlay" columns={singleton(spec.overlay)} onClear={(id) => moveAssignment(id, undefined, 'overlay')} />
                 <DropZone role="color" label="Color" columns={singleton(spec.color)} onClear={(id) => moveAssignment(id, undefined, 'color')} />
                 <DropZone role="shape" label="Shape" columns={singleton(spec.shape)} onClear={(id) => moveAssignment(id, undefined, 'shape')} />
                 <DropZone role="size" label="Size" columns={singleton(spec.size)} onClear={(id) => moveAssignment(id, undefined, 'size')} />
                 <DropZone role="weight" label="Frequency" columns={singleton(spec.weight)} onClear={(id) => moveAssignment(id, undefined, 'weight')} />
-                <DropZone role="page" label="Page" columns={singleton(spec.page)} onClear={(id) => moveAssignment(id, undefined, 'page')} />
               </div>
             </div>
           </section>
