@@ -40,18 +40,25 @@ export const moveOrderedValue = (values: string[], source: string, target: strin
   return next
 }
 
-export const linearFit = (x: number[], y: number[], weights?: number[]) => {
+export const linearFit = (x: number[], y: number[], weights?: number[], fixedIntercept?: number) => {
   const pairs = x.map((value, index) => ({ x: value, y: y[index], weight: weights?.[index] ?? 1 })).filter((pair) => Number.isFinite(pair.x) && Number.isFinite(pair.y) && Number.isFinite(pair.weight) && pair.weight > 0)
   if (pairs.length < 2) return null
   const weightTotal = pairs.reduce((sum, pair) => sum + pair.weight, 0)
   const meanX = pairs.reduce((sum, pair) => sum + pair.x * pair.weight, 0) / weightTotal
   const meanY = pairs.reduce((sum, pair) => sum + pair.y * pair.weight, 0) / weightTotal
-  const denominator = pairs.reduce((sum, pair) => sum + pair.weight * (pair.x - meanX) ** 2, 0)
+  const denominator = fixedIntercept === undefined
+    ? pairs.reduce((sum, pair) => sum + pair.weight * (pair.x - meanX) ** 2, 0)
+    : pairs.reduce((sum, pair) => sum + pair.weight * pair.x ** 2, 0)
   if (!denominator) return null
-  const slope = pairs.reduce((sum, pair) => sum + pair.weight * (pair.x - meanX) * (pair.y - meanY), 0) / denominator
-  const intercept = meanY - slope * meanX
+  const slope = fixedIntercept === undefined
+    ? pairs.reduce((sum, pair) => sum + pair.weight * (pair.x - meanX) * (pair.y - meanY), 0) / denominator
+    : pairs.reduce((sum, pair) => sum + pair.weight * pair.x * (pair.y - fixedIntercept), 0) / denominator
+  const intercept = fixedIntercept ?? meanY - slope * meanX
+  const residualSumSquares = pairs.reduce((sum, pair) => sum + pair.weight * (pair.y - (slope * pair.x + intercept)) ** 2, 0)
+  const totalSumSquares = pairs.reduce((sum, pair) => sum + pair.weight * (pair.y - meanY) ** 2, 0)
+  const rSquared = totalSumSquares > 0 ? 1 - residualSumSquares / totalSumSquares : undefined
   const bounds = [Math.min(...pairs.map((pair) => pair.x)), Math.max(...pairs.map((pair) => pair.x))]
-  return { x: bounds, y: bounds.map((value) => intercept + slope * value), slope, intercept }
+  return { x: bounds, y: bounds.map((value) => intercept + slope * value), slope, intercept, rSquared }
 }
 
 export const histogramBins = (values: number[], requestedBins = 10, domain?: [number, number], weights?: number[]) => {

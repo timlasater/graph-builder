@@ -105,4 +105,7 @@ export interface GraphLayer {
   boxPoints?: BoxPointMode
   barAggregation?: BarAggregation
   stack?: boolean
+  showEquation?: boolean
+  showRSquared?: boolean
+  fixedIntercept?: number
 }

@@ -47,6 +47,8 @@ export function GraphCanvas() {
   }
   const legendEntries = new Set<string>()
   const legendItems = new Map<string, LegendItem>()
+  const fitAnnotations: unknown[] = []
+  const fitAnnotationCounts = new Map<number, number>()
   const data = facets.flatMap((facet, facetIndex) => spec.layers.flatMap((layer, layerIndex) => pairsFor(layer).flatMap(({ xColumn, yColumn }) => {
     const colorColumn = columnFor(layer.color ?? spec.color); const overlayColumn = columnFor(spec.overlay)
     const availableKeys = [...new Set(facet.rows.map((row) => [colorColumn && String(row.values[colorColumn.id]), overlayColumn && String(row.values[overlayColumn.id])].filter(Boolean).join(' · ') || 'All observations'))]
@@ -62,7 +64,19 @@ export function GraphCanvas() {
       if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined })
       const base = { name: legendKey, legendgroup: legendKey, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid' }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
       if (layer.element === 'fit') {
-        const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined)
+        const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, layer.fixedIntercept)
+        if (fit && (layer.showEquation || layer.showRSquared)) {
+          const parts = []
+          if (layer.showEquation) {
+            const slopeText = Number(fit.slope.toPrecision(4)).toString()
+            const interceptText = Number(Math.abs(fit.intercept).toPrecision(4)).toString()
+            parts.push(`ŷ = ${slopeText}x ${fit.intercept < 0 ? '−' : '+'} ${interceptText}`)
+          }
+          if (layer.showRSquared && fit.rSquared !== undefined) parts.push(`R² = ${Number(fit.rSquared.toPrecision(4))}`)
+          const position = fitAnnotationCounts.get(facetIndex) ?? 0
+          fitAnnotationCounts.set(facetIndex, position + 1)
+          if (parts.length) fitAnnotations.push({ text: parts.join('<br>'), x: 0.02, y: 0.98 - position * 0.12, xref: axisNumber === 1 ? 'x domain' : `x${axisNumber} domain`, yref: axisNumber === 1 ? 'y domain' : `y${axisNumber} domain`, xanchor: 'left', yanchor: 'top', showarrow: false, align: 'left', bgcolor: '#ffffffdd', borderpad: 3, font: { size: 10, color } })
+        }
         return fit ? { ...base, type: 'scatter', mode: 'lines', x: fit.x, y: fit.y } : { ...base, type: 'scatter', mode: 'lines', x: [], y: [] }
       }
       if (layer.element === 'summary') {
@@ -119,7 +133,7 @@ export function GraphCanvas() {
   const xCategories = naturalXCategories ? orderByPreference(naturalXCategories, preferredXCategories) : undefined
   const yCategories = sharedY.length === 1 && sharedY[0].modelingType !== 'continuous' ? stableCategoryOrder(includedRows.map((row) => row.values[sharedY[0].id]), sharedY[0]) : undefined
   const horizontalGap = facetColumns > 1 ? 0.08 : 0; const verticalGap = facetRows > 1 ? 0.13 : 0; const cellWidth = (1 - horizontalGap * (facetColumns - 1)) / facetColumns; const cellHeight = (1 - verticalGap * (facetRows - 1)) / facetRows
-  const axes: Record<string, unknown> = {}; const annotations: unknown[] = []; const shapes: unknown[] = []; const xTitle = sharedX.map(columnLabel).join(' / '); const yTitle = spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / ')
+  const axes: Record<string, unknown> = {}; const annotations: unknown[] = [...fitAnnotations]; const shapes: unknown[] = []; const xTitle = sharedX.map(columnLabel).join(' / '); const yTitle = spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / ')
   facets.forEach((facet, index) => {
     const number = index + 1; const xStart = facet.column * (cellWidth + horizontalGap); const yTop = 1 - facet.row * (cellHeight + verticalGap); const xKey = number === 1 ? 'xaxis' : `xaxis${number}`; const yKey = number === 1 ? 'yaxis' : `yaxis${number}`
     axes[xKey] = { domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: facet.row === facetRows - 1 ? xTitle : '', gridcolor: spec.showGrid ? '#e5e9ed' : 'transparent', zeroline: false, ...(xCategories ? { type: 'category', categoryorder: 'array', categoryarray: xCategories } : {}) }

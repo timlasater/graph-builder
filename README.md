@@ -10,6 +10,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Multiple ordered assignments on X and Y, with drag reordering and Swap X/Y
 - Shape, Frequency, and Page roles with subset stepping
 - Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, replicate-mean lines, and linear fits
+- Fit lines can optionally show the equation and R², and can be constrained to a chosen y-intercept
 - Per-layer variable overrides, colors, marker sizes, and line widths
 - Type-aware graph suggestions and centralized compatibility feedback
 - Mean-line error bars for sample SD, standard error, selectable two-sided Student's t confidence intervals, and range

@@ -11,6 +11,10 @@ describe('layer transformations', () => {
   })
   it('computes weighted summaries', () => expect(weightedMean([10, 20], [1, 3])).toBe(17.5))
   it('computes a linear fit', () => expect(linearFit([1, 2, 3], [2, 4, 6])).toMatchObject({ x: [1, 3], y: [2, 6], slope: 2, intercept: 0 }))
+  it('reports R-squared and refits the slope when the y-intercept is fixed', () => {
+    expect(linearFit([0, 1, 2], [2, 4, 6], undefined, 2)).toMatchObject({ slope: 2, intercept: 2, rSquared: 1, y: [2, 6] })
+    expect(linearFit([0, 1, 2], [2, 4, 6], undefined, 1)).toMatchObject({ slope: 2.6, intercept: 1, rSquared: 0.85 })
+  })
   it('does not fit degenerate inputs', () => expect(linearFit([1, 1], [2, 3])).toBeNull())
   it('does not turn missing regression values into zeroes', () => {
     expect(numericOrNaN(null)).toBeNaN()

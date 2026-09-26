@@ -138,7 +138,7 @@ Acceptance criteria:
 
 ## Phase 5 — Statistical transformation engine
 
-Status: in progress. Mean layers now support tested SD, SE, selectable two-sided Student's t confidence intervals, range error bars, and optional source-observation overlays; the remaining deliverables below are not yet complete.
+Status: in progress. Mean layers now support tested SD, SE, selectable two-sided Student's t confidence intervals, range error bars, and optional source-observation overlays. Fit layers can display the equation and R-squared and can use a fixed y-intercept; regression sample-size reporting and the other deliverables below remain outstanding.
 
 This is the highest-risk phase. Build statistics as a standalone tested module before wiring controls into the UI.
 
