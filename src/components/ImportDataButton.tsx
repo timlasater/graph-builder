@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { persistentFilePickerAvailable, pickPersistentFile } from '../fileHandles'
 import { importTabularFile, type ImportedSheet } from '../importData'
 import { withFileSource } from '../sourceData'
@@ -12,11 +12,13 @@ interface PendingSheets {
 
 export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const dragDepthRef = useRef(0)
   const [pending, setPending] = useState<PendingSheets>()
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [fileDragging, setFileDragging] = useState(false)
 
-  const readFile = async (file?: File, handleId?: string) => {
+  const readFile = useCallback(async (file?: File, handleId?: string) => {
     if (!file) return
     setBusy(true)
     setError(undefined)
@@ -30,7 +32,44 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
       setBusy(false)
       if (inputRef.current) inputRef.current.value = ''
     }
-  }
+  }, [onImport])
+
+  useEffect(() => {
+    const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files')
+    const dragEnter = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      dragDepthRef.current += 1
+      setFileDragging(true)
+    }
+    const dragOver = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+    }
+    const dragLeave = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1)
+      if (dragDepthRef.current === 0) setFileDragging(false)
+    }
+    const drop = (event: DragEvent) => {
+      if (!hasFiles(event)) return
+      event.preventDefault()
+      dragDepthRef.current = 0
+      setFileDragging(false)
+      void readFile(event.dataTransfer?.files[0])
+    }
+    window.addEventListener('dragenter', dragEnter)
+    window.addEventListener('dragover', dragOver)
+    window.addEventListener('dragleave', dragLeave)
+    window.addEventListener('drop', drop)
+    return () => {
+      window.removeEventListener('dragenter', dragEnter)
+      window.removeEventListener('dragover', dragOver)
+      window.removeEventListener('dragleave', dragLeave)
+      window.removeEventListener('drop', drop)
+    }
+  }, [readFile])
 
   const chooseFile = async () => {
     if (!persistentFilePickerAvailable()) { inputRef.current?.click(); return }
@@ -51,6 +90,7 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
     <>
       <input ref={inputRef} className="visually-hidden" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
       <button className="import-button" onClick={() => void chooseFile()} disabled={busy}>{busy ? 'Importing…' : 'Import data'}</button>
+      {fileDragging && <div className="file-drop-overlay" role="status" aria-live="polite"><div><strong>Drop data file to import</strong><span>CSV, TSV, TXT, XLSX, or XLS</span></div></div>}
       {pending && (
         <div className="modal-backdrop" role="presentation">
           <section className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title">

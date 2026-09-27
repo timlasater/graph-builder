@@ -162,6 +162,10 @@
 .dialog-cancel { margin-top: 18px; padding: 7px 12px; border: 1px solid #ccd5d9; border-radius: 5px; background: white; cursor: pointer; }
 .import-error { position: fixed; top: 68px; right: 18px; z-index: 120; max-width: 360px; display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid #dca8a6; border-radius: 6px; background: #fff1f0; color: #803d39; box-shadow: 0 8px 24px #24313a2b; font-size: 11px; }
 .import-error button { border: 0; background: transparent; cursor: pointer; font-size: 18px; }
+.file-drop-overlay { position: fixed; inset: 12px; z-index: 200; display: grid; place-items: center; pointer-events: none; border: 3px dashed #39aeb7; border-radius: 12px; background: #173740de; color: white; backdrop-filter: blur(3px); }
+.file-drop-overlay div { display: grid; gap: 8px; min-width: 280px; padding: 28px 36px; border-radius: 10px; background: #102b33; box-shadow: 0 16px 48px #071b2299; text-align: center; }
+.file-drop-overlay strong { font-size: 18px; }
+.file-drop-overlay span { color: #b9dadd; font-size: 11px; }
 .data-modal-backdrop { padding: 28px; }
 .data-dialog { width: min(1500px, 96vw); height: min(850px, 92vh); display: flex; flex-direction: column; padding: 18px; border-radius: 9px; background: white; box-shadow: 0 20px 70px #17272f66; }
 .data-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
