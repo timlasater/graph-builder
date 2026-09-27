@@ -68,6 +68,7 @@
 .reference-row input, .reference-row select { min-width: 0; width: 100%; padding: 4px; border: 1px solid #ccd7da; border-radius: 4px; font-size: 10px; }
 .reference-row input[type="color"] { padding: 2px; }
 .setting-warning { display: block; margin: -4px 0 7px; color: #9a5a22; line-height: 1.35; }
+.fit-intercept-help { font-size: 9px; line-height: 1.35; }
 .element-toolbar button.active { color: var(--teal); background: var(--teal-soft); border-color: #b8d8da; font-weight: 650; }
 .toolbar-spacer { flex: 1; }
 .offline-pill { color: #548063; background: #e5f3e9; border: 1px solid #c8e3d0; border-radius: 20px; font-size: 10px; padding: 4px 9px; }
