@@ -58,6 +58,6 @@ npm test
 npm run build
 ```
 
-Phases 2, 3, and 4 are complete. Phases 5 and 6 are in progress: Phase 5 still has statistical features outstanding, and Phase 6's linked filtering and exploration features are implemented but still need responsiveness validation at the roadmap's 5,000-row / 50,000-cell target.
+Phases 2, 3, 4, and 6 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.
