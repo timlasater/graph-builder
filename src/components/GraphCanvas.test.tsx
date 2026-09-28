@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useBuilderStore } from '../store'
 import { GraphCanvas } from './GraphCanvas'
 
-const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown>; onTitleDoubleClick: (target: { kind: 'graph' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }) => void } | undefined }))
+const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown>; onTitleDoubleClick: (target: { kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }) => void } | undefined }))
 vi.mock('./PlotlyChart', () => ({ PlotlyChart: (props: typeof chart.props) => { chart.props = props; return <div data-testid="plot" /> } }))
 
 const original = useBuilderStore.getState()
@@ -51,6 +51,10 @@ describe('GraphCanvas panels', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Edit graph title' }), { target: { value: 'New figure' } })
     fireEvent.blur(screen.getByRole('textbox', { name: 'Edit graph title' }))
     expect(useBuilderStore.getState().spec.title).toBe('New figure')
+    act(() => chart.props!.onTitleDoubleClick({ kind: 'subtitle', text: original.spec.subtitle, rect }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit graph subtitle' }), { target: { value: 'Updated study' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Edit graph subtitle' }))
+    expect(useBuilderStore.getState().spec.subtitle).toBe('Updated study')
     act(() => chart.props!.onTitleDoubleClick({ kind: 'annotation', annotationIndex: 0, text: 'First panel', rect }))
     fireEvent.change(screen.getByRole('textbox', { name: 'Edit subplot title' }), { target: { value: 'Response panel' } })
     fireEvent.blur(screen.getByRole('textbox', { name: 'Edit subplot title' }))

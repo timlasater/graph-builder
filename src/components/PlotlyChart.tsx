@@ -2,7 +2,7 @@ import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import Plotly from 'plotly.js-dist-min'
 import { setExportFigure, type LegendPlacement } from '../graphExport'
 
-export type PlotTitleTarget = { kind: 'graph' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }
+export type PlotTitleTarget = { kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }
 interface PlotlyChartProps {
   data: unknown[]
   layout: Record<string, unknown>
@@ -28,7 +28,7 @@ export function PlotlyChart({ data, layout, config, onPointClick, onSelection, o
     const title = element.closest('.gtitle, g[class^="g-x"][class$="title"], g[class^="g-y"][class$="title"], g.annotation')
     if (!title || !containerRef.current.contains(title)) return
     const axis = /^g-([xy])(\d*)title$/.exec(title.getAttribute('class') ?? '')
-    const kind = title.classList.contains('gtitle') ? 'graph' : axis?.[1] === 'x' ? 'xAxis' : axis?.[1] === 'y' ? 'yAxis' : 'annotation'
+    const kind = title.classList.contains('gtitle') ? event.clientY > title.getBoundingClientRect().top + title.getBoundingClientRect().height / 2 ? 'subtitle' : 'graph' : axis?.[1] === 'x' ? 'xAxis' : axis?.[1] === 'y' ? 'yAxis' : 'annotation'
     const axisNumber = axis ? Number(axis[2] || 1) : undefined
     const annotationIndex = kind === 'annotation' ? Number(title.getAttribute('data-index')) : undefined
     const box = title.getBoundingClientRect()

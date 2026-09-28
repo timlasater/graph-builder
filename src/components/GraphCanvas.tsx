@@ -41,7 +41,7 @@ export function GraphCanvas() {
   const chartRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const cancelTitleBlur = useRef(false)
-  const [editingTitle, setEditingTitle] = useState<{ kind: 'graph' | 'xAxis' | 'yAxis' | 'panel'; panelId?: string; value: string; left: number; top: number }>()
+  const [editingTitle, setEditingTitle] = useState<{ kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'panel'; panelId?: string; value: string; left: number; top: number }>()
   const [titleDraft, setTitleDraft] = useState('')
   useEffect(() => { if (editingTitle) titleInputRef.current?.focus({ preventScroll: true }) }, [editingTitle])
   const validRowIds = new Set(dataset.rows.map((row) => row.id))
@@ -204,7 +204,7 @@ export function GraphCanvas() {
     if (kind === 'annotation' && !panelId) return
     const editKind = kind === 'annotation' ? 'panel' : kind
     const panel = spec.panels?.find((item) => item.id === panelId)
-    const value = editKind === 'graph' ? spec.title : editKind === 'xAxis' ? panel?.xAxisTitle || spec.xAxis?.title || text : editKind === 'yAxis' ? panel?.yAxisTitle || spec.yAxis?.title || text : panel?.title ?? text
+    const value = editKind === 'graph' ? spec.title : editKind === 'subtitle' ? spec.subtitle : editKind === 'xAxis' ? panel?.xAxisTitle || spec.xAxis?.title || text : editKind === 'yAxis' ? panel?.yAxisTitle || spec.yAxis?.title || text : panel?.title ?? text
     const bounds = chartRef.current?.getBoundingClientRect()
     if (!bounds) return
     const left = Math.max(135, Math.min(bounds.width - 135, rect.left - bounds.left + rect.width / 2))
@@ -215,8 +215,9 @@ export function GraphCanvas() {
   const commitTitle = () => {
     if (!editingTitle || cancelTitleBlur.current) { cancelTitleBlur.current = false; return }
     const title = titleDraft.trim()
-    if (title && title !== editingTitle.value) {
+    if ((title || editingTitle.kind === 'subtitle') && title !== editingTitle.value) {
       if (editingTitle.kind === 'graph') updateSpec({ title })
+      if (editingTitle.kind === 'subtitle') updateSpec({ subtitle: title })
       if (editingTitle.kind === 'panel') updateSpec({ panels: spec.panels?.map((panel) => panel.id === editingTitle.panelId ? { ...panel, title } : panel) })
       if (editingTitle.kind === 'xAxis') {
         if (editingTitle.panelId) updateSpec({ panels: spec.panels?.map((panel) => panel.id === editingTitle.panelId ? { ...panel, xAxisTitle: title } : panel) })
@@ -232,7 +233,7 @@ export function GraphCanvas() {
   return <div ref={chartRef} className={`chart-with-legend legend-${spec.legendPlacement ?? 'bottom'}`} style={{ background: theme.paper }}>
     {axisError && <div className="axis-error" role="alert">{axisError}</div>}
     {!axisError && <PlotlyChart data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: 24, t: groupXColumn && !spec.panels?.length ? 126 : 100, b: hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
-    {editingTitle && <input ref={titleInputRef} className="chart-title-editor" aria-label={`Edit ${editingTitle.kind === 'panel' ? 'subplot' : editingTitle.kind === 'graph' ? 'graph' : editingTitle.kind === 'xAxis' ? 'X axis' : 'Y axis'} title`} style={{ left: editingTitle.left, top: editingTitle.top }} value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} onBlur={commitTitle} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelTitleBlur.current = true; setEditingTitle(undefined) } }} />}
+    {editingTitle && <input ref={titleInputRef} className="chart-title-editor" aria-label={editingTitle.kind === 'subtitle' ? 'Edit graph subtitle' : `Edit ${editingTitle.kind === 'panel' ? 'subplot' : editingTitle.kind === 'graph' ? 'graph' : editingTitle.kind === 'xAxis' ? 'X axis' : 'Y axis'} title`} style={{ left: editingTitle.left, top: editingTitle.top }} value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} onBlur={commitTitle} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelTitleBlur.current = true; setEditingTitle(undefined) } }} />}
     {selectedRowIds.length > 0 && <div className="graph-selection-bar"><strong>{selectedRowIds.length} source row{selectedRowIds.length === 1 ? '' : 's'} selected</strong><span>{selectedRowIds.slice(0, 4).join(', ')}{selectedRowIds.length > 4 ? '…' : ''}</span><button onClick={() => setRowsExcluded(selectedRowIds, true)}>Exclude</button><button onClick={() => setRowsExcluded(selectedRowIds, false)}>Include</button><button onClick={clearRowSelection}>Clear</button></div>}
     <div className="interactive-legend" style={{ background: theme.paper, color: theme.ink }} role="list" aria-label="Graph series; drag to reorder"><span className="legend-help">Drag to reorder · Double-click a name to rename</span>{orderedLegendItems.map((item, index) => <LegendEntry key={item.id} item={item} index={index} items={orderedLegendItems} hidden={spec.hiddenSeries?.includes(item.id) ?? false} highlighted={spec.highlightedSeries === item.id} dimmed={Boolean(spec.highlightedSeries && spec.highlightedSeries !== item.id)} onToggle={() => toggleSeries(item.id)} onReorder={reorderLegend} onRecolor={(color) => recolorLegend(item.id, color)} onHighlight={() => updateSpec({ highlightedSeries: spec.highlightedSeries === item.id ? undefined : item.id })} onRename={(name) => renameSeries(item.id, name)} />)}</div>
   </div>
