@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { axisConfiguration, orderedCategories, palettes } from './appearance'
+import { axisConfiguration, categoryTickLayout, orderedCategories, palettes } from './appearance'
 import type { DataColumn, DataRow, GraphSpec } from './types'
 
 const column: DataColumn = { id: 'group', name: 'Group', dataType: 'text', modelingType: 'nominal' }
@@ -32,5 +32,11 @@ describe('appearance rules', () => {
 
   it('provides an accessible palette with distinct series colors', () => {
     expect(new Set(palettes.colorblind).size).toBe(palettes.colorblind.length)
+  })
+
+  it('reserves margin for categorical ticks and angles long labels', () => {
+    expect(categoryTickLayout()).toEqual({})
+    expect(categoryTickLayout(['A', 'B'])).toEqual({ automargin: true })
+    expect(categoryTickLayout(['Extended engineering category label'])).toEqual({ automargin: true, tickangle: -45 })
   })
 })

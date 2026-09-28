@@ -53,3 +53,8 @@ export const orderedCategories = (rows: DataRow[], column: DataColumn, spec: Gra
   const order = mode === 'manual' ? spec.manualCategories ?? [] : preferred
   return [...order.filter((value) => data.includes(value)), ...data.filter((value) => !order.includes(value))]
 }
+
+export const categoryTickLayout = (categories?: string[]) => categories ? {
+  automargin: true,
+  ...(categories.some((label) => label.length > 16) ? { tickangle: -45 } : {}),
+} : {}
