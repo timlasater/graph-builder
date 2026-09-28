@@ -37,7 +37,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Manual/automatic axis bounds, linear or logarithmic numeric scales, reverse direction, zero inclusion, tick intervals, and date axes
 - Category ordering by data order, name, response mean, or manual move controls
 - Reusable light, dark, and print themes; font, figure dimensions, aspect ratio, marker, line, bar, and uncertainty styling
-- Standard, colorblind-accessible, monochrome, and custom palettes; legend placement and entry renaming
+- Standard, colorblind-accessible, monochrome, and custom palettes; legend placement and double-click entry renaming
 - Reference lines and shaded specification/acceptance regions across facets
 - Draggable legend ordering with matching categorical bar order, per-series colors, and click-to-hide visibility
 - Searchable categorical filters, numeric and date ranges, and missing/non-missing filters shared by the graph and table
