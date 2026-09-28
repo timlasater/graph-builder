@@ -19,7 +19,7 @@ button { color: inherit; }
 .chart-with-legend .plotly-chart { flex: 1 1 auto; height: auto; min-height: 0; }
 .interactive-legend { flex: 0 0 auto; min-height: 42px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 7px; padding: 5px 34px 8px; border-top: 1px solid #edf0f2; background: #fff; }
 .legend-help { color: #8a979e; font-size: 10px; margin-right: 2px; }
-.interactive-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 4px 7px 4px 4px; border: 1px solid transparent; border-radius: 5px; color: #394850; background: #fff; font-size: 11px; user-select: none; }
+.interactive-legend-item { display: inline-flex; align-items: center; gap: 5px; min-width: 0; padding: 4px 7px 4px 4px; border: 1px solid transparent; border-radius: 5px; color: inherit; background: transparent; font-size: 11px; user-select: none; }
 .interactive-legend-item:hover { border-color: #cbd7db; background: #f7fafb; }
 .interactive-legend-item.hidden { opacity: .5; }
 .interactive-legend-item.deemphasized { opacity: .38; }
@@ -30,6 +30,12 @@ button { color: inherit; }
 .legend-label:focus-visible { outline: 2px solid #16838b; outline-offset: 2px; }
 .legend-label:active { cursor: grabbing; }
 .interactive-legend-item.hidden .legend-label { text-decoration: line-through; }
+.chart-with-legend.legend-top .interactive-legend { order: -1; border-top: 0; border-bottom: 1px solid #edf0f2; }
+.chart-with-legend.legend-right { flex-direction: row; }
+.chart-with-legend.legend-right .interactive-legend { width: 165px; max-height: 100%; overflow: auto; flex-direction: column; justify-content: flex-start; align-items: stretch; border-top: 0; border-left: 1px solid #edf0f2; padding: 12px 5px; }
+.chart-with-legend.legend-hidden .interactive-legend { display: none; }
+.legend-name { width: 72px; min-width: 0; padding: 2px 4px; border: 1px solid #ccd7da; border-radius: 3px; font-size: 10px; }
+.axis-error { margin: auto; max-width: 460px; padding: 16px; border: 1px solid #dca8a6; border-radius: 6px; background: #fff1f0; color: #803d39; font-size: 12px; }
 .graph-selection-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; padding: 4px 12px; border-top: 1px solid #dce5e8; background: #edf7f7; color: #35515b; font-size: 10px; }
 .graph-selection-bar span { max-width: 240px; overflow: hidden; color: #708088; text-overflow: ellipsis; white-space: nowrap; }
 .graph-selection-bar button { padding: 4px 8px; border: 1px solid #b7c9ce; border-radius: 4px; background: white; color: #315d65; cursor: pointer; font-size: 10px; }

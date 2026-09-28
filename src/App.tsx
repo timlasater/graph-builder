@@ -3,6 +3,7 @@ import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent a
 import { DataTableModal } from './components/DataTableModal'
 import { DropZone } from './components/DropZone'
 import { GraphCanvas } from './components/GraphCanvas'
+import { AppearanceControls } from './components/AppearanceControls'
 import { ActiveFiltersPopup, FilterDropZone, FilterPopup } from './components/FilterDropZone'
 import { ImportDataButton } from './components/ImportDataButton'
 import { PlotSetupModal } from './components/PlotSetupModal'
@@ -55,6 +56,7 @@ function ReferenceControls({ spec, updateSpec }: { spec: GraphSpec; updateSpec: 
     {lines.map((line) => <div className="reference-row" key={line.id}><select aria-label="Reference line axis" value={line.axis} onChange={(event) => updateSpec({ referenceLines: lines.map((item) => item.id === line.id ? { ...item, axis: event.target.value as 'x' | 'y' } : item) })}><option value="x">X</option><option value="y">Y</option></select><input aria-label="Reference line value" type="number" value={line.value} onChange={(event) => updateSpec({ referenceLines: lines.map((item) => item.id === line.id ? { ...item, value: Number(event.target.value) } : item) })} /><input aria-label="Reference line label" placeholder="Label" value={line.label ?? ''} onChange={(event) => updateSpec({ referenceLines: lines.map((item) => item.id === line.id ? { ...item, label: event.target.value } : item) })} /><input aria-label="Reference line color" type="color" value={line.color} onChange={(event) => updateSpec({ referenceLines: lines.map((item) => item.id === line.id ? { ...item, color: event.target.value } : item) })} /><button aria-label="Remove reference line" onClick={() => updateSpec({ referenceLines: lines.filter((item) => item.id !== line.id) })}>×</button></div>)}
     <div className="reference-heading"><strong>Acceptance regions</strong><button onClick={() => updateSpec({ referenceRegions: [...regions, { id: crypto.randomUUID(), axis: 'y', min: 0, max: 1, label: '', color: '#d9a441' }] })}>+ Region</button></div>
     {regions.map((region) => <div className="reference-row region" key={region.id}><select aria-label="Reference region axis" value={region.axis} onChange={(event) => updateSpec({ referenceRegions: regions.map((item) => item.id === region.id ? { ...item, axis: event.target.value as 'x' | 'y' } : item) })}><option value="x">X</option><option value="y">Y</option></select><input aria-label="Reference region minimum" type="number" value={region.min} onChange={(event) => updateSpec({ referenceRegions: regions.map((item) => item.id === region.id ? { ...item, min: Number(event.target.value) } : item) })} /><input aria-label="Reference region maximum" type="number" value={region.max} onChange={(event) => updateSpec({ referenceRegions: regions.map((item) => item.id === region.id ? { ...item, max: Number(event.target.value) } : item) })} /><input aria-label="Reference region color" type="color" value={region.color} onChange={(event) => updateSpec({ referenceRegions: regions.map((item) => item.id === region.id ? { ...item, color: event.target.value } : item) })} /><button aria-label="Remove reference region" onClick={() => updateSpec({ referenceRegions: regions.filter((item) => item.id !== region.id) })}>×</button></div>)}
+    {regions.map((region) => <label key={`${region.id}-label`}>Region label<input value={region.label ?? ''} placeholder="Optional benchmark label" onChange={(event) => updateSpec({ referenceRegions: regions.map((item) => item.id === region.id ? { ...item, label: event.target.value } : item) })} /></label>)}
   </div>
 }
 
@@ -90,18 +92,19 @@ function App() {
     event.preventDefault(); event.stopPropagation()
     const card = event.currentTarget.closest('.graph-card'); if (!card) return
     const bounds = card.getBoundingClientRect(); const startX = event.clientX; const startY = event.clientY
-    const move = (pointer: PointerEvent) => setCanvasSize((current) => ({
+    let finalSize: { width?: number; height?: number } = {}
+    const move = (pointer: PointerEvent) => setCanvasSize((current) => { finalSize = {
       width: direction === 'vertical' ? current.width : Math.max(280, Math.min(1400, bounds.width + pointer.clientX - startX)),
       height: direction === 'horizontal' ? current.height : Math.max(260, Math.min(1100, bounds.height + pointer.clientY - startY)),
-    }))
-    const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop) }
+    }; return finalSize })
+    const stop = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', stop); if (finalSize.width || finalSize.height) { updateSpec({ graphWidth: finalSize.width ?? spec.graphWidth, graphHeight: finalSize.height ?? spec.graphHeight, aspectRatio: undefined }); setCanvasSize({}) } }
     window.addEventListener('pointermove', move); window.addEventListener('pointerup', stop, { once: true })
   }
   const resizeCanvasByKey = (direction: ResizeDirection, event: ReactKeyboardEvent<HTMLButtonElement>) => {
     const horizontal = event.key === 'ArrowLeft' ? -24 : event.key === 'ArrowRight' ? 24 : 0; const vertical = event.key === 'ArrowUp' ? -24 : event.key === 'ArrowDown' ? 24 : 0
     if ((!horizontal && !vertical) || (direction === 'horizontal' && !horizontal) || (direction === 'vertical' && !vertical)) return
     event.preventDefault(); const bounds = event.currentTarget.closest('.graph-card')?.getBoundingClientRect(); if (!bounds) return
-    setCanvasSize((current) => ({ width: direction === 'vertical' ? current.width : Math.max(280, Math.min(1400, (current.width ?? bounds.width) + horizontal)), height: direction === 'horizontal' ? current.height : Math.max(260, Math.min(1100, (current.height ?? bounds.height) + vertical)) }))
+    updateSpec({ graphWidth: direction === 'vertical' ? spec.graphWidth : Math.max(280, Math.min(1400, (spec.graphWidth ?? bounds.width) + horizontal)), graphHeight: direction === 'horizontal' ? spec.graphHeight : Math.max(260, Math.min(1100, (spec.graphHeight ?? bounds.height) + vertical)), aspectRatio: undefined })
   }
   const startPanelResize = (panel: SidePanel, event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault(); const startX = event.clientX; const startWidth = panelWidths[panel]
@@ -181,13 +184,13 @@ function App() {
               <span className="tool-label">ADD LAYER</span>
               {graphElements.map((element) => <LayerTool key={element.id} element={element} onAdd={() => addLayer(element.id)} />)}
               <button onClick={swapAxes} title="Swap X and Y assignments"><span>⇄</span>Swap X/Y</button>
-              {(canvasSize.width || canvasSize.height) && <button onClick={() => setCanvasSize({})} title="Return the graph canvas to the available workspace size"><span>⊞</span>Fit canvas</button>}
+              {(canvasSize.width || canvasSize.height || spec.graphWidth || spec.graphHeight || spec.aspectRatio) && <button onClick={() => { setCanvasSize({}); updateSpec({ graphWidth: undefined, graphHeight: undefined, aspectRatio: undefined }) }} title="Return the graph canvas to the available workspace size"><span>⊞</span>Fit canvas</button>}
               <button className="suggest-button" onClick={applySuggestion} disabled={suggestionMatches} title={suggestionHelp} aria-label={suggestionHelp}><span>✦</span>{suggestionMatches ? `${elementLabel(suggestion.element)} suggested` : `Suggest ${elementLabel(suggestion.element)}`}</button>
               <div className="toolbar-spacer" />
               {pageColumn && <div className="page-stepper"><button disabled={pageIndex <= 0} onClick={() => setPageValue(pageValues[pageIndex - 1])}>‹</button><label>{pageColumn.name}<select value={String(spec.pageValue ?? pageValues[0] ?? '')} onChange={(event) => setPageValue(pageValues.find((value) => String(value) === event.target.value))}>{pageValues.map((value) => <option key={String(value)} value={String(value)}>{String(value)}</option>)}</select></label><button disabled={pageIndex >= pageValues.length - 1} onClick={() => setPageValue(pageValues[pageIndex + 1])}>›</button></div>}
               <span className="offline-pill">● Offline</span>
             </div>
-            <div className="graph-builder-grid" style={{ overflowX: canvasSize.width ? 'auto' : 'hidden', overflowY: canvasSize.height ? 'auto' : 'hidden', gridTemplateColumns: `clamp(104px, 11vw, 132px) ${canvasSize.width ? `${canvasSize.width}px` : 'minmax(280px, 1fr)'} clamp(116px, 10vw, 140px)`, gridTemplateRows: `58px ${canvasSize.height ? `${canvasSize.height}px` : 'clamp(300px, calc(100vh - 267px), 620px)'} 64px` }}>
+            <div className="graph-builder-grid" style={{ overflowX: canvasSize.width || spec.graphWidth ? 'auto' : 'hidden', overflowY: canvasSize.height || spec.graphHeight || spec.aspectRatio ? 'auto' : 'hidden', gridTemplateColumns: `clamp(104px, 11vw, 132px) ${canvasSize.width || spec.graphWidth ? `${canvasSize.width ?? spec.graphWidth}px` : 'minmax(280px, 1fr)'} clamp(116px, 10vw, 140px)`, gridTemplateRows: `58px ${canvasSize.height || spec.graphHeight || spec.aspectRatio ? `${canvasSize.height ?? spec.graphHeight ?? Math.round((canvasSize.width ?? spec.graphWidth ?? 700) / (spec.aspectRatio ?? 1.5))}px` : 'clamp(300px, calc(100vh - 267px), 620px)'} 64px` }}>
               <div className="filter-zone"><FilterDropZone activeCount={filters.length} onEdit={() => setShowActiveFilters(true)} /></div>
               <div className="group-x-zone"><DropZone role="groupX" label="Group X" columns={singleton(spec.groupX)} onClear={(id) => moveAssignment(id, undefined, 'groupX')} /></div>
               <div className="wrap-zone"><DropZone role="wrap" label="Wrap" columns={singleton(spec.wrap)} onClear={(id) => moveAssignment(id, undefined, 'wrap')} /></div>
@@ -250,7 +253,7 @@ function App() {
               <h3>Axes</h3>
               <label className="toggle-row"><span>Show grid lines</span><input type="checkbox" checked={spec.showGrid} onChange={(event) => updateSpec({ showGrid: event.target.checked })} /></label>
             </section>
-            <div className="coming-next"><span>PHASE 6</span><strong>Linked exploration</strong><p>Filters, graph/table selection, group highlighting, page stepping, and facet-scale controls.</p></div>
+            <AppearanceControls />
           </aside>}
         </main>
       </div>

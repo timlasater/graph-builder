@@ -117,6 +117,12 @@
 .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .column-properties { background: #edf5f5; margin: 0 -8px 14px; padding: 14px 8px 16px; border: 1px solid #d5e4e5; border-radius: 6px; }
 .property-section input:focus { border-color: #6ba9ad; box-shadow: 0 0 0 2px #6ba9ad22; }
+.property-section input[type="number"] { width: 100%; min-width: 0; height: 32px; padding: 0 7px; border: 1px solid #ccd5d9; border-radius: 4px; background: white; color: var(--ink); font-size: 11px; }
+.axis-controls { display: grid; gap: 5px; margin: 12px 0; padding: 9px; border: 1px solid #dce5e7; border-radius: 5px; background: #f8fbfb; }
+.axis-controls strong { font-size: 11px; }
+.manual-categories { display: grid; gap: 4px; max-height: 150px; overflow: auto; margin-top: 8px; }
+.manual-categories div { display: grid; grid-template-columns: 1fr 24px 24px; gap: 3px; align-items: center; font-size: 11px; }
+.manual-categories button { border: 1px solid #cbd5d8; border-radius: 3px; background: white; cursor: pointer; }
 .range-label { grid-template-columns: 1fr auto !important; }
 .range-label output { color: #50616a; }
 .range-label input { grid-column: 1 / -1; accent-color: var(--teal); }

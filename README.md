@@ -32,6 +32,10 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Interactive points, lines, and bar charts
 - Hover tooltips and Plotly zoom controls
 - Editable title, subtitle, grid lines, and marker size
+- Manual/automatic axis bounds, linear or logarithmic numeric scales, reverse direction, zero inclusion, tick intervals, and date axes
+- Category ordering by data order, name, response mean, or manual move controls
+- Reusable light, dark, and print themes; font, figure dimensions, aspect ratio, marker, line, bar, and uncertainty styling
+- Standard, colorblind-accessible, monochrome, and custom palettes; legend placement and entry renaming
 - Reference lines and shaded specification/acceptance regions across facets
 - Draggable legend ordering with matching categorical bar order, per-series colors, and click-to-hide visibility
 - Searchable categorical filters, numeric and date ranges, and missing/non-missing filters shared by the graph and table
@@ -58,6 +62,6 @@ npm test
 npm run build
 ```
 
-Phases 2, 3, 4, and 6 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
+Phases 2, 3, 4, 6, and 7 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.

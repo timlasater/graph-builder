@@ -12,6 +12,11 @@ describe('saved plot setups', () => {
   it('round-trips a versioned setup without sharing mutable graph state', () => {
     const storage = memoryStorage()
     const spec = defaultGraphSpec(sampleDataset)
+    spec.xAxis = { scale: 'log', min: 1, max: 100, reversed: true }
+    spec.theme = 'paper'
+    spec.palette = ['#0072b2', '#e69f00']
+    spec.graphWidth = 900
+    spec.legendPlacement = 'right'
     const setup = makePlotSetup('Dose summary', sampleDataset, spec, [])
     writePlotSetups([setup], storage)
     spec.title = 'Changed after save'
@@ -19,6 +24,10 @@ describe('saved plot setups', () => {
     expect(restored.name).toBe('Dose summary')
     expect(restored.spec.title).not.toBe('Changed after save')
     expect(restored.sourceSignature).toBe(datasetSignature(sampleDataset))
+    expect(restored.spec.xAxis).toEqual({ scale: 'log', min: 1, max: 100, reversed: true })
+    expect(restored.spec.palette).toEqual(['#0072b2', '#e69f00'])
+    expect(restored.spec.graphWidth).toBe(900)
+    expect(restored.spec.legendPlacement).toBe('right')
   })
 
   it('only enables a setup for a matching column schema', () => {

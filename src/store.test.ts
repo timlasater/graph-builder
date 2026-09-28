@@ -20,6 +20,14 @@ describe('graph history', () => {
     useBuilderStore.getState().redo()
     expect(useBuilderStore.getState().spec.layers[0].element).toBe(changed)
   })
+
+  it('undoes a visual theme and axis change together', () => {
+    useBuilderStore.getState().updateSpec({ theme: 'dark', yAxis: { scale: 'log' }, graphWidth: 900 })
+    expect(useBuilderStore.getState().spec.yAxis?.scale).toBe('log')
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().spec.theme).toBeUndefined()
+    expect(useBuilderStore.getState().spec.graphWidth).toBeUndefined()
+  })
 })
 
 describe('data history and filters', () => {

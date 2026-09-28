@@ -76,6 +76,28 @@ export interface GraphSpec {
   activeLayerId: string
   showGrid: boolean
   markerSize: number
+  xAxis?: AxisAppearance
+  yAxis?: AxisAppearance
+  categoryOrder?: 'data' | 'alphabetic' | 'summary' | 'manual'
+  manualCategories?: string[]
+  fontFamily?: string
+  fontSize?: number
+  graphWidth?: number
+  graphHeight?: number
+  aspectRatio?: number
+  markerShape?: string
+  markerOpacity?: number
+  markerJitter?: number
+  lineStyle?: 'solid' | 'dash' | 'dot' | 'dashdot'
+  barGap?: number
+  barWidth?: number
+  errorCap?: number
+  errorThickness?: number
+  errorColor?: string
+  palette?: string[]
+  theme?: 'light' | 'dark' | 'paper'
+  legendPlacement?: 'bottom' | 'top' | 'right' | 'hidden'
+  seriesNames?: Record<string, string>
   legendOrder?: string[]
   seriesColors?: Record<string, string>
   hiddenSeries?: string[]
@@ -83,6 +105,16 @@ export interface GraphSpec {
   facetScale?: 'shared' | 'independent'
   referenceLines?: ReferenceLine[]
   referenceRegions?: ReferenceRegion[]
+}
+
+export interface AxisAppearance {
+  scale?: 'linear' | 'log'
+  min?: number
+  max?: number
+  reversed?: boolean
+  forceZero?: boolean
+  tickInterval?: number
+  title?: string
 }
 
 export interface ReferenceLine { id: string; axis: 'x' | 'y'; value: number; label?: string; color: string }
@@ -98,6 +130,11 @@ export interface GraphLayer {
   colorHex?: string
   markerSize?: number
   lineWidth?: number
+  lineStyle?: 'solid' | 'dash' | 'dot' | 'dashdot'
+  markerShape?: string
+  errorCap?: number
+  errorThickness?: number
+  errorColor?: string
   errorBar?: ErrorBarType
   confidenceLevel?: number
   showObservations?: boolean
