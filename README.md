@@ -15,7 +15,8 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Type-aware graph suggestions and centralized compatibility feedback
 - Mean-line error bars for sample SD, standard error, selectable two-sided Student's t confidence intervals, and range
 - Optional source-observation overlays on mean layers
-- Grouped panels and wrapped facet grids
+- Grouped panels, wrapped facet grids, and custom panels with different X/Y variables
+- Box plots with a Y variable alone, without an X assignment
 - Overlay traces and numeric marker-size mapping
 - Move assigned variables directly between roles or drag them back to the Variables panel
 - Automatic replacement of incompatible Wrap and Group X/Y assignments (version 1 limitation)
@@ -56,6 +57,12 @@ npm run dev
 ```
 
 Open the local address printed in the terminal, normally `http://localhost:5173`. The application does not upload dataset contents or require a server.
+
+## Make custom panels or a Y-only box plot
+
+To compare different variables side by side, open **Properties → Graph** and click **+ Panel** for each subplot. Choose the X and Y variable in each panel; panels with different variables use independent axes. Every graph layer appears in each panel when it has the needed variables. While custom panels are present, Group X, Group Y, Wrap, layer X/Y overrides, and the shared facet-scale setting are paused. Remove all custom panels to return to the usual shared-axis graph.
+
+For a single box plot of all values in one variable, choose **Box plot** in the layer settings, put the numeric variable on Y, and clear X. The chart groups the values under **All observations**. In a custom panel, choose **None** for Panel X and a numeric Panel Y to do the same there.
 
 ## Add graph annotations to imported data
 

@@ -109,9 +109,12 @@ export interface GraphSpec {
   hiddenSeries?: string[]
   highlightedSeries?: string
   facetScale?: 'shared' | 'independent'
+  panels?: GraphPanel[]
   referenceLines?: ReferenceLine[]
   referenceRegions?: ReferenceRegion[]
 }
+
+export interface GraphPanel { id: string; title: string; x?: string; y?: string }
 
 export interface AxisAppearance {
   scale?: 'linear' | 'log'
