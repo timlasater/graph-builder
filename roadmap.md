@@ -195,7 +195,7 @@ Acceptance criteria:
 
 ## Phase 7 — Axes and appearance
 
-Status: complete (September 2026). Axis bounds, scales, reversal, zero inclusion, ticks, date handling, category order, figure sizing, themes, palettes, mark styling, legend placement/names, and saved appearance are implemented. Interactive legend reordering, per-series recoloring, and visibility were implemented earlier.
+Status: complete (September 2026). Axis bounds, scales, reversal, zero inclusion, ticks, date handling, category order, figure sizing, themes, palettes, mark styling, legend placement/names, and saved appearance are implemented. Reference lines and acceptance regions can also be imported from tagged rows or a dedicated workbook sheet; annotation rows are excluded from measurements. Interactive legend reordering, per-series recoloring, and visibility were implemented earlier.
 
 Deliverables:
 

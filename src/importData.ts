@@ -1,5 +1,6 @@
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
+import { annotationsForSheet, parseAnnotationMatrix, unmatchedAnnotationTargets } from './importAnnotations'
 import type { CellValue, DataColumn, DataType, Dataset, DataWarning } from './types'
 
 export interface ImportedSheet {
@@ -50,7 +51,8 @@ export const coerceValue = (value: unknown, type: DataType): CellValue => {
 }
 
 export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset => {
-  const nonempty = matrix.filter((row) => row.some((value) => !isBlank(value)))
+  const annotationResult = parseAnnotationMatrix(matrix, name)
+  const nonempty = annotationResult.dataMatrix.filter((row) => row.some((value) => !isBlank(value)))
   if (!nonempty.length) throw new Error('The selected file or worksheet is empty.')
   const width = Math.max(...nonempty.map((row) => row.length))
   const sourceRows = nonempty.slice(1)
@@ -58,7 +60,7 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
     !isBlank(nonempty[0][index]) || sourceRows.some((row) => !isBlank(row[index])),
   )
   const usedNames = new Set<string>()
-  const warnings: DataWarning[] = []
+  const warnings: DataWarning[] = [...annotationResult.warnings]
   const rawHeaders = keptColumnIndexes.map((index) => nonempty[0][index])
   const seenHeaders = new Set<string>()
   rawHeaders.forEach((value, index) => {
@@ -89,6 +91,7 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
     name,
     columns,
     warnings,
+    importedAnnotations: annotationsForSheet(annotationResult.entries, name),
     rows: sourceRows.map((sourceRow, rowIndex) => ({
       id: `row-${rowIndex + 1}`,
       excluded: false,
@@ -112,10 +115,23 @@ export const importTabularFile = async (file: File): Promise<ImportedSheet[]> =>
 
   if (extension === 'xlsx' || extension === 'xls') {
     const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true })
-    return workbook.SheetNames.map((sheetName) => ({
-      name: sheetName,
-      dataset: datasetFromMatrix(XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, raw: true, defval: null }), `${baseName} · ${sheetName}`),
-    }))
+    const matrixFor = (sheetName: string) => XLSX.utils.sheet_to_json<unknown[]>(workbook.Sheets[sheetName], { header: 1, raw: true, defval: null })
+    const annotationSheet = workbook.SheetNames.find((sheetName) => sheetName.trim().toLocaleLowerCase() === 'graph annotations')
+    const dataSheetNames = workbook.SheetNames.filter((sheetName) => sheetName !== annotationSheet)
+    if (!dataSheetNames.length) throw new Error('The workbook needs at least one data worksheet besides Graph Annotations.')
+    const separate = annotationSheet ? parseAnnotationMatrix(matrixFor(annotationSheet), annotationSheet, true) : undefined
+    const unmatched = separate ? unmatchedAnnotationTargets(separate.entries, dataSheetNames) : []
+    return dataSheetNames.map((sheetName) => {
+      const dataset = datasetFromMatrix(matrixFor(sheetName), `${baseName} · ${sheetName}`)
+      const extra = separate ? annotationsForSheet(separate.entries, sheetName) : undefined
+      dataset.importedAnnotations = {
+        referenceLines: [...(dataset.importedAnnotations?.referenceLines ?? []), ...(extra?.referenceLines ?? [])],
+        referenceRegions: [...(dataset.importedAnnotations?.referenceRegions ?? []), ...(extra?.referenceRegions ?? [])],
+      }
+      dataset.warnings.push(...(separate?.warnings ?? []))
+      dataset.warnings.push(...unmatched.map((target) => ({ code: 'annotation' as const, message: `Graph Annotations: Target Sheet “${target}” was not found in this workbook.` })))
+      return { name: sheetName, dataset }
+    })
   }
 
   throw new Error('Choose a CSV, TSV, XLSX, or XLS file.')

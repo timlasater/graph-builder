@@ -96,9 +96,9 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
           <section className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
             <span className="eyebrow">EXCEL WORKBOOK</span>
             <h2 id="sheet-title">Choose a worksheet</h2>
-            <p>Select the sheet you want to graph. You can import another sheet later.</p>
+            <p>Select the sheet you want to graph. Graph Annotations are applied automatically; tagged rows are not counted as measurements.</p>
             <div className="sheet-list">
-              {pending.sheets.map((sheet) => <button key={sheet.name} onClick={() => { onImport(withFileSource(sheet, pending.fileName, pending.handleId)); setPending(undefined) }}><strong>{sheet.name}</strong><span>{sheet.dataset.rows.length} rows · {sheet.dataset.columns.length} columns</span></button>)}
+              {pending.sheets.map((sheet) => <button key={sheet.name} onClick={() => { onImport(withFileSource(sheet, pending.fileName, pending.handleId)); setPending(undefined) }}><strong>{sheet.name}</strong><span>{sheet.dataset.rows.length} rows · {sheet.dataset.columns.length} columns · {(sheet.dataset.importedAnnotations?.referenceLines.length ?? 0) + (sheet.dataset.importedAnnotations?.referenceRegions.length ?? 0)} annotations</span></button>)}
             </div>
             <button className="dialog-cancel" onClick={() => setPending(undefined)}>Cancel</button>
           </section>

@@ -1,0 +1,6 @@
+Pressure,Dose,GB Type,GB Axis,GB Value,GB Minimum,GB Maximum,GB Label,GB Color
+20,50,,,,,,,
+30,55,data,,,,,,
+40,58,,,,,,,
+,,reference-line,Y,52,,,Target dose,#c2413b
+,,acceptance-region,Y,,48,60,Acceptable range,#d9a441

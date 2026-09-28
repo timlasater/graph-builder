@@ -30,6 +30,8 @@ export const defaultGraphSpec = (dataset: Dataset): GraphSpec => {
     activeLayerId: 'layer-points',
     showGrid: true,
     markerSize: 9,
+    referenceLines: structuredClone(dataset.importedAnnotations?.referenceLines ?? []),
+    referenceRegions: structuredClone(dataset.importedAnnotations?.referenceRegions ?? []),
   }
 }
 

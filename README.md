@@ -21,6 +21,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Automatic replacement of incompatible Wrap and Group X/Y assignments (version 1 limitation)
 - Local CSV, TSV, XLSX, and XLS import
 - Excel worksheet selection
+- Reference lines and acceptance regions imported from tagged data rows or a Graph Annotations worksheet
 - Automatic numeric, text, Boolean, and date/time inference
 - Editable, sortable, filterable, paginated data table with row exclusion
 - Column renaming and manual data/modeling-type controls
@@ -55,6 +56,38 @@ npm run dev
 ```
 
 Open the local address printed in the terminal, normally `http://localhost:5173`. The application does not upload dataset contents or require a server.
+
+## Add graph annotations to imported data
+
+Annotations are reference lines (one target value) or acceptance regions (a shaded interval). Their coordinates must be numeric. Use `X` or `Y` for the axis. Annotation rows do not become measurements, so they cannot change averages, sample sizes, or plotted points. You can edit imported annotations afterward in Properties → Graph.
+
+### Option 1: tagged rows in a CSV or data worksheet
+
+Add reserved columns to your usual data table. `GB Type` and `GB Axis` are required when using this format; the other `GB` columns provide values and formatting. These reserved columns are removed from the imported Variables list.
+
+| Pressure | Dose | GB Type | GB Axis | GB Value | GB Minimum | GB Maximum | GB Label | GB Color |
+| ---: | ---: | --- | --- | ---: | ---: | ---: | --- | --- |
+| 20 | 50 | | | | | | | |
+| 30 | 55 | data | | | | | | |
+| | | reference-line | Y | 52 | | | Target dose | #c2413b |
+| | | acceptance-region | Y | | 48 | 60 | Acceptable range | #d9a441 |
+
+Leave `GB Type` blank or write `data` for an ordinary measurement row. Use exactly `reference-line` or `acceptance-region` for an annotation row. A reference line needs `GB Value`; an acceptance region needs `GB Minimum` and `GB Maximum`, with minimum below maximum. `GB Label` and `GB Color` are optional. A color, when provided, must be a six-digit hex code such as `#c2413b`. Header names and the type/axis values are case-insensitive.
+
+Try the ready-to-import [annotated-study.csv](examples/annotated-study.csv) example.
+
+### Option 2: a separate Excel worksheet
+
+Add a worksheet named `Graph Annotations` to an `.xlsx` or `.xls` workbook. It is not offered as a data sheet in the worksheet picker. Use these headers without the `GB` prefix:
+
+| Type | Axis | Value | Minimum | Maximum | Label | Color | Target Sheet |
+| --- | --- | ---: | ---: | ---: | --- | --- | --- |
+| reference-line | Y | 52 | | | Target dose | #c2413b | Results |
+| acceptance-region | Y | | 48 | 60 | Acceptable range | #d9a441 | Results |
+
+`Target Sheet` is optional. Enter the exact name of a data worksheet to apply an annotation only there; leave it blank to apply the annotation to every data worksheet in the workbook. Matching ignores letter case. You can also combine this worksheet with tagged rows in a data sheet; both sets of annotations are imported.
+
+Invalid annotation rows are skipped and shown as import warnings in the data table's quality summary. Rows tagged as annotations are never silently counted as data, even when their annotation is invalid. A target sheet name that does not exist also produces a warning. Saving a plot setup preserves the resulting lines and regions; reopening that setup restores its saved appearance. Import the workbook again to pick up changed annotation rows from the source file.
 
 ## Quality checks
 

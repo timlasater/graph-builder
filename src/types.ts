@@ -29,7 +29,13 @@ export interface Dataset {
   columns: DataColumn[]
   rows: DataRow[]
   warnings: DataWarning[]
+  importedAnnotations?: ImportedAnnotations
   source?: DatasetSource
+}
+
+export interface ImportedAnnotations {
+  referenceLines: ReferenceLine[]
+  referenceRegions: ReferenceRegion[]
 }
 
 export interface DatasetSource {
@@ -39,7 +45,7 @@ export interface DatasetSource {
 }
 
 export interface DataWarning {
-  code: 'duplicate-heading' | 'empty-heading' | 'mixed-types' | 'invalid-date' | 'lossy-coercion' | 'formula'
+  code: 'duplicate-heading' | 'empty-heading' | 'mixed-types' | 'invalid-date' | 'lossy-coercion' | 'formula' | 'annotation'
   message: string
   columnId?: string
   rowId?: string
