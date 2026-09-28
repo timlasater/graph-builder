@@ -68,6 +68,7 @@
 .reference-row input, .reference-row select { min-width: 0; width: 100%; padding: 4px; border: 1px solid #ccd7da; border-radius: 4px; font-size: 10px; }
 .reference-row input[type="color"] { padding: 2px; }
 .setting-warning { display: block; margin: -4px 0 7px; color: #9a5a22; line-height: 1.35; }
+.layer-settings .setting-warning { font-size: 9px; line-height: 1.3; }
 .fit-intercept-help { font-size: 9px; line-height: 1.35; }
 .element-toolbar button.active { color: var(--teal); background: var(--teal-soft); border-color: #b8d8da; font-weight: 650; }
 .toolbar-spacer { flex: 1; }
@@ -112,6 +113,10 @@
 .empty-illustration { margin: auto; width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; background: var(--teal-soft); color: var(--teal); font-size: 27px; }
 .property-section { padding: 15px 0 17px; border-top: 1px solid #dde3e6; }
 .property-section h3 { margin: 0 0 13px; font-size: 12px; }
+.property-section h3:has(.property-section-toggle[aria-expanded="false"]) { margin-bottom: 0; }
+.property-section-toggle { display: flex; align-items: center; gap: 7px; width: 100%; padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer; font: inherit; text-align: left; }
+.property-section-toggle span { width: 12px; color: #6a7e87; font-size: 13px; }
+.property-section-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 2px; }
 .property-section label { display: grid; gap: 5px; margin-top: 10px; color: #62717a; font-size: 10px; }
 .property-section input:not([type]), .property-section input[type="text"], .property-section select { height: 32px; width: 100%; border: 1px solid #ccd5d9; border-radius: 4px; padding: 0 8px; background: white; color: var(--ink); font-size: 11px; outline: 0; }
 .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

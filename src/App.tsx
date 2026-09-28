@@ -4,6 +4,7 @@ import { DataTableModal } from './components/DataTableModal'
 import { DropZone } from './components/DropZone'
 import { GraphCanvas } from './components/GraphCanvas'
 import { AppearanceControls } from './components/AppearanceControls'
+import { CollapsibleSection } from './components/CollapsibleSection'
 import { ActiveFiltersPopup, FilterDropZone, FilterPopup } from './components/FilterDropZone'
 import { ImportDataButton } from './components/ImportDataButton'
 import { PlotSetupModal } from './components/PlotSetupModal'
@@ -212,8 +213,7 @@ function App() {
           {panelVisibility.properties && <button className="panel-resize-divider properties-divider" aria-label="Resize Properties panel" title="Drag to resize Properties; use arrow keys for fine adjustment" style={{ right: panelWidths.properties - 4 }} onPointerDown={(event) => startPanelResize('properties', event)} onKeyDown={(event) => resizePanelByKey('properties', event)} />}
           {panelVisibility.properties && <aside className="properties-panel panel" tabIndex={0} aria-label="Properties panel">
             <div className="panel-heading"><div><span className="eyebrow">FORMAT</span><h2>Properties</h2></div></div>
-            {selected && <section className="property-section column-properties">
-              <h3>Selected column</h3>
+            {selected && <CollapsibleSection title="Selected column" className="column-properties">
               <label>Name<input value={selected.name} onChange={(event) => updateColumn(selected.id, { name: event.target.value })} /></label>
               <div className="property-grid">
                 <label>Data type<select value={selected.dataType} onChange={(event) => updateColumn(selected.id, { dataType: event.target.value as typeof selected.dataType })}><option value="number">Numeric</option><option value="text">Text</option><option value="date">Date/time</option><option value="boolean">Boolean</option></select></label>
@@ -221,9 +221,8 @@ function App() {
               </div>
               <label>Unit<input value={selected.unit ?? ''} placeholder="Optional" onChange={(event) => updateColumn(selected.id, { unit: event.target.value })} /></label>
               <label>Value labels<textarea rows={3} value={Object.entries(selected.valueLabels ?? {}).map(([value, label]) => `${value} = ${label}`).join('\n')} placeholder={'1 = Prototype A\n2 = Prototype B'} onChange={(event) => setValueLabels(selected.id, Object.fromEntries(event.target.value.split(/\r?\n/).map((line) => line.split('=').map((part) => part.trim())).filter((parts) => parts.length >= 2 && parts[0]).map(([value, ...label]) => [value, label.join('=')])))} /></label>
-            </section>}
-            <section className="property-section">
-              <h3>Layers</h3>
+            </CollapsibleSection>}
+            <CollapsibleSection title="Layers">
               <div className="layer-list">{spec.layers.map((layer, index) => <div key={layer.id} className={layer.id === activeLayer?.id ? 'active' : ''}><button className="layer-select" onClick={() => setActiveLayer(layer.id)}><span>{index + 1}</span>{layer.name}</button><button className="layer-remove" onClick={() => removeLayer(layer.id)} aria-label={`Remove ${layer.name} layer`}>×</button></div>)}</div>
               {activeLayer && <div className="layer-settings">
                 <label>Element<select value={activeLayer.element} onChange={(event) => updateLayer(activeLayer.id, { element: event.target.value as GraphElement, name: event.target.selectedOptions[0].text })}>{graphElements.map((element) => <option value={element.id} key={element.id}>{element.label}</option>)}</select></label>
@@ -237,22 +236,19 @@ function App() {
                 <label>Color override<select value={activeLayer.color ?? ''} onChange={(event) => updateLayer(activeLayer.id, { color: event.target.value || undefined })}><option value="">Shared</option>{dataset.columns.map((column) => <option value={column.id} key={column.id}>{column.name}</option>)}</select></label>
                 <div className="property-grid"><label>Mark color<input type="color" value={activeLayer.colorHex ?? '#0f6c75'} onChange={(event) => updateLayer(activeLayer.id, { colorHex: event.target.value })} /></label><label>Marker size<input type="number" min="2" max="30" value={activeLayer.markerSize ?? spec.markerSize} onChange={(event) => updateLayer(activeLayer.id, { markerSize: Number(event.target.value) })} /></label><label>Line width<input type="number" min="1" max="8" value={activeLayer.lineWidth ?? 2.5} onChange={(event) => updateLayer(activeLayer.id, { lineWidth: Number(event.target.value) })} /></label></div>
               </div>}
-            </section>
-            <section className="property-section">
-              <h3>Graph</h3>
+            </CollapsibleSection>
+            <CollapsibleSection title="Graph">
               <label>Title<input value={spec.title} onChange={(event) => updateSpec({ title: event.target.value })} /></label>
               <label>Subtitle<input value={spec.subtitle} onChange={(event) => updateSpec({ subtitle: event.target.value })} /></label>
               <label>Facet scales<select value={spec.facetScale ?? 'shared'} onChange={(event) => updateSpec({ facetScale: event.target.value as 'shared' | 'independent' })}><option value="shared">Shared across panels</option><option value="independent">Independent per panel</option></select></label>
               <ReferenceControls spec={spec} updateSpec={updateSpec} />
-            </section>
-            <section className="property-section">
-              <h3>Marks</h3>
+            </CollapsibleSection>
+            <CollapsibleSection title="Marks">
               <label className="range-label"><span>Marker size</span><output>{spec.markerSize}px</output><input type="range" min="4" max="18" value={spec.markerSize} onChange={(event) => updateSpec({ markerSize: Number(event.target.value) })} /></label>
-            </section>
-            <section className="property-section">
-              <h3>Axes</h3>
+            </CollapsibleSection>
+            <CollapsibleSection title="Axes">
               <label className="toggle-row"><span>Show grid lines</span><input type="checkbox" checked={spec.showGrid} onChange={(event) => updateSpec({ showGrid: event.target.checked })} /></label>
-            </section>
+            </CollapsibleSection>
             <AppearanceControls />
           </aside>}
         </main>

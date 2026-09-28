@@ -43,6 +43,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Group highlighting, Page-role subset stepping, and shared or independent facet scales
 - Locally saved plot setups that can reopen the latest contents of a browser-approved source file and restore roles, layers, formatting, legend choices, and filters
 - Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
+- Collapsible Properties sections and an Opacity control with a clear solid-to-transparent scale
 - Undo and redo for graph and complete dataset changes
 
 ## Run locally
