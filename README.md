@@ -68,7 +68,7 @@ For a single box plot of all values in one variable, choose **Box plot** in the 
 
 ## Save projects and export graphs
 
-Open **Projects & export** in the top bar. A project contains one dataset and any number of named graphs. Each graph has its own roles, layers, filters, and appearance; all graphs in the project share the dataset. Use **New graph**, **Duplicate open graph**, the graph-name field and **Rename**, or click another graph's name to reopen it.
+Open **Projects & export** in the top bar. A project contains one dataset and one or more named graphs. Each graph has its own roles, layers, filters, and appearance; all graphs in the project share the dataset. Use **New graph**, **Duplicate open graph**, the graph-name field and **Rename**, or click another graph's name to reopen it. To remove a graph, click **Delete** beside its name and confirm; the final graph cannot be deleted. **Undo** can restore a deleted graph before the project is closed.
 
 Enter a project name and choose how to save its data:
 
@@ -81,7 +81,7 @@ The app also autosaves an **embedded recovery copy** in this browser's local sto
 
 For a graph design reusable with another compatible dataset, choose **Download template**. A `.graphbuilder-template.json` contains only the open graph's settings and filters, not data. After importing a dataset with the same column IDs, data types, and modeling types, choose **Open template…**; it creates a new graph using that dataset.
 
-Under **Export open graph**, set width and height in pixels. **Download PNG** uses the selected 1×–3× resolution; **Download SVG** creates scalable vector artwork suitable for PowerPoint or Illustrator. Both exports include a printable legend. **Copy PNG** places the image on the clipboard where the browser allows it; if your browser blocks that, use Download PNG. **Export plotted data CSV** saves the visible plot's trace values and uncertainty values, with box-plot mean and quartiles. It exports graph results, not a replacement for the full dataset in an embedded project.
+Under **Export open graph**, set width and height in pixels. **Download PNG** uses the selected 1×–3× resolution; **Download SVG** creates scalable vector artwork suitable for PowerPoint or Illustrator. Both exports include a printable legend. For a one-click download of the open graph at its current size and 2× resolution, use **Save PNG** in the top bar next to **Projects & export**. **Copy PNG** places the image on the clipboard where the browser allows it; if your browser blocks that, use Download PNG. **Export plotted data CSV** saves the visible plot's trace values and uncertainty values, with box-plot mean and quartiles. It exports graph results, not a replacement for the full dataset in an embedded project.
 
 ## Add graph annotations to imported data
 

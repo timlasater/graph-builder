@@ -8,7 +8,7 @@ import { projectGraphs, useBuilderStore } from '../store'
 
 export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void; autosaveStatus: string }) {
   const state = useBuilderStore()
-  const { dataset, spec, filters, projectName, activeGraphId, activeGraphName, openProject, openGraph, newGraph, duplicateGraph, renameGraph, renameProject, applyPlotSetup } = state
+  const { dataset, spec, filters, projectName, activeGraphId, activeGraphName, openProject, openGraph, newGraph, duplicateGraph, deleteGraph, renameGraph, renameProject, applyPlotSetup } = state
   const projectInput = useRef<HTMLInputElement>(null)
   const sourceInput = useRef<HTMLInputElement>(null)
   const templateInput = useRef<HTMLInputElement>(null)
@@ -17,6 +17,7 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
   const [templateName, setTemplateName] = useState(activeGraphName)
   const [mode, setMode] = useState<'embedded' | 'linked'>('embedded')
   const [pendingLinked, setPendingLinked] = useState<ProjectFile>()
+  const [pendingDeleteId, setPendingDeleteId] = useState<string>()
   const [width, setWidth] = useState(spec.graphWidth ?? 1200)
   const [height, setHeight] = useState(spec.graphHeight ?? 800)
   const [scale, setScale] = useState(2)
@@ -30,6 +31,15 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
   }, [onClose, pendingLinked])
 
   const report = (error: unknown) => setMessage(error instanceof Error ? error.message : 'This action could not be completed.')
+  const graphs = projectGraphs(state)
+  const pendingDelete = graphs.find((graph) => graph.id === pendingDeleteId)
+  const confirmDelete = () => {
+    if (!pendingDeleteId || graphs.length <= 1) return
+    deleteGraph(pendingDeleteId)
+    const next = useBuilderStore.getState().activeGraphName
+    setGraphName(next); setTemplateName(next); setPendingDeleteId(undefined)
+    setMessage('Graph deleted. You can use Undo to restore it until the project is closed.')
+  }
   const saveFile = () => {
     try {
       const project = makeProject(name, dataset, projectGraphs(state), activeGraphId, mode)
@@ -111,7 +121,7 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
       <div className="project-body">
         <section className="project-section"><h3>Project file</h3><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={saveFile}>Download project</button><button disabled={busy} onClick={() => projectInput.current?.click()}>Open project…</button></div><small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
         {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><div className="project-actions"><button disabled={busy} onClick={() => sourceInput.current?.click()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.') }}>Cancel</button></div></section>}
-        <section className="project-section"><h3>Graphs in this project</h3><div className="project-graph-list">{projectGraphs(state).map((graph) => <button key={graph.id} className={graph.id === activeGraphId ? 'active' : ''} disabled={graph.id === activeGraphId} onClick={() => { openGraph(graph.id); setGraphName(graph.name); setTemplateName(graph.name) }}>{graph.name}{graph.id === activeGraphId ? ' · open' : ''}</button>)}</div><div className="project-actions"><button onClick={() => { newGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>New graph</button><button onClick={() => { duplicateGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>Duplicate open graph</button></div><div className="project-actions"><label>Open graph name<input value={graphName} onChange={(event) => setGraphName(event.target.value)} /></label><button onClick={() => renameGraph(graphName)}>Rename</button></div></section>
+        <section className="project-section"><h3>Graphs in this project</h3><div className="project-graph-list">{graphs.map((graph) => <div className="project-graph-item" key={graph.id}><button className={graph.id === activeGraphId ? 'active' : ''} disabled={graph.id === activeGraphId} onClick={() => { openGraph(graph.id); setGraphName(graph.name); setTemplateName(graph.name); setPendingDeleteId(undefined) }}>{graph.name}{graph.id === activeGraphId ? ' · open' : ''}</button><button className="project-delete-button" disabled={graphs.length === 1} aria-label={`Delete ${graph.name}`} title={graphs.length === 1 ? 'A project must have at least one graph' : `Delete ${graph.name}`} onClick={() => setPendingDeleteId(graph.id)}>Delete</button></div>)}</div>{pendingDelete && <div className="project-delete-confirm" role="group" aria-label="Confirm graph deletion"><span>Delete “{pendingDelete.name}” from this project?</span><button onClick={confirmDelete}>Delete graph</button><button onClick={() => setPendingDeleteId(undefined)}>Cancel</button></div>}<div className="project-actions"><button onClick={() => { newGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>New graph</button><button onClick={() => { duplicateGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>Duplicate open graph</button></div><div className="project-actions"><label>Open graph name<input value={graphName} onChange={(event) => setGraphName(event.target.value)} /></label><button onClick={() => renameGraph(graphName)}>Rename</button></div></section>
         <section className="project-section"><h3>Reusable graph template</h3><p>Templates save the current graph and filters without data; import them with a dataset that has matching columns.</p><div className="project-actions"><label>Template name<input value={templateName} onChange={(event) => setTemplateName(event.target.value)} /></label><button onClick={exportTemplate}>Download template</button><button disabled={busy} onClick={() => templateInput.current?.click()}>Open template…</button></div></section>
         <section className="project-section"><h3>Export open graph</h3><div className="project-dimensions"><label>Width (px)<input type="number" min="320" max="6000" value={width} onChange={(event) => setWidth(Math.max(320, Math.min(6000, Number(event.target.value) || 320)))} /></label><label>Height (px)<input type="number" min="240" max="6000" value={height} onChange={(event) => setHeight(Math.max(240, Math.min(6000, Number(event.target.value) || 240)))} /></label><label>PNG resolution<select value={scale} onChange={(event) => setScale(Number(event.target.value))}><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label></div><div className="project-actions"><button disabled={busy} onClick={() => void image('png')}>Download PNG</button><button disabled={busy} onClick={() => void image('svg')}>Download SVG</button><button disabled={busy} onClick={() => void clipboard()}>Copy PNG</button><button disabled={busy} onClick={exportData}>Export plotted data CSV</button></div><small>SVG is vector artwork that stays sharp when resized. PNG uses the chosen resolution. The export includes a printable legend.</small></section>
       </div>

@@ -48,6 +48,27 @@ describe('graph history', () => {
     expect(projectGraphs(useBuilderStore.getState())).toHaveLength(3)
     expect(useBuilderStore.getState().activeGraphName).toBe('Pressure copy')
   })
+
+  it('deletes active and inactive graphs, supports undo, and keeps the last graph', () => {
+    const store = useBuilderStore.getState()
+    const firstId = store.activeGraphId
+    store.renameGraph('First')
+    store.newGraph()
+    const secondId = useBuilderStore.getState().activeGraphId
+    store.renameGraph('Second')
+    store.updateSpec({ title: 'Second chart' })
+    store.deleteGraph(firstId)
+    expect(projectGraphs(useBuilderStore.getState()).map((graph) => graph.id)).toEqual([secondId])
+    store.undo()
+    expect(projectGraphs(useBuilderStore.getState())).toHaveLength(2)
+    store.deleteGraph(secondId)
+    expect(useBuilderStore.getState().activeGraphId).toBe(firstId)
+    expect(useBuilderStore.getState().activeGraphName).toBe('First')
+    expect(projectGraphs(useBuilderStore.getState())).toHaveLength(1)
+    store.deleteGraph(firstId)
+    store.deleteGraph('missing')
+    expect(projectGraphs(useBuilderStore.getState())).toHaveLength(1)
+  })
 })
 
 describe('data history and filters', () => {

@@ -69,6 +69,7 @@ interface BuilderState {
   openGraph: (id: string) => void
   newGraph: () => void
   duplicateGraph: () => void
+  deleteGraph: (id: string) => void
   renameGraph: (name: string) => void
   renameProject: (name: string) => void
   updateColumn: (columnId: string, patch: Partial<Pick<DataColumn, 'name' | 'dataType' | 'modelingType' | 'unit'>>) => void
@@ -206,6 +207,15 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   }),
   newGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: `Graph ${state.otherGraphs.length + 2}`, spec: defaultGraphSpec(state.dataset), filters: [], otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
   duplicateGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: `${state.activeGraphName} copy`, spec: structuredClone(state.spec), filters: structuredClone(state.filters), otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
+  deleteGraph: (id) => set((state) => {
+    if (!state.otherGraphs.length) return state
+    if (id === state.activeGraphId) {
+      const [next, ...remaining] = state.otherGraphs
+      return withHistory(state, { activeGraphId: next.id, activeGraphName: next.name, spec: structuredClone(next.spec), filters: structuredClone(next.filters), otherGraphs: remaining, selectedRowIds: [] })
+    }
+    if (!state.otherGraphs.some((graph) => graph.id === id)) return state
+    return withHistory(state, { otherGraphs: state.otherGraphs.filter((graph) => graph.id !== id) })
+  }),
   renameGraph: (name) => set((state) => name.trim() ? withHistory(state, { activeGraphName: name.trim() }) : state),
   renameProject: (name) => set((state) => name.trim() ? withHistory(state, { projectName: name.trim() }) : state),
   updateColumn: (columnId, patch) => set((state) => {

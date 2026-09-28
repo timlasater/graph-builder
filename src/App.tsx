@@ -11,6 +11,7 @@ import { PlotSetupModal } from './components/PlotSetupModal'
 import { ProjectModal } from './components/ProjectModal'
 import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
+import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
@@ -68,6 +69,8 @@ function App() {
   const [showDataTable, setShowDataTable] = useState(false)
   const [showPlotSetups, setShowPlotSetups] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
+  const [savingPng, setSavingPng] = useState(false)
+  const [pngError, setPngError] = useState<string>()
   const recovery = useProjectRecovery()
   const [variableSearch, setVariableSearch] = useState('')
   const [filterColumnId, setFilterColumnId] = useState<string>()
@@ -93,6 +96,15 @@ function App() {
   const suggestionHelp = `${suggestionMatches ? 'Already using' : `Use ${elementLabel(suggestion.element)}`}: ${suggestion.reason}`
   const stackCheck = stackCompatibility(suggestionRows, activeLayer?.x ?? spec.x[0], activeLayer?.color ?? spec.color ?? spec.overlay)
   const customPanelHeight = spec.panels?.length ? Math.ceil(spec.panels.length / Math.ceil(Math.sqrt(spec.panels.length))) * 320 + 80 : undefined
+
+  const savePng = async () => {
+    setSavingPng(true); setPngError(undefined)
+    try {
+      const image = await renderGraphImage('png', spec.graphWidth ?? 1200, spec.graphHeight ?? 800, 2)
+      downloadImage(`${safeFileName(activeGraphName)}.png`, image)
+    } catch (error) { setPngError(error instanceof Error ? error.message : 'The PNG could not be saved.') }
+    finally { setSavingPng(false) }
+  }
 
   const startCanvasResize = (direction: ResizeDirection, event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault(); event.stopPropagation()
@@ -155,7 +167,7 @@ function App() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragCancel={() => { setDragColumnId(undefined); setDragElement(undefined) }} onDragEnd={handleDragEnd}>
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowPlotSetups(true)}>Plot setups</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button></div>
+          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowPlotSetups(true)}>Plot setups</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Download the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button></div>
           <div className="document-name"><span className="status-dot" />{projectName} · {activeGraphName}</div>
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
@@ -267,6 +279,7 @@ function App() {
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}
+      {pngError && <div className="compatibility-message" role="alert"><span>{pngError}</span><button aria-label="Dismiss PNG error" onClick={() => setPngError(undefined)}>×</button></div>}
       {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size requires numeric data · Frequency requires whole-number counts</span></div>}
       {dragElement && <div className="drag-preview" role="status"><strong>{dragElement}</strong><span>Drop onto the graph to add this layer without changing role assignments</span></div>}
     </DndContext>
