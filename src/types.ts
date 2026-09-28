@@ -42,6 +42,7 @@ export interface DatasetSource {
   fileName: string
   sheetName?: string
   handleId?: string
+  signature?: string
 }
 
 export interface DataWarning {
@@ -61,6 +62,13 @@ export interface RowFilter {
   max?: number
   start?: string
   end?: string
+}
+
+export interface GraphDocument {
+  id: string
+  name: string
+  spec: GraphSpec
+  filters: RowFilter[]
 }
 
 export interface GraphSpec {

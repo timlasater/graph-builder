@@ -4,7 +4,7 @@ import type { Dataset, DatasetSource } from './types'
 
 export const withFileSource = (sheet: ImportedSheet, fileName: string, handleId?: string): Dataset => ({
   ...sheet.dataset,
-  source: { fileName, sheetName: sheet.name, handleId },
+  source: { fileName, sheetName: sheet.name, handleId, signature: datasetSignature(sheet.dataset) },
 })
 
 export const chooseSetupDataset = (sheets: ImportedSheet[], source: Pick<DatasetSource, 'fileName' | 'sheetName' | 'handleId'>, expectedSignature: string) => {

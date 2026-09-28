@@ -219,7 +219,7 @@ Acceptance criteria:
 
 ## Phase 8 — Projects and export
 
-Status: not started as a milestone. Versioned local plot-setup presets that reapply graph specifications and filters to a compatible open dataset were implemented early; full projects still require dataset persistence, migrations, and export.
+Status: complete (September 2026). Versioned project files can embed the complete edited dataset or reconnect an imported source; local autosave offers recovery on return. Projects hold multiple named graphs, templates reuse graph settings with matching columns, and exports include PNG, SVG, clipboard PNG where supported, and plotted-data CSV. Embedded mode is the exact-reproduction choice; linked mode intentionally reloads the latest source, restores column settings and formulas, but does not retain individual cell edits or excluded rows.
 
 Deliverables:
 
@@ -232,6 +232,8 @@ Deliverables:
 - PNG and SVG export with selected dimensions and resolution
 - Copy graph to Windows clipboard if practical in the browser; otherwise implement during desktop packaging
 - Export summarized plot data
+
+Implementation note: Browser clipboard image support varies; the app reports when it is unavailable and offers PNG download. Local autosave uses browser storage rather than cloud sync. Version-0 flat project files migrate to version 1 on open; invalid files leave the current project untouched.
 
 Acceptance criteria:
 

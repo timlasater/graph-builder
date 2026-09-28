@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { moveRoleAssignment, rowMatchesFilters, useBuilderStore } from './store'
+import { moveRoleAssignment, projectGraphs, rowMatchesFilters, useBuilderStore } from './store'
 import { sampleDataset } from './sampleData'
 
 describe('graph history', () => {
@@ -27,6 +27,26 @@ describe('graph history', () => {
     useBuilderStore.getState().undo()
     expect(useBuilderStore.getState().spec.theme).toBeUndefined()
     expect(useBuilderStore.getState().spec.graphWidth).toBeUndefined()
+  })
+
+  it('keeps separate named graphs and reopens each with its own settings', () => {
+    const store = useBuilderStore.getState()
+    store.renameProject('Study')
+    store.renameGraph('Dose')
+    store.updateSpec({ title: 'Dose view' })
+    store.newGraph()
+    const secondId = useBuilderStore.getState().activeGraphId
+    store.renameGraph('Pressure')
+    store.updateSpec({ title: 'Pressure view' })
+    const first = projectGraphs(useBuilderStore.getState()).find((graph) => graph.name === 'Dose')!
+    store.openGraph(first.id)
+    expect(useBuilderStore.getState().spec.title).toBe('Dose view')
+    store.openGraph(secondId)
+    expect(useBuilderStore.getState().spec.title).toBe('Pressure view')
+    expect(useBuilderStore.getState().projectName).toBe('Study')
+    store.duplicateGraph()
+    expect(projectGraphs(useBuilderStore.getState())).toHaveLength(3)
+    expect(useBuilderStore.getState().activeGraphName).toBe('Pressure copy')
   })
 })
 

@@ -171,6 +171,23 @@
 .plot-setup-empty { display: grid; gap: 5px; padding: 24px; border: 1px dashed #cbd5d9; border-radius: 7px; color: #74828a; text-align: center; }
 .plot-setup-empty strong { color: #4e6069; }
 .plot-setup-help { margin: 13px 0 0; color: #78868e; font-size: 10px; line-height: 1.45; }
+.project-dialog { width: min(760px, 96vw); }
+.project-body { min-height: 0; overflow: auto; display: grid; align-content: start; gap: 12px; margin-top: 14px; padding-right: 4px; }
+.project-section { display: grid; gap: 9px; padding: 13px; border: 1px solid #d6dfe2; border-radius: 7px; background: #f9fbfc; }
+.project-section h3 { margin: 0; color: #314650; font-size: 13px; }
+.project-section p, .project-section small { margin: 0; color: #63747d; font-size: 11px; line-height: 1.45; }
+.project-section label { display: grid; gap: 4px; min-width: 120px; color: #526770; font-size: 11px; font-weight: 600; }
+.project-section input, .project-section select { height: 32px; min-width: 0; padding: 0 8px; border: 1px solid #c8d3d7; border-radius: 5px; background: white; color: var(--ink); }
+.project-actions, .project-dimensions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.project-actions button, .project-graph-list button { min-height: 32px; padding: 6px 10px; border: 1px solid #0c6971; border-radius: 5px; background: var(--teal); color: white; cursor: pointer; font-size: 11px; }
+.project-actions button:disabled, .project-graph-list button:disabled { opacity: .5; cursor: default; }
+.project-graph-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.project-graph-list button.active { border-color: #c2d4d5; background: #e6f2f2; color: #155f67; opacity: 1; }
+.project-dimensions input { width: 100px; }
+.project-dimensions select { width: 90px; }
+.project-reconnect { border-color: #d9a441; background: #fffaf0; }
+.project-dialog > .plot-setup-message { margin: 10px 0 0; }
+.recovery-backdrop { z-index: 130; }
 .dialog-cancel { margin-top: 18px; padding: 7px 12px; border: 1px solid #ccd5d9; border-radius: 5px; background: white; cursor: pointer; }
 .import-error { position: fixed; top: 68px; right: 18px; z-index: 120; max-width: 360px; display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid #dca8a6; border-radius: 6px; background: #fff1f0; color: #803d39; box-shadow: 0 8px 24px #24313a2b; font-size: 11px; }
 .import-error button { border: 0; background: transparent; cursor: pointer; font-size: 18px; }

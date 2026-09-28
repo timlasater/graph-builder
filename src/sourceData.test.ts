@@ -8,7 +8,7 @@ describe('saved setup source data', () => {
   const compatibleSheet = { name: 'Results', dataset: sampleDataset }
 
   it('attaches the file and worksheet identity to an imported dataset', () => {
-    expect(withFileSource(compatibleSheet, 'results.xlsx', 'handle-1').source).toEqual({ fileName: 'results.xlsx', sheetName: 'Results', handleId: 'handle-1' })
+    expect(withFileSource(compatibleSheet, 'results.xlsx', 'handle-1').source).toEqual({ fileName: 'results.xlsx', sheetName: 'Results', handleId: 'handle-1', signature: datasetSignature(compatibleSheet.dataset) })
   })
 
   it('selects the original compatible worksheet from refreshed file contents', () => {

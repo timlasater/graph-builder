@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import Plotly from 'plotly.js-dist-min'
+import { setExportFigure, type LegendPlacement } from '../graphExport'
 
 interface PlotlyChartProps {
   data: unknown[]
@@ -8,14 +9,20 @@ interface PlotlyChartProps {
   onPointClick?: (customData: unknown, additive: boolean) => void
   onSelection?: (customData: unknown[]) => void
   onDeselect?: () => void
+  legendPlacement?: LegendPlacement
 }
 
 interface PlotlyEventPoint { customdata?: unknown }
 interface PlotlyEvent { event?: MouseEvent; points?: PlotlyEventPoint[] }
 type PlotlyElement = HTMLDivElement & { on: (name: string, handler: (event: PlotlyEvent) => void) => void; removeListener: (name: string, handler: (event: PlotlyEvent) => void) => void }
 
-export function PlotlyChart({ data, layout, config, onPointClick, onSelection, onDeselect }: PlotlyChartProps) {
+export function PlotlyChart({ data, layout, config, onPointClick, onSelection, onDeselect, legendPlacement = 'bottom' }: PlotlyChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setExportFigure({ data, layout, legendPlacement })
+    return () => setExportFigure(undefined)
+  }, [data, layout, legendPlacement])
 
   useEffect(() => {
     const container = containerRef.current as PlotlyElement | null

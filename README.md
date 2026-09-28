@@ -44,6 +44,8 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Linked graph/table row selection, including box/lasso selection and bulk include/exclude actions
 - Group highlighting, Page-role subset stepping, and shared or independent facet scales
 - Locally saved plot setups that can reopen the latest contents of a browser-approved source file and restore roles, layers, formatting, legend choices, and filters
+- Versioned projects with multiple named graphs, embedded or linked data, local autosave/recovery, and reusable templates
+- PNG and SVG image export, browser clipboard copy where supported, and plotted-data CSV export
 - Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
 - Collapsible Properties sections and an Opacity control with a clear solid-to-transparent scale
 - Undo and redo for graph and complete dataset changes
@@ -63,6 +65,23 @@ Open the local address printed in the terminal, normally `http://localhost:5173`
 To compare different variables side by side, open **Properties → Graph** and click **+ Panel** for each subplot. Choose the X and Y variable in each panel; panels with different variables use independent axes. Every graph layer appears in each panel when it has the needed variables. While custom panels are present, Group X, Group Y, Wrap, layer X/Y overrides, and the shared facet-scale setting are paused. Remove all custom panels to return to the usual shared-axis graph.
 
 For a single box plot of all values in one variable, choose **Box plot** in the layer settings, put the numeric variable on Y, and clear X. The chart groups the values under **All observations**. In a custom panel, choose **None** for Panel X and a numeric Panel Y to do the same there.
+
+## Save projects and export graphs
+
+Open **Projects & export** in the top bar. A project contains one dataset and any number of named graphs. Each graph has its own roles, layers, filters, and appearance; all graphs in the project share the dataset. Use **New graph**, **Duplicate open graph**, the graph-name field and **Rename**, or click another graph's name to reopen it.
+
+Enter a project name and choose how to save its data:
+
+- **Embedded — include data** (recommended): downloads a `.graphbuilder.json` file containing the current data, cell edits, calculated columns and formulas, annotations, graphs, and filters. Use this when you need to reproduce the exact project later or move it to another computer.
+- **Linked — reconnect source**: downloads a smaller project file containing graph settings, column settings and formulas, and a description of the imported CSV/Excel source, but not its rows. Opening it asks you to choose the source file again and uses that file's latest data, then recalculates formulas. The original worksheet and source columns must still match. Individual cell edits and excluded rows are **not** stored in this mode; use embedded mode if those matter. A linked project cannot be made from the built-in example until you import a file.
+
+Click **Open project…** and select the `.graphbuilder.json` file to reopen it. Invalid files and unsupported future versions show an error without changing the graph you have open. Older version-0 project files are upgraded when opened. Project files are ordinary local JSON files; no data is uploaded.
+
+The app also autosaves an **embedded recovery copy** in this browser's local storage, usually shortly after a change. On a later visit it offers to restore that work. Browser storage may be cleared by browser cleanup or private browsing, so download an embedded project as your reliable backup. The autosave is local and is not a cloud sync.
+
+For a graph design reusable with another compatible dataset, choose **Download template**. A `.graphbuilder-template.json` contains only the open graph's settings and filters, not data. After importing a dataset with the same column IDs, data types, and modeling types, choose **Open template…**; it creates a new graph using that dataset.
+
+Under **Export open graph**, set width and height in pixels. **Download PNG** uses the selected 1×–3× resolution; **Download SVG** creates scalable vector artwork suitable for PowerPoint or Illustrator. Both exports include a printable legend. **Copy PNG** places the image on the clipboard where the browser allows it; if your browser blocks that, use Download PNG. **Export plotted data CSV** saves the visible plot's trace values and uncertainty values, with box-plot mean and quartiles. It exports graph results, not a replacement for the full dataset in an embedded project.
 
 ## Add graph annotations to imported data
 
@@ -103,6 +122,6 @@ npm test
 npm run build
 ```
 
-Phases 2, 3, 4, 6, and 7 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
+Phases 2, 3, 4, 6, 7, and 8 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.

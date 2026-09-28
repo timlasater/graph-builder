@@ -6,6 +6,8 @@ declare module 'plotly.js-dist-min' {
       layout: Record<string, unknown>,
       config?: Record<string, unknown>,
     ): Promise<void>
+    newPlot(root: HTMLElement, data: unknown[], layout: Record<string, unknown>, config?: Record<string, unknown>): Promise<void>
+    toImage(root: HTMLElement, options: { format: 'png' | 'svg'; width: number; height: number; scale: number }): Promise<string>
     purge(root: HTMLElement): void
     Plots: {
       resize(root: HTMLElement): Promise<void>

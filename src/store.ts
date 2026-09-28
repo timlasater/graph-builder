@@ -3,7 +3,7 @@ import { sampleDataset } from './sampleData'
 import { coerceValue } from './importData'
 import { calculateColumn, recalculateFormulaColumns } from './formula'
 import { elementLabel, resolveAssignment, sameAssignments, suggestElement } from './compatibility'
-import type { CellValue, DataColumn, Dataset, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
+import type { CellValue, DataColumn, Dataset, GraphDocument, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
 
 const initialSpec: GraphSpec = {
   title: 'Emitted Dose by Test Pressure',
@@ -38,6 +38,10 @@ export const defaultGraphSpec = (dataset: Dataset): GraphSpec => {
 interface BuilderState {
   dataset: Dataset
   spec: GraphSpec
+  projectName: string
+  activeGraphId: string
+  activeGraphName: string
+  otherGraphs: GraphDocument[]
   past: HistoryEntry[]
   future: HistoryEntry[]
   filters: RowFilter[]
@@ -61,6 +65,12 @@ interface BuilderState {
   clearRowSelection: () => void
   setDataset: (dataset: Dataset) => void
   applyPlotSetup: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
+  openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string) => void
+  openGraph: (id: string) => void
+  newGraph: () => void
+  duplicateGraph: () => void
+  renameGraph: (name: string) => void
+  renameProject: (name: string) => void
   updateColumn: (columnId: string, patch: Partial<Pick<DataColumn, 'name' | 'dataType' | 'modelingType' | 'unit'>>) => void
   updateCell: (rowId: string, columnId: string, value: CellValue) => void
   setRowExcluded: (rowId: string, excluded: boolean) => void
@@ -74,9 +84,10 @@ interface BuilderState {
   reset: () => void
 }
 
-interface HistoryEntry { dataset: Dataset; spec: GraphSpec; filters: RowFilter[] }
-const snapshot = (state: Pick<BuilderState, 'dataset' | 'spec' | 'filters'>): HistoryEntry => structuredClone({ dataset: state.dataset, spec: state.spec, filters: state.filters })
+interface HistoryEntry { dataset: Dataset; spec: GraphSpec; filters: RowFilter[]; projectName: string; activeGraphId: string; activeGraphName: string; otherGraphs: GraphDocument[] }
+const snapshot = (state: Pick<BuilderState, keyof HistoryEntry>): HistoryEntry => structuredClone({ dataset: state.dataset, spec: state.spec, filters: state.filters, projectName: state.projectName, activeGraphId: state.activeGraphId, activeGraphName: state.activeGraphName, otherGraphs: state.otherGraphs })
 const withHistory = (state: BuilderState, patch: Partial<BuilderState>) => ({ ...patch, past: [...state.past, snapshot(state)], future: [] })
+export const projectGraphs = (state: Pick<BuilderState, 'activeGraphId' | 'activeGraphName' | 'spec' | 'filters' | 'otherGraphs'>): GraphDocument[] => [{ id: state.activeGraphId, name: state.activeGraphName, spec: state.spec, filters: state.filters }, ...state.otherGraphs]
 const withRecalculatedFormulas = (dataset: Dataset, rows: Dataset['rows']): Dataset => {
   const result = recalculateFormulaColumns(dataset.columns, rows)
   return { ...dataset, rows: result.rows, warnings: [...dataset.warnings.filter((warning) => warning.code !== 'formula'), ...result.warnings] }
@@ -114,6 +125,10 @@ const layerName = elementLabel
 export const useBuilderStore = create<BuilderState>((set) => ({
   dataset: sampleDataset,
   spec: initialSpec,
+  projectName: sampleDataset.name,
+  activeGraphId: 'graph-1',
+  activeGraphName: 'Graph 1',
+  otherGraphs: [],
   past: [],
   future: [],
   filters: [],
@@ -178,8 +193,21 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
   clearRowSelection: () => set({ selectedRowIds: [] }),
-  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), filters: [], past: [], future: [], selectedColumn: undefined, selectedRowIds: [] }),
+  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), projectName: dataset.name, activeGraphId: 'graph-1', activeGraphName: 'Graph 1', otherGraphs: [], filters: [], past: [], future: [], selectedColumn: undefined, selectedRowIds: [] }),
   applyPlotSetup: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
+  openProject: (projectName, dataset, graphs, activeGraphId) => set(() => {
+    const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]
+    return { projectName, dataset: structuredClone(dataset), spec: structuredClone(active.spec), filters: structuredClone(active.filters), activeGraphId: active.id, activeGraphName: active.name, otherGraphs: structuredClone(graphs.filter((graph) => graph.id !== active.id)), past: [], future: [], selectedColumn: undefined, selectedRowIds: [], compatibilityMessage: undefined }
+  }),
+  openGraph: (id) => set((state) => {
+    const target = state.otherGraphs.find((graph) => graph.id === id)
+    if (!target) return state
+    return withHistory(state, { activeGraphId: target.id, activeGraphName: target.name, spec: structuredClone(target.spec), filters: structuredClone(target.filters), otherGraphs: [...state.otherGraphs.filter((graph) => graph.id !== id), { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })
+  }),
+  newGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: `Graph ${state.otherGraphs.length + 2}`, spec: defaultGraphSpec(state.dataset), filters: [], otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
+  duplicateGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: `${state.activeGraphName} copy`, spec: structuredClone(state.spec), filters: structuredClone(state.filters), otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
+  renameGraph: (name) => set((state) => name.trim() ? withHistory(state, { activeGraphName: name.trim() }) : state),
+  renameProject: (name) => set((state) => name.trim() ? withHistory(state, { projectName: name.trim() }) : state),
   updateColumn: (columnId, patch) => set((state) => {
     const previousColumn = state.dataset.columns.find((column) => column.id === columnId)
     if (!previousColumn) return state
@@ -236,6 +264,10 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   reset: () => set({
     dataset: sampleDataset,
     spec: initialSpec,
+    projectName: sampleDataset.name,
+    activeGraphId: 'graph-1',
+    activeGraphName: 'Graph 1',
+    otherGraphs: [],
     past: [],
     future: [],
     filters: [],
