@@ -9,10 +9,10 @@ afterEach(() => { setExportFigure(undefined); plotly.newPlot.mockClear(); plotly
 
 describe('graph export', () => {
   it('exports a printable SVG with the legend and requested dimensions', async () => {
-    setExportFigure({ data: [{ type: 'scatter', x: [1], y: [2], name: 'Dose', showlegend: true }], layout: { showlegend: false, margin: { b: 54 } }, legendPlacement: 'bottom' })
+    setExportFigure({ data: [{ type: 'scatter', x: [1], y: [2], name: 'Dose', showlegend: true }], layout: { showlegend: false, margin: { b: 54 }, xaxis: { title: { text: 'Pressure' } }, yaxis: { title: { text: 'Dose' } } }, legendPlacement: 'bottom' })
     const url = await renderGraphImage('svg', 1000, 700, 3)
     expect(url).toContain('image/svg+xml')
-    expect(plotly.newPlot).toHaveBeenCalledWith(expect.any(HTMLElement), expect.any(Array), expect.objectContaining({ showlegend: true, width: 1000, height: 700 }), expect.any(Object))
+    expect(plotly.newPlot).toHaveBeenCalledWith(expect.any(HTMLElement), expect.any(Array), expect.objectContaining({ showlegend: true, width: 1000, height: 700, xaxis: { title: { text: 'Pressure' } }, yaxis: { title: { text: 'Dose' } } }), expect.any(Object))
     expect(plotly.toImage).toHaveBeenCalledWith(expect.any(HTMLElement), { format: 'svg', width: 1000, height: 700, scale: 1 })
     expect(plotly.purge).toHaveBeenCalledOnce()
   })

@@ -10,8 +10,13 @@ describe('project files', () => {
     const dataset = structuredClone(sampleDataset)
     dataset.columns.push({ id: 'doubled', name: 'Doubled dose', dataType: 'number', modelingType: 'continuous', formula: '[dose] * 2' })
     dataset.rows.forEach((row) => { row.values.doubled = Number(row.values.dose) * 2 })
-    const project = makeProject('Engineering results', dataset, [graph()], 'one', 'embedded')
+    const savedGraph = graph()
+    savedGraph.spec.panels = [{ id: 'panel-1', title: 'Dose panel', x: 'pressure', y: 'dose', xAxisTitle: 'Pressure input', yAxisTitle: 'Dose output' }]
+    savedGraph.spec.xAxis = { title: 'Shared pressure' }
+    savedGraph.spec.yAxis = { title: 'Shared dose' }
+    const project = makeProject('Engineering results', dataset, [savedGraph], 'one', 'embedded')
     expect(parseProject(projectJson(project))).toEqual(project)
+    expect(parseProject(projectJson(project)).graphs[0].spec.panels?.[0].xAxisTitle).toBe('Pressure input')
     expect(project.data.mode === 'embedded' && project.data.dataset.rows[0].values.doubled).toBe(Number(dataset.rows[0].values.dose) * 2)
   })
 
@@ -54,7 +59,7 @@ describe('project files', () => {
     const legacy = { format: 'graphbuilder-project', version: 0, name: 'Old', dataset: sampleDataset, spec: graph().spec, filters: [] }
     const migrated = parseProject(JSON.stringify(legacy))
     expect(migrated.version).toBe(1)
-    expect(migrated.graphs[0].name).toBe('Graph 1')
+    expect(migrated.graphs[0].name).toBe(graph().spec.title)
   })
 
   it('rejects corrupt, incompatible, or incomplete files', () => {

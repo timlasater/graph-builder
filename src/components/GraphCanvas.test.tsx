@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useBuilderStore } from '../store'
 import { GraphCanvas } from './GraphCanvas'
 
-const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown> } | undefined }))
+const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown>; onTitleDoubleClick: (target: { kind: 'graph' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }) => void } | undefined }))
 vi.mock('./PlotlyChart', () => ({ PlotlyChart: (props: typeof chart.props) => { chart.props = props; return <div data-testid="plot" /> } }))
 
 const original = useBuilderStore.getState()
@@ -24,8 +24,41 @@ describe('GraphCanvas panels', () => {
     expect(traces.filter((trace) => trace.xaxis === 'x2').flatMap((trace) => trace.y as number[]).sort()).toEqual(original.dataset.rows.map((row) => row.values.pressure).sort())
     expect((chart.props!.layout.xaxis2 as Record<string, unknown>).matches).toBeUndefined()
     expect((chart.props!.layout.yaxis2 as Record<string, unknown>).matches).toBeUndefined()
-    expect((chart.props!.layout.xaxis2 as Record<string, unknown>).title).toBe('Run')
-    expect((chart.props!.layout.yaxis2 as Record<string, unknown>).title).toBe('Test Pressure (psi)')
+    expect((chart.props!.layout.xaxis2 as Record<string, unknown>).title).toMatchObject({ text: 'Run' })
+    expect((chart.props!.layout.yaxis2 as Record<string, unknown>).title).toMatchObject({ text: 'Test Pressure (psi)' })
+    const titles = chart.props!.layout.annotations as { x: number; xref: string; text: string }[]
+    expect(titles.filter((annotation) => annotation.text.includes('Pressure and dose'))).toMatchObject([{ x: 0.5, xref: 'x domain' }])
+    expect(titles.filter((annotation) => annotation.text.includes('Run and pressure'))).toMatchObject([{ x: 0.5, xref: 'x2 domain' }])
+  })
+
+  it('uses custom axis titles in every subplot', () => {
+    useBuilderStore.setState({ spec: { ...original.spec, xAxis: { title: 'Custom X' }, yAxis: { title: 'Custom Y' }, panels: [
+      { id: 'first', title: 'First', x: 'pressure', y: 'dose' },
+      { id: 'second', title: 'Second', x: 'run', y: 'pressure', xAxisTitle: 'Second X', yAxisTitle: 'Second Y' },
+    ] } })
+    render(<GraphCanvas />)
+    expect((chart.props!.layout.xaxis as { title: { text: string } }).title.text).toBe('Custom X')
+    expect((chart.props!.layout.yaxis as { title: { text: string } }).title.text).toBe('Custom Y')
+    expect((chart.props!.layout.xaxis2 as { title: { text: string } }).title.text).toBe('Second X')
+    expect((chart.props!.layout.yaxis2 as { title: { text: string } }).title.text).toBe('Second Y')
+  })
+
+  it('edits graph, subplot, and axis titles from the chart', () => {
+    useBuilderStore.setState({ spec: { ...original.spec, panels: [{ id: 'first', title: 'First panel', x: 'pressure', y: 'dose' }] } })
+    render(<GraphCanvas />)
+    const rect = { left: 20, top: 20, width: 60, height: 20 }
+    act(() => chart.props!.onTitleDoubleClick({ kind: 'graph', text: original.spec.title, rect }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit graph title' }), { target: { value: 'New figure' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Edit graph title' }))
+    expect(useBuilderStore.getState().spec.title).toBe('New figure')
+    act(() => chart.props!.onTitleDoubleClick({ kind: 'annotation', annotationIndex: 0, text: 'First panel', rect }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit subplot title' }), { target: { value: 'Response panel' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Edit subplot title' }))
+    expect(useBuilderStore.getState().spec.panels?.[0].title).toBe('Response panel')
+    act(() => chart.props!.onTitleDoubleClick({ kind: 'xAxis', axisNumber: 1, text: 'Test Pressure (psi)', rect }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Edit X axis title' }), { target: { value: 'Pressure setting' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Edit X axis title' }))
+    expect(useBuilderStore.getState().spec.panels?.[0].xAxisTitle).toBe('Pressure setting')
   })
 
   it('renders a box plot with only a Y variable', () => {

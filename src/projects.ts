@@ -52,7 +52,7 @@ const validSpec = (value: unknown): value is GraphSpec => {
   if (!['manualCategories', 'palette', 'legendOrder', 'hiddenSeries'].every((key) => optionalStrings(value, key)) || !['seriesNames', 'seriesColors'].every((key) => optionalStringMap(value, key))) return false
   if (!validAxis(value.xAxis) || !validAxis(value.yAxis) || !optionalItems(value, 'referenceLines', validLine) || !optionalItems(value, 'referenceRegions', validRegion)) return false
   if (value.pageValue !== undefined && !cell(value.pageValue)) return false
-  return value.panels === undefined || Array.isArray(value.panels) && value.panels.every((panel) => record(panel) && typeof panel.id === 'string' && typeof panel.title === 'string' && optionalString(panel, 'x') && optionalString(panel, 'y'))
+  return value.panels === undefined || Array.isArray(value.panels) && value.panels.every((panel) => record(panel) && typeof panel.id === 'string' && typeof panel.title === 'string' && optionalString(panel, 'x') && optionalString(panel, 'y') && optionalString(panel, 'xAxisTitle') && optionalString(panel, 'yAxisTitle'))
 }
 
 const validFilters = (value: unknown): value is RowFilter[] => Array.isArray(value) && value.every((filter) => record(filter) && typeof filter.id === 'string' && typeof filter.columnId === 'string' && operators.has(String(filter.operator)) && (filter.value === undefined || cell(filter.value)) && (filter.values === undefined || Array.isArray(filter.values) && filter.values.every(cell)) && ['min', 'max'].every((key) => optionalNumber(filter, key)) && ['start', 'end'].every((key) => optionalString(filter, key)))
@@ -69,7 +69,7 @@ const graphsFitColumns = (graphs: GraphDocument[], columns: DataColumn[]) => {
 const migrateV0 = (legacy: Record<string, unknown>): ProjectFile => {
   if (!validDataset(legacy.dataset) || !validSpec(legacy.spec) || !validFilters(legacy.filters)) throw new Error('This older project has missing or invalid data and cannot be migrated.')
   const name = typeof legacy.name === 'string' && legacy.name.trim() ? legacy.name : legacy.dataset.name
-  return { format: PROJECT_FORMAT, version: PROJECT_VERSION, name, savedAt: typeof legacy.savedAt === 'string' ? legacy.savedAt : new Date().toISOString(), data: { mode: 'embedded', dataset: legacy.dataset }, graphs: [{ id: 'graph-1', name: 'Graph 1', spec: legacy.spec, filters: legacy.filters }], activeGraphId: 'graph-1' }
+  return { format: PROJECT_FORMAT, version: PROJECT_VERSION, name, savedAt: typeof legacy.savedAt === 'string' ? legacy.savedAt : new Date().toISOString(), data: { mode: 'embedded', dataset: legacy.dataset }, graphs: [{ id: 'graph-1', name: legacy.spec.title.trim() || 'Graph 1', spec: legacy.spec, filters: legacy.filters }], activeGraphId: 'graph-1' }
 }
 
 export const parseProject = (content: string): ProjectFile => {

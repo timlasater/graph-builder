@@ -122,7 +122,7 @@ export interface GraphSpec {
   referenceRegions?: ReferenceRegion[]
 }
 
-export interface GraphPanel { id: string; title: string; x?: string; y?: string }
+export interface GraphPanel { id: string; title: string; x?: string; y?: string; xAxisTitle?: string; yAxisTitle?: string }
 
 export interface AxisAppearance {
   scale?: 'linear' | 'log'

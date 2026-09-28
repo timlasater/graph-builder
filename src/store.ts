@@ -128,7 +128,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   spec: initialSpec,
   projectName: sampleDataset.name,
   activeGraphId: 'graph-1',
-  activeGraphName: 'Graph 1',
+  activeGraphName: initialSpec.title,
   otherGraphs: [],
   past: [],
   future: [],
@@ -159,7 +159,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
       return withHistory(state, { spec: result.spec, compatibilityMessage: undefined })
     }),
   updateSpec: (patch) =>
-    set((state) => withHistory(state, { spec: { ...state.spec, ...patch } })),
+    set((state) => withHistory(state, { spec: { ...state.spec, ...patch }, ...(patch.title?.trim() && state.activeGraphName === state.spec.title ? { activeGraphName: patch.title } : {}) })),
   setElement: (element) =>
     set((state) => {
       const layerId = state.spec.activeLayerId
@@ -194,7 +194,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
   clearRowSelection: () => set({ selectedRowIds: [] }),
-  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), projectName: dataset.name, activeGraphId: 'graph-1', activeGraphName: 'Graph 1', otherGraphs: [], filters: [], past: [], future: [], selectedColumn: undefined, selectedRowIds: [] }),
+  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), projectName: dataset.name, activeGraphId: 'graph-1', activeGraphName: defaultGraphSpec(dataset).title, otherGraphs: [], filters: [], past: [], future: [], selectedColumn: undefined, selectedRowIds: [] }),
   applyPlotSetup: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
   openProject: (projectName, dataset, graphs, activeGraphId) => set(() => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]
@@ -205,8 +205,8 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     if (!target) return state
     return withHistory(state, { activeGraphId: target.id, activeGraphName: target.name, spec: structuredClone(target.spec), filters: structuredClone(target.filters), otherGraphs: [...state.otherGraphs.filter((graph) => graph.id !== id), { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })
   }),
-  newGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: `Graph ${state.otherGraphs.length + 2}`, spec: defaultGraphSpec(state.dataset), filters: [], otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
-  duplicateGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: `${state.activeGraphName} copy`, spec: structuredClone(state.spec), filters: structuredClone(state.filters), otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
+  newGraph: () => set((state) => { const spec = defaultGraphSpec(state.dataset); return withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: spec.title, spec, filters: [], otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] }) }),
+  duplicateGraph: () => set((state) => withHistory(state, { activeGraphId: crypto.randomUUID(), activeGraphName: state.spec.title.trim() || state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters), otherGraphs: [...state.otherGraphs, { id: state.activeGraphId, name: state.activeGraphName, spec: structuredClone(state.spec), filters: structuredClone(state.filters) }], selectedRowIds: [] })),
   deleteGraph: (id) => set((state) => {
     if (!state.otherGraphs.length) return state
     if (id === state.activeGraphId) {
@@ -276,7 +276,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     spec: initialSpec,
     projectName: sampleDataset.name,
     activeGraphId: 'graph-1',
-    activeGraphName: 'Graph 1',
+    activeGraphName: initialSpec.title,
     otherGraphs: [],
     past: [],
     future: [],

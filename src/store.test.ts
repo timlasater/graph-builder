@@ -46,7 +46,21 @@ describe('graph history', () => {
     expect(useBuilderStore.getState().projectName).toBe('Study')
     store.duplicateGraph()
     expect(projectGraphs(useBuilderStore.getState())).toHaveLength(3)
-    expect(useBuilderStore.getState().activeGraphName).toBe('Pressure copy')
+    expect(useBuilderStore.getState().activeGraphName).toBe('Pressure view')
+  })
+
+  it('defaults graph names to titles and follows title edits until manually renamed', () => {
+    const store = useBuilderStore.getState()
+    expect(store.activeGraphName).toBe(store.spec.title)
+    store.updateSpec({ title: 'Dose response' })
+    expect(useBuilderStore.getState().activeGraphName).toBe('Dose response')
+    store.renameGraph('My selected view')
+    store.updateSpec({ title: 'Revised response' })
+    expect(useBuilderStore.getState().activeGraphName).toBe('My selected view')
+    store.newGraph()
+    expect(useBuilderStore.getState().activeGraphName).toBe(useBuilderStore.getState().spec.title)
+    store.duplicateGraph()
+    expect(useBuilderStore.getState().activeGraphName).toBe(useBuilderStore.getState().spec.title)
   })
 
   it('deletes active and inactive graphs, supports undo, and keeps the last graph', () => {

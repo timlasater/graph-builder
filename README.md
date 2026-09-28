@@ -66,9 +66,11 @@ To compare different variables side by side, open **Properties → Graph** and c
 
 For a single box plot of all values in one variable, choose **Box plot** in the layer settings, put the numeric variable on Y, and clear X. The chart groups the values under **All observations**. In a custom panel, choose **None** for Panel X and a numeric Panel Y to do the same there.
 
+Double-click the chart title, a custom subplot title, or a visible X/Y axis title directly on the graph to edit it; press Enter or click away to save, or Escape to cancel. Axis titles also remain editable in **Properties → Axes and categories**. Custom subplots can have their own axis titles in **Properties → Graph → Custom panels**; if left blank they use the graph-wide axis title or column name. These titles appear in PNG/SVG exports and saved projects.
+
 ## Save projects and export graphs
 
-Open **Projects & export** in the top bar. A project contains one dataset and one or more named graphs. Each graph has its own roles, layers, filters, and appearance; all graphs in the project share the dataset. Use **New graph**, **Duplicate open graph**, the graph-name field and **Rename**, or click another graph's name to reopen it. To remove a graph, click **Delete** beside its name and confirm; the final graph cannot be deleted. **Undo** can restore a deleted graph before the project is closed.
+Open **Projects & export** in the top bar. A project contains one dataset and one or more named graphs. Each graph has its own roles, layers, filters, and appearance; all graphs in the project share the dataset. A graph's name starts as its chart title and follows title edits until you give it a separate name with **Rename**. Use **New graph**, **Duplicate open graph**, or click another graph's name to reopen it. To remove a graph, click **Delete** beside its name and confirm; the final graph cannot be deleted. **Undo** can restore a deleted graph before the project is closed.
 
 Enter a project name and choose how to save its data:
 
