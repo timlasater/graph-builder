@@ -24,6 +24,16 @@ describe('project files', () => {
     expect(project.data.mode === 'embedded' && project.data.dataset.rows[0].values.doubled).toBe(Number(dataset.rows[0].values.dose) * 2)
   })
 
+  it('keeps precomputed summary settings and checks referenced columns', () => {
+    const savedGraph = graph()
+    savedGraph.spec.layers = [{ id: 'supplied', name: 'Supplied', element: 'summary', summaryInput: 'precomputed', precomputedErrorColumn: 'dose', precomputedNColumn: 'pressure', valueTransform: 'control', controlCategory: 'Prototype A', showSampleSize: true }]
+    savedGraph.spec.activeLayerId = 'supplied'
+    const project = makeProject('Supplied study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')
+    expect(parseProject(projectJson(project)).graphs[0].spec.layers[0]).toMatchObject({ summaryInput: 'precomputed', precomputedErrorColumn: 'dose', valueTransform: 'control' })
+    savedGraph.spec.layers[0].precomputedErrorColumn = 'missing-column'
+    expect(() => parseProject(projectJson(makeProject('Supplied study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')))).toThrow('missing column')
+  })
+
   it('reopens an embedded project with edited cells, formulas, filters, and appearance', () => {
     const store = useBuilderStore.getState()
     store.reset()

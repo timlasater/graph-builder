@@ -1,4 +1,4 @@
-import type { ErrorBarType } from './types'
+import type { ErrorBarType, SummaryMeasure, ValueTransform } from './types'
 
 // Lanczos log-gamma plus a continued-fraction incomplete beta implementation.
 // These support the Student's t quantile used for small-sample confidence intervals.
@@ -45,15 +45,44 @@ export const studentTCritical = (confidence: number, degreesOfFreedom: number) =
   return (low + high) / 2
 }
 
-export interface SummaryStatistics { n: number; mean: number | null; sd: number | null; se: number | null; confidenceInterval: number | null; minimum: number | null; maximum: number | null }
+export interface SummaryStatistics { n: number; sum: number | null; mean: number | null; median: number | null; q1: number | null; q3: number | null; sd: number | null; se: number | null; confidenceInterval: number | null; minimum: number | null; maximum: number | null }
+
+// Frequency weights represent repeated observations. Quantiles use linear interpolation
+// at (n - 1) * p, the same rule used by the box summary.
+export const weightedQuantile = (values: number[], probability: number, weights?: number[]): number | null => {
+  const sorted = values.map((value, index) => ({ value, weight: weights?.[index] ?? 1 })).filter((item) => Number.isFinite(item.value) && Number.isInteger(item.weight) && item.weight > 0).sort((a, b) => a.value - b.value)
+  const n = sorted.reduce((total, item) => total + item.weight, 0)
+  if (!n || !Number.isFinite(probability) || probability < 0 || probability > 1) return null
+  const atRank = (rank: number) => { let cumulative = 0; for (const item of sorted) { cumulative += item.weight; if (rank < cumulative) return item.value } return sorted.at(-1)!.value }
+  const position = (n - 1) * probability; const low = Math.floor(position)
+  return atRank(low) + (atRank(Math.ceil(position)) - atRank(low)) * (position - low)
+}
 
 export const summaryStatistics = (values: number[], weights?: number[], confidence = 0.95): SummaryStatistics => {
   const usable = values.map((value, index) => ({ value, weight: weights?.[index] ?? 1 })).filter(({ value, weight }) => Number.isFinite(value) && Number.isFinite(weight) && weight > 0)
-  if (!usable.length) return { n: 0, mean: null, sd: null, se: null, confidenceInterval: null, minimum: null, maximum: null }
-  const weightTotal = usable.reduce((sum, item) => sum + item.weight, 0); const mean = usable.reduce((sum, item) => sum + item.value * item.weight, 0) / weightTotal
+  if (!usable.length) return { n: 0, sum: null, mean: null, median: null, q1: null, q3: null, sd: null, se: null, confidenceInterval: null, minimum: null, maximum: null }
+  const weightTotal = usable.reduce((sum, item) => sum + item.weight, 0); const sum = usable.reduce((total, item) => total + item.value * item.weight, 0); const mean = sum / weightTotal
   const variance = weightTotal > 1 ? usable.reduce((sum, item) => sum + item.weight * (item.value - mean) ** 2, 0) / (weightTotal - 1) : null
   const sd = variance === null ? null : Math.sqrt(variance); const se = sd === null ? null : sd / Math.sqrt(weightTotal); const critical = studentTCritical(confidence, weightTotal - 1)
-  return { n: weightTotal, mean, sd, se, confidenceInterval: se !== null && critical !== null ? se * critical : null, minimum: Math.min(...usable.map((item) => item.value)), maximum: Math.max(...usable.map((item) => item.value)) }
+  return { n: weightTotal, sum, mean, median: weightedQuantile(values, 0.5, weights), q1: weightedQuantile(values, 0.25, weights), q3: weightedQuantile(values, 0.75, weights), sd, se, confidenceInterval: se !== null && critical !== null ? se * critical : null, minimum: Math.min(...usable.map((item) => item.value)), maximum: Math.max(...usable.map((item) => item.value)) }
+}
+
+export const summaryValue = (summary: SummaryStatistics, measure: SummaryMeasure, quantile = 0.5, values?: number[], weights?: number[]): number | null => {
+  if (measure === 'count') return summary.n
+  if (measure === 'min') return summary.minimum
+  if (measure === 'max') return summary.maximum
+  if (measure === 'quantile') return values ? weightedQuantile(values, quantile, weights) : null
+  return summary[measure]
+}
+
+export const transformSummaryValues = (values: (number | null)[], categories: string[], transform: ValueTransform = 'none', controlCategory?: string) => {
+  if (transform === 'none') return { values, factor: 1, error: null }
+  const denominator = transform === 'percentTotal'
+    ? values.reduce<number>((sum, value) => sum + (value ?? 0), 0)
+    : values[categories.indexOf(controlCategory ?? '')]
+  if (denominator === null || denominator === undefined || !Number.isFinite(denominator) || denominator <= 0) return { values: values.map(() => null), factor: null, error: transform === 'control' ? 'Choose a control category with a positive value.' : 'A positive total is needed for percentage of total.' }
+  const factor = 100 / denominator
+  return { values: values.map((value) => value === null ? null : value * factor), factor, error: null }
 }
 
 export const errorBarExtent = (summary: SummaryStatistics, type: ErrorBarType) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { errorBarExtent, studentTCritical, summaryStatistics } from './statistics'
+import { errorBarExtent, studentTCritical, summaryStatistics, summaryValue, transformSummaryValues, weightedQuantile } from './statistics'
 
 describe('summary statistics', () => {
   it('matches a hand-calculable sample using n - 1 standard deviation', () => {
@@ -31,5 +31,24 @@ describe('summary statistics', () => {
   it('uses positive frequency weights in the mean and sample variance', () => {
     const result = summaryStatistics([10, 20], [1, 3])
     expect(result.mean).toBe(17.5); expect(result.sd).toBeCloseTo(5, 10); expect(result.n).toBe(4)
+  })
+  it('calculates descriptive values against a hand worked eight-value sample', () => {
+    const values = [2, 4, 4, 4, 5, 5, 7, 9]
+    const result = summaryStatistics(values)
+    expect(result).toMatchObject({ n: 8, sum: 40, mean: 5, median: 4.5, q1: 4, q3: 5.5, minimum: 2, maximum: 9 })
+    expect(summaryValue(result, 'count')).toBe(8)
+    expect(summaryValue(result, 'quantile', 0.75, values)).toBe(5.5)
+    expect(weightedQuantile([10, 20], 0.5, [1, 3])).toBe(20)
+  })
+  it('matches NIST StRD NumAcc1 certified mean and sample SD exactly', () => {
+    // https://www.itl.nist.gov/div898/strd/univ/data/NumAcc1.dat
+    const result = summaryStatistics([10000001, 10000003, 10000002])
+    expect(result.mean).toBe(10000002)
+    expect(result.sd).toBe(1)
+  })
+  it('scales values and errors by a fixed positive total or control', () => {
+    expect(transformSummaryValues([2, 3, null], ['A', 'B', 'C'], 'percentTotal')).toMatchObject({ values: [40, 60, null], factor: 20 })
+    expect(transformSummaryValues([2, 3], ['A', 'B'], 'control', 'A')).toMatchObject({ values: [100, 150], factor: 50 })
+    expect(transformSummaryValues([0, 3], ['A', 'B'], 'control', 'A').error).toContain('positive')
   })
 })

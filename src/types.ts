@@ -1,9 +1,11 @@
 export type DataType = 'number' | 'text' | 'date' | 'boolean'
 export type ModelingType = 'continuous' | 'nominal' | 'ordinal'
 export type GraphRole = 'x' | 'y' | 'color' | 'groupX' | 'groupY' | 'wrap' | 'overlay' | 'size' | 'shape' | 'weight' | 'page'
-export type GraphElement = 'points' | 'line' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit'
+export type GraphElement = 'points' | 'line' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit' | 'smooth'
 export type ErrorBarType = 'none' | 'sd' | 'se' | 'ci' | 'range'
-export type BarAggregation = 'mean' | 'sum' | 'count'
+export type BarAggregation = 'mean' | 'sum' | 'count' | 'median' | 'min' | 'max' | 'quantile' | 'sd' | 'se'
+export type SummaryMeasure = BarAggregation
+export type ValueTransform = 'none' | 'percentTotal' | 'control'
 export type BoxPointMode = 'outliers' | 'all' | 'none'
 
 export type CellValue = string | number | boolean | null
@@ -161,8 +163,19 @@ export interface GraphLayer {
   binCount?: number
   boxPoints?: BoxPointMode
   barAggregation?: BarAggregation
+  summaryMeasure?: SummaryMeasure
+  quantile?: number
+  summaryInput?: 'raw' | 'precomputed'
+  precomputedErrorColumn?: string
+  precomputedNColumn?: string
+  precomputedLowerColumn?: string
+  precomputedUpperColumn?: string
+  valueTransform?: ValueTransform
+  controlCategory?: string
+  smoothWindow?: number
   stack?: boolean
   showEquation?: boolean
   showRSquared?: boolean
+  showSampleSize?: boolean
   fixedIntercept?: number
 }

@@ -9,13 +9,15 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Drag variables onto X, Y, Color, Group X, Group Y, Wrap, Overlay, and Size roles
 - Multiple ordered assignments on X and Y, with drag reordering and Swap X/Y
 - Shape, Frequency, and Page roles with subset stepping
-- Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, replicate-mean lines, and linear fits
-- Fit lines can optionally show the equation and R², and can be constrained to a chosen y-intercept
+- Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, statistical summary lines, linear fits, and smoothed trends
+- Fit lines can optionally show the equation, effective sample size, and R², and can be constrained to a chosen y-intercept
 - Per-layer variable overrides, colors, marker sizes, and line widths
 - Type-aware graph suggestions and centralized compatibility feedback
 - Mean-line error bars for sample SD, standard error, selectable two-sided Student's t confidence intervals, and range
 - The same error-bar choices for mean bars (not sums, counts, or stacked bars)
 - Optional source-observation overlays on mean layers
+- Count, sum, median, minimum, maximum, quantile, sample SD, and SE summaries for raw observations
+- Precomputed mean/error input, percentage-of-total and control normalization, and visible warnings for incomplete uncertainty
 - Grouped panels, wrapped facet grids, and custom panels with different X/Y variables
 - Box plots with a Y variable alone, without an X assignment
 - Overlay traces and numeric marker-size mapping
@@ -142,6 +144,6 @@ The website can be built as static pages and hosted by GitHub Pages under this r
 
 Automatic updates require a free Tauri signing key pair so the app can verify that an update came from this project. This is separate from a Windows code-signing certificate for the downloadable installer, which is optional and may cost money. Neither signing setup is implemented yet.
 
-Phases 2, 3, 4, 6, 7, and 8 are complete. Phase 5 still has statistical features outstanding. Phase 9 automated validation and hardening are in progress; the remaining manual JMP and screen-reader checks are documented in the validation record. The 5,000-row / 50,000-cell data-processing fixture is measured there.
+Phases 2–8 are complete. Phase 9 automated validation and hardening are in progress; the remaining manual JMP and screen-reader checks are documented in the validation record. The 5,000-row / 50,000-cell data-processing fixture is measured there.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.

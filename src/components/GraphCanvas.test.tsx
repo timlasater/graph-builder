@@ -70,6 +70,37 @@ describe('GraphCanvas panels', () => {
     act(() => useBuilderStore.setState({ spec: { ...useBuilderStore.getState().spec, layers: [{ ...layer, barAggregation: 'count' }] } }))
     expect(chart.props!.data.find((item) => item.type === 'bar')?.error_y).toBeUndefined()
   })
+  it('plots supplied means and errors without fabricating replicate points', () => {
+    const dataset = datasetFromMatrix([['Group', 'Mean', 'SD', 'N'], ['A', 12, 2, 3], ['B', 20, null, 8]], 'Supplied')
+    const [group, mean, sd, n] = dataset.columns.map((column) => column.id)
+    const layer = { id: 'supplied', name: 'Mean line', element: 'summary' as const, summaryInput: 'precomputed' as const, precomputedErrorColumn: sd, precomputedNColumn: n, errorBar: 'sd' as const, showObservations: true }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [group], y: [mean], color: undefined, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    expect(chart.props!.data).toHaveLength(1)
+    expect(chart.props!.data[0].y).toEqual([12, 20])
+    expect(chart.props!.data[0].error_y).toMatchObject({ array: [2, null] })
+    expect(screen.getByRole('status').textContent).toContain('Missing or invalid uncertainty for B')
+  })
+
+  it('plots percentages of the visible summary total', () => {
+    const dataset = datasetFromMatrix([['Group', 'Dose'], ['A', 2], ['A', 4], ['B', 9]], 'Percent')
+    const [group, dose] = dataset.columns.map((column) => column.id)
+    const layer = { id: 'percent', name: 'Bars', element: 'bar' as const, valueTransform: 'percentTotal' as const }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [group], y: [dose], color: undefined, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    expect(chart.props!.data[0].y).toEqual([25, 75])
+  })
+
+  it('shows regression sample size and a configurable smoothed trend', () => {
+    const dataset = datasetFromMatrix([['X', 'Y'], [1, 1], [2, 3], [3, 9], [4, 16]], 'Trend')
+    const [x, y] = dataset.columns.map((column) => column.id)
+    const fit = { id: 'fit', name: 'Fit', element: 'fit' as const, showSampleSize: true }
+    const smooth = { id: 'smooth', name: 'Smooth trend', element: 'smooth' as const, smoothWindow: 3 }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x], y: [y], color: undefined, layers: [fit, smooth], activeLayerId: fit.id } })
+    render(<GraphCanvas />)
+    expect((chart.props!.layout.annotations as { text: string }[]).some((annotation) => annotation.text.includes('n = 4'))).toBe(true)
+    expect(chart.props!.data.find((trace) => String(trace.name).includes('Smooth trend'))?.y).toEqual([2, 13 / 3, 28 / 3, 12.5])
+  })
   it('uses different X and Y variables and independent axes in custom panels', () => {
     useBuilderStore.setState({ spec: { ...original.spec, panels: [
       { id: 'first', title: 'Pressure and dose', x: 'pressure', y: 'dose' },

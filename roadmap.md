@@ -138,7 +138,7 @@ Acceptance criteria:
 
 ## Phase 5 — Statistical transformation engine
 
-Status: in progress. Mean layers now support tested SD, SE, selectable two-sided Student's t confidence intervals, range error bars, and optional source-observation overlays. Fit layers can display the equation and R-squared and can use a fixed y-intercept; regression sample-size reporting and the other deliverables below remain outstanding.
+Status: complete (September 2026). Summary lines and bars support the descriptive measures below, raw and supplied mean/error inputs, uncertainty warnings, and per-series percentage/control scaling. Fits can show the equation, sample size, and R-squared; a separate smoothed trend layer uses a configurable centered moving average.
 
 This is the highest-risk phase. Build statistics as a standalone tested module before wiring controls into the UI.
 
@@ -165,7 +165,7 @@ Statistical rules:
 
 Acceptance criteria:
 
-- Results match JMP or another independently verified reference dataset within documented floating-point tolerance.
+- Results match JMP or another independently verified reference dataset within documented floating-point tolerance. The test suite compares the mean and sample SD of NIST StRD NumAcc1 against its certified values exactly; other measures use hand-calculable fixtures and floating-point assertions.
 - Tests include hand-calculable samples, missing values, `n = 1`, unequal groups, and precomputed summaries.
 - A user can create mean ± SD and mean ± 95% CI graphs and optionally overlay replicates.
 
@@ -308,7 +308,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Continue Phase 5 with precomputed summary/error inputs, the remaining descriptive statistics, normalization transformations, and regression diagnostics. A later optimization pass can improve Phase 6 responsiveness near the 5,000-row / 50,000-cell maximum.
+Continue Phase 9 release validation and manual accessibility checks. A later optimization pass can improve Phase 6 responsiveness near the 5,000-row / 50,000-cell maximum.
 
 ## Definition of done for every task
 

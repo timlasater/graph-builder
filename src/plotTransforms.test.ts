@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateBars, boxSummary, histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, sortedSeries, stableCategoryOrder, stackCompatibility, weightedMean } from './plotTransforms'
+import { aggregateBars, boxSummary, histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, smoothedTrend, sortedSeries, stableCategoryOrder, stackCompatibility, weightedMean } from './plotTransforms'
 import type { DataRow } from './types'
 
 describe('layer transformations', () => {
@@ -11,6 +11,10 @@ describe('layer transformations', () => {
   })
   it('computes weighted summaries', () => expect(weightedMean([10, 20], [1, 3])).toBe(17.5))
   it('computes a linear fit', () => expect(linearFit([1, 2, 3], [2, 4, 6])).toMatchObject({ x: [1, 3], y: [2, 6], slope: 2, intercept: 0 }))
+  it('reports regression sample size after omitting missing pairs and applying frequencies', () => expect(linearFit([1, 2, 3], [2, Number.NaN, 6], [2, 5, 3])).toMatchObject({ n: 5, slope: 2 }))
+  it('uses centered moving averages of unique X means with shorter edge windows', () => {
+    expect(smoothedTrend([3, 1, 2, 2, 4], [9, 1, 2, 4, 16], 3)).toEqual({ x: [1, 2, 3, 4], y: [2, 13 / 3, 28 / 3, 12.5], window: 3 })
+  })
   it('reports R-squared and refits the slope when the y-intercept is fixed', () => {
     expect(linearFit([0, 1, 2], [2, 4, 6], undefined, 2)).toMatchObject({ slope: 2, intercept: 2, rSquared: 1, y: [2, 6] })
     expect(linearFit([0, 1, 2], [2, 4, 6], undefined, 1)).toMatchObject({ slope: 2.6, intercept: 1, rSquared: 0.85 })

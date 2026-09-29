@@ -58,7 +58,22 @@ export const linearFit = (x: number[], y: number[], weights?: number[], fixedInt
   const totalSumSquares = pairs.reduce((sum, pair) => sum + pair.weight * (pair.y - meanY) ** 2, 0)
   const rSquared = totalSumSquares > 0 ? 1 - residualSumSquares / totalSumSquares : undefined
   const bounds = [Math.min(...pairs.map((pair) => pair.x)), Math.max(...pairs.map((pair) => pair.x))]
-  return { x: bounds, y: bounds.map((value) => intercept + slope * value), slope, intercept, rSquared }
+  return { x: bounds, y: bounds.map((value) => intercept + slope * value), slope, intercept, rSquared, n: weightTotal }
+}
+
+// Centered moving average of unique numeric X values. Each X first receives its
+// frequency-weighted mean; edge windows use the available neighboring X values.
+export const smoothedTrend = (x: number[], y: number[], requestedWindow = 3, weights?: number[]) => {
+  const groups = new Map<number, { sum: number; n: number }>()
+  x.forEach((value, index) => {
+    const response = y[index]; const weight = weights?.[index] ?? 1
+    if (!Number.isFinite(value) || !Number.isFinite(response) || !Number.isFinite(weight) || weight <= 0) return
+    const group = groups.get(value) ?? { sum: 0, n: 0 }
+    group.sum += response * weight; group.n += weight; groups.set(value, group)
+  })
+  const points = [...groups].sort(([left], [right]) => left - right).map(([value, group]) => ({ x: value, y: group.sum / group.n }))
+  const window = Math.max(1, Math.floor(requestedWindow) | 1); const radius = Math.floor(window / 2)
+  return { x: points.map((point) => point.x), y: points.map((_, index) => { const nearby = points.slice(Math.max(0, index - radius), Math.min(points.length, index + radius + 1)); return nearby.reduce((sum, point) => sum + point.y, 0) / nearby.length }), window }
 }
 
 export const histogramBins = (values: number[], requestedBins = 10, domain?: [number, number], weights?: number[]) => {
