@@ -1,6 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
 import { useBuilderStore } from '../store'
+import { useDialogFocus } from '../useDialogFocus'
 import type { CellValue, DataColumn, RowFilter } from '../types'
 
 export function FilterDropZone({ activeCount, onEdit }: { activeCount: number; onEdit: () => void }) {
@@ -14,6 +15,7 @@ const sameValue = (left: CellValue, right: CellValue) => left === right
 const labelFor = (column: DataColumn, value: CellValue) => value === null ? '(Missing)' : column.valueLabels?.[String(value)] ?? String(value)
 
 export function FilterPopup({ column, onClose }: { column: DataColumn; onClose: () => void }) {
+  const dialogRef = useDialogFocus<HTMLElement>()
   const { dataset, filters, setFilters } = useBuilderStore()
   const existing = filters.find((filter) => filter.columnId === column.id)
   const uniqueValues = useMemo(() => [...new Set(dataset.rows.map((row) => row.values[column.id]))], [column.id, dataset.rows])
@@ -55,7 +57,7 @@ export function FilterPopup({ column, onClose }: { column: DataColumn; onClose: 
   })
 
   return <div className="modal-backdrop filter-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="filter-dialog" role="dialog" aria-modal="true" aria-labelledby="filter-title">
+    <section ref={dialogRef} className="filter-dialog" role="dialog" aria-modal="true" aria-labelledby="filter-title" tabIndex={-1}>
       <header><div><span className="eyebrow">FILTER</span><h2 id="filter-title">{column.name}</h2></div><button className="dialog-close" onClick={onClose} aria-label="Close filter">×</button></header>
       {checklist ? <><div className="filter-select-actions"><input className="filter-level-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search levels" aria-label="Search filter levels" /><button onClick={() => setSelected(uniqueValues)}>Select all</button><button onClick={() => setSelected([])}>Deselect all</button></div><div className="filter-checklist">{visibleValues.map((value, index) => <label key={`${String(value)}-${index}`}><input type="checkbox" checked={selected.some((item) => sameValue(item, value))} onChange={(event) => setSelected(event.target.checked ? [...selected, value] : selected.filter((item) => !sameValue(item, value)))} /><span>{labelFor(column, value)}</span><small>{dataset.rows.filter((row) => row.values[column.id] === value).length}</small></label>)}</div></> : <div className="filter-bounds"><label>Values<select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="range">Inside bounds</option><option value="present">Non-missing only</option><option value="missing">Missing only</option></select></label>{mode === 'range' && (column.dataType === 'date' ? <><label>On or after<input type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} /></label><label>On or before<input type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} /></label></> : <><p>Keep values inside either or both bounds.</p><label>Greater than or equal to<input type="number" value={minimum} placeholder={numericValues.length ? String(Math.min(...numericValues)) : ''} onChange={(event) => setMinimum(event.target.value)} /></label><label>Less than or equal to<input type="number" value={maximum} placeholder={numericValues.length ? String(Math.max(...numericValues)) : ''} onChange={(event) => setMaximum(event.target.value)} /></label></>)}</div>}
       <footer><button className="dialog-cancel" onClick={() => replaceFilter()}>Clear filter</button><span /><button className="dialog-cancel" onClick={onClose}>Cancel</button><button className="filter-apply" onClick={apply}>Apply filter</button></footer>
@@ -73,6 +75,7 @@ const filterSummary = (filter: RowFilter, column: DataColumn) => {
 }
 
 export function ActiveFiltersPopup({ onClose, onEdit }: { onClose: () => void; onEdit: (columnId: string) => void }) {
+  const dialogRef = useDialogFocus<HTMLElement>()
   const { dataset, filters, setFilters } = useBuilderStore()
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); onClose() } }
@@ -80,7 +83,7 @@ export function ActiveFiltersPopup({ onClose, onEdit }: { onClose: () => void; o
     return () => window.removeEventListener('keydown', keydown)
   }, [onClose])
   return <div className="modal-backdrop filter-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
-    <section className="filter-dialog active-filters-dialog" role="dialog" aria-modal="true" aria-labelledby="active-filters-title">
+    <section ref={dialogRef} className="filter-dialog active-filters-dialog" role="dialog" aria-modal="true" aria-labelledby="active-filters-title" tabIndex={-1}>
       <header><div><span className="eyebrow">FILTERS</span><h2 id="active-filters-title">{filters.length} active filter{filters.length === 1 ? '' : 's'}</h2></div><button className="dialog-close" onClick={onClose} aria-label="Close active filters">×</button></header>
       <div className="active-filter-list">{filters.map((filter) => {
         const column = dataset.columns.find((item) => item.id === filter.columnId)

@@ -46,7 +46,6 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Searchable categorical filters, numeric and date ranges, and missing/non-missing filters shared by the graph and table
 - Linked graph/table row selection, including box/lasso selection and bulk include/exclude actions
 - Group highlighting, Page-role subset stepping, and shared or independent facet scales
-- Locally saved plot setups that can reopen the latest contents of a browser-approved source file and restore roles, layers, formatting, legend choices, and filters
 - Versioned projects with multiple named graphs, embedded or linked data, local autosave/recovery, and reusable templates
 - PNG and SVG image export, browser clipboard copy where supported, and plotted-data CSV export
 - Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
@@ -120,7 +119,7 @@ Add a worksheet named `Graph Annotations` to an `.xlsx` or `.xls` workbook. It i
 
 `Target Sheet` is optional. Enter the exact name of a data worksheet to apply an annotation only there; leave it blank to apply the annotation to every data worksheet in the workbook. Matching ignores letter case. You can also combine this worksheet with tagged rows in a data sheet; both sets of annotations are imported.
 
-Invalid annotation rows are skipped and shown as import warnings in the data table's quality summary. Rows tagged as annotations are never silently counted as data, even when their annotation is invalid. A target sheet name that does not exist also produces a warning. Saving a plot setup preserves the resulting lines and regions; reopening that setup restores its saved appearance. Import the workbook again to pick up changed annotation rows from the source file.
+Invalid annotation rows are skipped and shown as import warnings in the data table's quality summary. Rows tagged as annotations are never silently counted as data, even when their annotation is invalid. A target sheet name that does not exist also produces a warning. Saving a project preserves the resulting lines and regions; reopening a linked project and reconnecting its source can load changed workbook data.
 
 ## Quality checks
 
@@ -144,6 +143,6 @@ The website can be built as static pages and hosted by GitHub Pages under this r
 
 Automatic updates require a free Tauri signing key pair so the app can verify that an update came from this project. This is separate from a Windows code-signing certificate for the downloadable installer, which is optional and may cost money. Neither signing setup is implemented yet.
 
-Phases 2–8 are complete. Phase 9 automated validation and hardening are in progress; the remaining manual JMP and screen-reader checks are documented in the validation record. The 5,000-row / 50,000-cell data-processing fixture is measured there.
+Phases 2–8 are complete. Phase 9 automated validation and hardening are complete; human keyboard/screen-reader and JMP comparisons remain before the phase can be signed off. See the [validation record](docs/phase-9-validation.md) and [manual review steps](docs/phase-9-manual-checks.md), including the measured 5,000-row / 50,000-cell browser workflow.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance. Development stays on `main` by default; a side branch is used only when the work needs isolation or coordination, then merged back when practical. Major feature handoffs include short steps for checking the result in the app.

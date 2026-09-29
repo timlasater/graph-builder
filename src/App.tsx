@@ -7,7 +7,6 @@ import { AppearanceControls } from './components/AppearanceControls'
 import { CollapsibleSection } from './components/CollapsibleSection'
 import { ActiveFiltersPopup, FilterDropZone, FilterPopup } from './components/FilterDropZone'
 import { ImportDataButton } from './components/ImportDataButton'
-import { PlotSetupModal } from './components/PlotSetupModal'
 import { ProjectModal } from './components/ProjectModal'
 import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
@@ -15,6 +14,7 @@ import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
+import { useDialogFocus } from './useDialogFocus'
 import type { BarAggregation, BoxPointMode, ErrorBarType, GraphElement, GraphRole, GraphSpec, ValueTransform } from './types'
 import './App.css'
 
@@ -70,11 +70,11 @@ function ReferenceControls({ spec, updateSpec }: { spec: GraphSpec; updateSpec: 
 function App() {
   const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, reset } = useBuilderStore()
   const [showDataTable, setShowDataTable] = useState(false)
-  const [showPlotSetups, setShowPlotSetups] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
   const [savingPng, setSavingPng] = useState(false)
   const [pngError, setPngError] = useState<string>()
   const recovery = useProjectRecovery()
+  const recoveryDialogRef = useDialogFocus<HTMLElement>(Boolean(recovery.recovery))
   const [variableSearch, setVariableSearch] = useState('')
   const [keyboardRole, setKeyboardRole] = useState<GraphRole>('x')
   const [filterColumnId, setFilterColumnId] = useState<string>()
@@ -177,7 +177,7 @@ function App() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragCancel={() => { setDragColumnId(undefined); setDragElement(undefined) }} onDragEnd={handleDragEnd}>
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowPlotSetups(true)}>Plot setups</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Download the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button></div>
+          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Download the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button></div>
           <div className="document-name"><span className="status-dot" />{projectName} · {activeGraphName}</div>
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
@@ -311,9 +311,8 @@ function App() {
         </main>
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
-      {showPlotSetups && <PlotSetupModal onClose={() => setShowPlotSetups(false)} />}
       {showProjects && <ProjectModal onClose={() => setShowProjects(false)} autosaveStatus={recovery.status} />}
-      {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title"><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
+      {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}

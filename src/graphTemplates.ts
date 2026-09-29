@@ -1,4 +1,4 @@
-import { datasetSignature } from './plotSetups'
+import { datasetSignature } from './datasetSignature'
 import { parseProject, PROJECT_FORMAT, PROJECT_VERSION } from './projects'
 import type { Dataset, GraphSpec, RowFilter } from './types'
 

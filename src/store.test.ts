@@ -179,11 +179,11 @@ describe('data history and filters', () => {
     expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
   })
 
-  it('loads and undoes a saved plot setup atomically', () => {
+  it('loads and undoes a graph template atomically', () => {
     const original = structuredClone(useBuilderStore.getState().spec)
     const saved = { ...original, title: 'Saved setup', x: ['run'], y: ['dose'] }
     const filters = [{ id: 'saved-filter', columnId: 'prototype', operator: 'equals' as const, value: 'Prototype B' }]
-    useBuilderStore.getState().applyPlotSetup(saved, filters)
+    useBuilderStore.getState().applyGraphTemplate(saved, filters)
     expect(useBuilderStore.getState().spec.title).toBe('Saved setup')
     expect(useBuilderStore.getState().filters).toEqual(filters)
     useBuilderStore.getState().undo()
@@ -191,11 +191,11 @@ describe('data history and filters', () => {
     expect(useBuilderStore.getState().filters).toEqual([])
   })
 
-  it('loads refreshed source rows and a saved plot setup in one undoable action', () => {
+  it('loads refreshed source rows and graph settings in one undoable action', () => {
     const originalRows = useBuilderStore.getState().dataset.rows.length
     const saved = { ...useBuilderStore.getState().spec, title: 'Latest results' }
     const refreshed = { ...sampleDataset, rows: [...sampleDataset.rows, { id: 'new-row', excluded: false, values: { ...sampleDataset.rows[0].values } }], source: { fileName: 'results.xlsx', sheetName: 'Results', handleId: 'handle-1' } }
-    useBuilderStore.getState().applyPlotSetup(saved, [], refreshed)
+    useBuilderStore.getState().applyGraphTemplate(saved, [], refreshed)
     expect(useBuilderStore.getState().dataset.rows).toHaveLength(originalRows + 1)
     expect(useBuilderStore.getState().dataset.source?.handleId).toBe('handle-1')
     expect(useBuilderStore.getState().spec.title).toBe('Latest results')

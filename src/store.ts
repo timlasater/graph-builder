@@ -64,7 +64,7 @@ interface BuilderState {
   setSelectedRowIds: (rowIds: string[]) => void
   clearRowSelection: () => void
   setDataset: (dataset: Dataset) => void
-  applyPlotSetup: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
+  applyGraphTemplate: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
   openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string) => void
   openGraph: (id: string) => void
   newGraph: () => void
@@ -195,7 +195,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
   clearRowSelection: () => set({ selectedRowIds: [] }),
   setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
-  applyPlotSetup: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
+  applyGraphTemplate: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
   openProject: (projectName, dataset, graphs, activeGraphId) => set(() => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]
     return { projectName, dataset: structuredClone(dataset), spec: structuredClone(active.spec), filters: structuredClone(active.filters), activeGraphId: active.id, activeGraphName: active.name, otherGraphs: structuredClone(graphs.filter((graph) => graph.id !== active.id)), past: [], future: [], selectedColumn: undefined, selectedRowIds: [], compatibilityMessage: undefined }

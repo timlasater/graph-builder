@@ -4,6 +4,7 @@ import { AllCommunityModule, ModuleRegistry, type CellValueChangedEvent, type Co
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-quartz.css'
 import { rowMatchesFilters, useBuilderStore } from '../store'
+import { useDialogFocus } from '../useDialogFocus'
 import type { CellValue, RowFilter } from '../types'
 
 ModuleRegistry.registerModules([AllCommunityModule])
@@ -14,6 +15,7 @@ export function DataTableModal({ onClose }: { onClose: () => void }) {
   const selectedSet = new Set(selectedRowIds)
   const [formulaName, setFormulaName] = useState(''); const [formula, setFormula] = useState(''); const [paste, setPaste] = useState(''); const [message, setMessage] = useState<string>()
   const gridApiRef = useRef<GridApi<GridRow> | null>(null)
+  const dialogRef = useDialogFocus<HTMLElement>()
   const selectionAnchorRef = useRef<string | undefined>(undefined)
   const inputColumnCount = dataset.columns.filter((column) => !column.formula).length
   const activeRows = useMemo(() => dataset.rows.filter((row) => rowMatchesFilters(row, filters)), [dataset.rows, filters])
@@ -54,7 +56,7 @@ export function DataTableModal({ onClose }: { onClose: () => void }) {
     else setSelectedRowIds([rowId])
   }
 
-  return <div className="modal-backdrop data-modal-backdrop" role="presentation"><section className="data-dialog" role="dialog" aria-modal="true" aria-labelledby="data-table-title">
+  return <div className="modal-backdrop data-modal-backdrop" role="presentation"><section ref={dialogRef} className="data-dialog" role="dialog" aria-modal="true" aria-labelledby="data-table-title" tabIndex={-1}>
     <header><div><span className="eyebrow">DATA TABLE</span><h2 id="data-table-title">{dataset.name}</h2><p>{activeRows.length} of {dataset.rows.length} rows · {dataset.columns.length} columns · Double-click a cell to edit</p></div><button className="dialog-close" onClick={onClose} aria-label="Close data table">×</button></header>
     <div className="data-tools">
       <details><summary>Quality {dataset.warnings.length ? `(${dataset.warnings.length})` : '✓'}</summary><div className="tool-popover quality-list"><strong>Missing values</strong>{dataset.columns.map((column) => <span key={column.id}>{column.name}: {dataset.rows.filter((row) => row.values[column.id] === null).length}</span>)}{dataset.warnings.map((warning, index) => <span className="warning" key={index}>⚠ {warning.message}</span>)}</div></details>

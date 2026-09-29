@@ -40,6 +40,23 @@ describe('summary statistics', () => {
     expect(summaryValue(result, 'quantile', 0.75, values)).toBe(5.5)
     expect(weightedQuantile([10, 20], 0.5, [1, 3])).toBe(20)
   })
+  it('matches a four-value reference for every selectable summary measure', () => {
+    const values = [1, 2, 3, 4]
+    const summary = summaryStatistics(values)
+    const expected = { count: 4, sum: 10, mean: 2.5, median: 2.5, min: 1, max: 4, quantile: 3.25, sd: Math.sqrt(5 / 3), se: Math.sqrt(5 / 12) } as const
+    for (const [measure, value] of Object.entries(expected)) {
+      expect(summaryValue(summary, measure as keyof typeof expected, 0.75, values)).toBeCloseTo(value, 8)
+    }
+    expect(summary.q1).toBe(1.75)
+    expect(summary.q3).toBe(3.25)
+  })
+  it('matches independent reference widths for each calculated uncertainty type', () => {
+    const summary = summaryStatistics([1, 2, 3, 4])
+    expect(errorBarExtent(summary, 'sd')).toEqual({ plus: summary.sd!, minus: summary.sd! })
+    expect(errorBarExtent(summary, 'se')).toEqual({ plus: summary.se!, minus: summary.se! })
+    expect(errorBarExtent(summary, 'range')).toEqual({ plus: 1.5, minus: 1.5 })
+    expect(errorBarExtent(summary, 'ci')?.plus).toBeCloseTo(2.05426, 4)
+  })
   it('matches NIST StRD NumAcc1 certified mean and sample SD exactly', () => {
     // https://www.itl.nist.gov/div898/strd/univ/data/NumAcc1.dat
     const result = summaryStatistics([10000001, 10000003, 10000002])

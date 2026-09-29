@@ -243,6 +243,8 @@ Acceptance criteria:
 
 ## Phase 9 — Validation and hardening
 
+Status: automated validation and hardening complete (September 2026). Human keyboard/screen-reader review and comparison with JMP remain as acceptance checks; use the [manual review instructions](docs/phase-9-manual-checks.md) and record the results before marking this phase complete.
+
 Deliverables:
 
 - End-to-end tests for import → edit → build → filter → save → reopen → export
@@ -316,7 +318,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Continue Phase 9 release validation and manual accessibility checks. A later optimization pass can improve Phase 6 responsiveness near the 5,000-row / 50,000-cell maximum.
+Complete the two Phase 9 human reviews in the [manual review instructions](docs/phase-9-manual-checks.md). The automated suite, maximum-size browser workflow, and production build are passing. Phase 10 Windows packaging follows once the remaining Phase 9 acceptance checks are recorded.
 
 ## Definition of done for every task
 

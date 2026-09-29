@@ -1,4 +1,4 @@
-import { datasetSignature } from './plotSetups'
+import { datasetSignature } from './datasetSignature'
 import { coerceValue } from './importData'
 import { recalculateFormulaColumns } from './formula'
 import type { DataColumn, Dataset, GraphDocument, GraphSpec, RowFilter } from './types'

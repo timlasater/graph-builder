@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { persistentFilePickerAvailable, pickPersistentFile } from '../fileHandles'
 import { importTabularFile, type ImportedSheet } from '../importData'
 import { withFileSource } from '../sourceData'
+import { useDialogFocus } from '../useDialogFocus'
 import type { Dataset } from '../types'
 
 interface PendingSheets {
@@ -14,6 +15,7 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
   const inputRef = useRef<HTMLInputElement>(null)
   const dragDepthRef = useRef(0)
   const [pending, setPending] = useState<PendingSheets>()
+  const sheetDialogRef = useDialogFocus<HTMLElement>(Boolean(pending))
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [fileDragging, setFileDragging] = useState(false)
@@ -88,13 +90,13 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
 
   return (
     <>
-      <input ref={inputRef} className="visually-hidden" type="file" aria-label="Choose a CSV or Excel data file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
+      <input ref={inputRef} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a CSV or Excel data file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
       <button className="import-button" onClick={() => void chooseFile()} disabled={busy}>{busy ? 'Importing…' : 'Import data'}</button>
       {busy && <span role="status" className="visually-hidden">Reading and checking your data file. This may take a moment.</span>}
       {fileDragging && <div className="file-drop-overlay" role="status" aria-live="polite"><div><strong>Drop data file to import</strong><span>CSV, TSV, TXT, XLSX, or XLS</span></div></div>}
       {pending && (
         <div className="modal-backdrop" role="presentation">
-          <section className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+          <section ref={sheetDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabIndex={-1}>
             <span className="eyebrow">EXCEL WORKBOOK</span>
             <h2 id="sheet-title">Choose a worksheet</h2>
             <p>Select the sheet you want to graph. Graph Annotations are applied automatically; tagged rows are not counted as measurements.</p>

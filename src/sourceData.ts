@@ -1,4 +1,4 @@
-import { datasetSignature } from './plotSetups'
+import { datasetSignature } from './datasetSignature'
 import type { ImportedSheet } from './importData'
 import type { Dataset, DatasetSource } from './types'
 
@@ -7,7 +7,7 @@ export const withFileSource = (sheet: ImportedSheet, fileName: string, handleId?
   source: { fileName, sheetName: sheet.name, handleId, signature: datasetSignature(sheet.dataset) },
 })
 
-export const chooseSetupDataset = (sheets: ImportedSheet[], source: Pick<DatasetSource, 'fileName' | 'sheetName' | 'handleId'>, expectedSignature: string) => {
+export const chooseSourceDataset = (sheets: ImportedSheet[], source: Pick<DatasetSource, 'fileName' | 'sheetName' | 'handleId'>, expectedSignature: string) => {
   const preferred = source.sheetName ? sheets.find((sheet) => sheet.name === source.sheetName) : undefined
   const selected = preferred && datasetSignature(preferred.dataset) === expectedSignature
     ? preferred

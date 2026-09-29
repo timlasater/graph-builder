@@ -23,7 +23,7 @@ test('imports a file, builds a graph, saves and reopens a project, then exports'
   await page.locator('.ag-cell-inline-editing input').press('Enter')
   await expect(doseCell).toContainText('25')
   await page.getByRole('button', { name: 'Close data table' }).click()
-  await page.getByRole('button', { name: 'Group', exact: true }).click()
+  await page.locator('.variable-list').getByRole('button', { name: 'Group', exact: true }).click()
   await page.getByLabel('Assign selected column to').selectOption('color')
   await page.getByRole('button', { name: 'Assign', exact: true }).click()
   await page.getByRole('button', { name: 'Filter selected column' }).click()

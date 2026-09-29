@@ -34,6 +34,8 @@ Open **Projects & export**. A project can hold several graphs sharing one datase
 
 To reopen, choose **Open project…**. The app checks the file before replacing the current project and asks for confirmation. Invalid files leave the current project untouched. The **Delete** button beside a graph asks for confirmation; **Undo** can restore it before closing the project.
 
+If you saved graphs through the older browser-only feature, **Projects & export** shows **Previous saved graphs** when those records are present. Download each as a template, then open the original dataset and choose **Open template…**. The old records stay in browser storage until you clear it; a template contains graph settings and filters, not data rows.
+
 ## Export results
 
 Click **Save PNG** at the top for a quick image. In **Projects & export**, choose dimensions and download PNG or SVG; SVG stays sharp when enlarged. **Export plotted data CSV** downloads the values currently represented in the graph, not the whole source table.
