@@ -14,6 +14,7 @@ An offline-first, Windows-focused scientific graph builder inspired by JMP Graph
 - Per-layer variable overrides, colors, marker sizes, and line widths
 - Type-aware graph suggestions and centralized compatibility feedback
 - Mean-line error bars for sample SD, standard error, selectable two-sided Student's t confidence intervals, and range
+- The same error-bar choices for mean bars (not sums, counts, or stacked bars)
 - Optional source-observation overlays on mean layers
 - Grouped panels, wrapped facet grids, and custom panels with different X/Y variables
 - Box plots with a Y variable alone, without an X assignment
@@ -119,11 +120,18 @@ Invalid annotation rows are skipped and shown as import warnings in the data tab
 
 ## Quality checks
 
+For a plain-language walkthrough, see the [user guide](docs/user-guide.md). The [phase 9 validation record](docs/phase-9-validation.md) lists test coverage, performance measurements, and remaining manual checks.
+The browser test uses an installed Chrome browser; install Chrome before running `npm run test:e2e` on a new Windows checkout.
+
 ```powershell
 npm test
+npm run test:workflow
+npm run test:perf
+npm run test:e2e
+npm run lint
 npm run build
 ```
 
-Phases 2, 3, 4, 6, 7, and 8 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
+Phases 2, 3, 4, 6, 7, and 8 are complete. Phase 5 still has statistical features outstanding. Phase 9 automated validation and hardening are in progress; the remaining manual JMP and screen-reader checks are documented in the validation record. The 5,000-row / 50,000-cell data-processing fixture is measured there.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.

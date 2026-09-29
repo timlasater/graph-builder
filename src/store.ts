@@ -194,7 +194,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
   clearRowSelection: () => set({ selectedRowIds: [] }),
-  setDataset: (dataset) => set({ dataset, spec: defaultGraphSpec(dataset), projectName: dataset.name, activeGraphId: 'graph-1', activeGraphName: defaultGraphSpec(dataset).title, otherGraphs: [], filters: [], past: [], future: [], selectedColumn: undefined, selectedRowIds: [] }),
+  setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
   applyPlotSetup: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
   openProject: (projectName, dataset, graphs, activeGraphId) => set(() => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]

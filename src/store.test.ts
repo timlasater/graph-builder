@@ -94,6 +94,13 @@ describe('data history and filters', () => {
     useBuilderStore.getState().undo()
     expect(useBuilderStore.getState().dataset.rows[0].values.dose).toBe(original)
   })
+  it('can undo a new data import without losing the earlier project', () => {
+    const original = useBuilderStore.getState().dataset
+    useBuilderStore.getState().setDataset({ ...sampleDataset, name: 'Imported study', rows: sampleDataset.rows.slice(0, 1) })
+    expect(useBuilderStore.getState().dataset.rows).toHaveLength(1)
+    useBuilderStore.getState().undo()
+    expect(useBuilderStore.getState().dataset).toEqual(original)
+  })
   it('matches explicit persistent filters', () => {
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'prototype', operator: 'contains', value: 'A' }])).toBe(true)
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'pressure', operator: 'gt', value: 100 }])).toBe(false)

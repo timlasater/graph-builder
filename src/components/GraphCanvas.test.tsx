@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useBuilderStore } from '../store'
+import { datasetFromMatrix } from '../importData'
 import { GraphCanvas } from './GraphCanvas'
 
 const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown>; onTitleDoubleClick: (target: { kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }) => void } | undefined }))
@@ -11,6 +12,23 @@ const original = useBuilderStore.getState()
 afterEach(() => { cleanup(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
 
 describe('GraphCanvas panels', () => {
+  it('draws sample-SD and range error bars for mean bars only', () => {
+    const dataset = datasetFromMatrix([['Group', 'Dose'], ['A', 2], ['A', 4], ['B', 9], ['B', 11]], 'Bar errors')
+    const [group, dose] = dataset.columns.map((column) => column.id)
+    const layer = { id: 'bars', name: 'Bars', element: 'bar' as const, barAggregation: 'mean' as const, errorBar: 'sd' as const }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [group], y: [dose], color: undefined, layers: [layer], activeLayerId: layer.id } })
+    const view = render(<GraphCanvas />)
+    let trace = chart.props!.data.find((item) => item.type === 'bar')!
+    expect(trace.y).toEqual([3, 10])
+    expect(trace.error_y).toMatchObject({ array: [Math.SQRT2, Math.SQRT2], arrayminus: [Math.SQRT2, Math.SQRT2] })
+    view.unmount()
+    useBuilderStore.setState({ spec: { ...useBuilderStore.getState().spec, layers: [{ ...layer, errorBar: 'range' }] } })
+    render(<GraphCanvas />)
+    trace = chart.props!.data.find((item) => item.type === 'bar')!
+    expect(trace.error_y).toMatchObject({ array: [1, 1], arrayminus: [1, 1] })
+    act(() => useBuilderStore.setState({ spec: { ...useBuilderStore.getState().spec, layers: [{ ...layer, barAggregation: 'count' }] } }))
+    expect(chart.props!.data.find((item) => item.type === 'bar')?.error_y).toBeUndefined()
+  })
   it('uses different X and Y variables and independent axes in custom panels', () => {
     useBuilderStore.setState({ spec: { ...original.spec, panels: [
       { id: 'first', title: 'Pressure and dose', x: 'pressure', y: 'dose' },

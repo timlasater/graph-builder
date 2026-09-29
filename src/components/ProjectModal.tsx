@@ -55,7 +55,7 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
       if (file.size > 100 * 1024 * 1024) throw new Error('This project file is too large to open safely (100 MB limit).')
       const project = parseProject(await file.text())
       if (project.data.mode === 'linked') { setPendingLinked(project); setMessage(`Choose the source file “${project.data.source.fileName}” to finish opening this linked project.`) }
-      else { openProject(project.name, project.data.dataset, project.graphs, project.activeGraphId); onClose() }
+      else if (window.confirm('Open this project and replace the current one? Download the current project first if you need to keep it.')) { openProject(project.name, project.data.dataset, project.graphs, project.activeGraphId); onClose() }
     } catch (error) { report(error) }
     finally { setBusy(false); if (projectInput.current) projectInput.current.value = '' }
   }
@@ -68,8 +68,7 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
       const selected = chooseSetupDataset(sheets, { fileName: file.name, sheetName: source.sheetName }, source.signature)
       if (!selected) throw new Error('This source file does not have the columns expected by the linked project. The current project was not changed.')
       const restored = pendingLinked.data.columns ? rebuildLinkedDataset(selected, pendingLinked.data.columns) : selected
-      openProject(pendingLinked.name, restored, pendingLinked.graphs, pendingLinked.activeGraphId)
-      setPendingLinked(undefined); onClose()
+      if (window.confirm('Open this linked project and replace the current one? Download the current project first if you need to keep it.')) { openProject(pendingLinked.name, restored, pendingLinked.graphs, pendingLinked.activeGraphId); setPendingLinked(undefined); onClose() }
     } catch (error) { report(error) }
     finally { setBusy(false); if (sourceInput.current) sourceInput.current.value = '' }
   }

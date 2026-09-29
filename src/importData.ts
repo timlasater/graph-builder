@@ -109,7 +109,7 @@ export const importTabularFile = async (file: File): Promise<ImportedSheet[]> =>
       delimiter: extension === 'tsv' ? '\t' : '',
       skipEmptyLines: 'greedy',
     })
-    if (parsed.errors.length && !parsed.data.length) throw new Error(parsed.errors[0].message)
+    if (parsed.errors.length) throw new Error(`The file has a CSV formatting error near row ${parsed.errors[0].row ?? 1}: ${parsed.errors[0].message}. Check its quotes and separators, then try again.`)
     return [{ name: baseName, dataset: datasetFromMatrix(parsed.data, baseName) }]
   }
 

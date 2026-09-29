@@ -88,8 +88,9 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
 
   return (
     <>
-      <input ref={inputRef} className="visually-hidden" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
+      <input ref={inputRef} className="visually-hidden" type="file" aria-label="Choose a CSV or Excel data file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
       <button className="import-button" onClick={() => void chooseFile()} disabled={busy}>{busy ? 'Importing…' : 'Import data'}</button>
+      {busy && <span role="status" className="visually-hidden">Reading and checking your data file. This may take a moment.</span>}
       {fileDragging && <div className="file-drop-overlay" role="status" aria-live="polite"><div><strong>Drop data file to import</strong><span>CSV, TSV, TXT, XLSX, or XLS</span></div></div>}
       {pending && (
         <div className="modal-backdrop" role="presentation">
@@ -104,7 +105,7 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
           </section>
         </div>
       )}
-      {error && <div className="import-error" role="alert"><span>{error}</span><button onClick={() => setError(undefined)}>×</button></div>}
+      {error && <div className="import-error" role="alert"><span>{error}</span><button aria-label="Dismiss import error" onClick={() => setError(undefined)}>×</button></div>}
     </>
   )
 }

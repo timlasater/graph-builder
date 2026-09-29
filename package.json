@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "vitest run",
+    "test": "vitest run src",
+    "test:workflow": "vitest run src/workflow.e2e.test.ts",
+    "test:e2e": "node e2e/run.mjs",
+    "test:perf": "vitest run src/performance.test.ts --reporter=verbose",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -24,6 +27,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",
     "@types/papaparse": "^5.5.2",
