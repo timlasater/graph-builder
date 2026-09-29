@@ -8,7 +8,7 @@ import type { DataColumn, DataRow, GraphLayer } from '../types'
 import { PlotlyChart, type PlotTitleTarget } from './PlotlyChart'
 
 const symbols = ['circle', 'square', 'diamond', 'cross', 'triangle-up', 'star', 'hexagon', 'triangle-down']
-interface Facet { label?: string; row: number; column: number; rows: DataRow[]; x?: DataColumn; y?: DataColumn; custom?: boolean }
+interface Facet { label?: string; row: number; column: number; rows: DataRow[]; x?: DataColumn; y?: DataColumn; custom?: boolean; axisSplit?: boolean }
 interface LegendItem { id: string; label: string; color: string; xColumnId: string; xCategory?: string }
 const uniqueValues = (rows: DataRow[], columnId?: string) => columnId ? [...new Set(rows.map((row) => String(row.values[columnId])))] : ['']
 const scaleMarkerSizes = (values: unknown[], fallback: number) => {
@@ -49,6 +49,9 @@ export function GraphCanvas() {
   const columnFor = (id?: string) => dataset.columns.find((column) => column.id === id)
   const sharedX = spec.x.map((id) => columnFor(id)).filter((column): column is DataColumn => Boolean(column))
   const sharedY = spec.y.map((id) => columnFor(id)).filter((column): column is DataColumn => Boolean(column))
+  const splitX = !spec.panels?.length && sharedX.length > 1 && spec.xDisplay === 'subplots'
+  const splitY = !spec.panels?.length && sharedY.length > 1 && spec.yDisplay === 'subplots'
+  const axisSubplots = splitX || splitY
   const groupXColumn = columnFor(spec.groupX); const groupYColumn = columnFor(spec.groupY); const wrapColumn = columnFor(spec.wrap)
   const sizeColumn = columnFor(spec.size); const weightColumn = columnFor(spec.weight); const shapeColumn = columnFor(spec.shape); const pageColumn = columnFor(spec.page)
   const pageValues = pageColumn ? [...new Map(dataset.rows.map((row) => [String(row.values[pageColumn.id]), row.values[pageColumn.id]])).values()] : []
@@ -59,6 +62,11 @@ export function GraphCanvas() {
   if (spec.panels?.length) {
     facetColumns = Math.ceil(Math.sqrt(spec.panels.length)); facetRows = Math.ceil(spec.panels.length / facetColumns)
     facets = spec.panels.map((panel, index) => ({ label: panel.title, row: Math.floor(index / facetColumns), column: index % facetColumns, rows: includedRows, x: columnFor(panel.x), y: columnFor(panel.y), custom: true }))
+  } else if (axisSubplots) {
+    const choices = (splitY ? sharedY : [undefined]).flatMap((y) => (splitX ? sharedX : [undefined]).map((x) => ({ x, y })))
+    facetColumns = Math.min(choices.length, Math.max(1, Math.round(spec.subplotColumns ?? Math.ceil(Math.sqrt(choices.length)))))
+    facetRows = Math.ceil(choices.length / facetColumns)
+    facets = choices.map(({ x, y }, index) => ({ label: [x?.name, y?.name].filter(Boolean).join(' · '), row: Math.floor(index / facetColumns), column: index % facetColumns, rows: includedRows, x, y, axisSplit: true }))
   } else if (wrapColumn) {
     const values = uniqueValues(includedRows, wrapColumn.id); facetColumns = Math.ceil(Math.sqrt(values.length)) || 1; facetRows = Math.ceil(values.length / facetColumns) || 1
     facets = values.map((value, index) => ({ label: `${wrapColumn.name}: ${value}`, row: Math.floor(index / facetColumns), column: index % facetColumns, rows: includedRows.filter((dataRow) => String(dataRow.values[wrapColumn.id]) === value) }))
@@ -68,9 +76,9 @@ export function GraphCanvas() {
   }
   const displayValue = (column: DataColumn, value: unknown) => column.valueLabels?.[String(value)] ?? value
   const pairsFor = (layer: GraphLayer, facet: Facet) => {
-    const x = facet.custom ? (facet.x ? [facet.x] : layer.element === 'box' ? [boxCategoryColumn] : []) : layer.x ? [columnFor(layer.x)].filter((column): column is DataColumn => Boolean(column)) : sharedX.length ? sharedX : layer.element === 'box' ? [boxCategoryColumn] : []
+    const x = facet.custom ? (facet.x ? [facet.x] : layer.element === 'box' ? [boxCategoryColumn] : []) : facet.axisSplit ? (splitX && facet.x ? [facet.x] : sharedX.length ? sharedX : layer.element === 'box' ? [boxCategoryColumn] : []) : layer.x ? [columnFor(layer.x)].filter((column): column is DataColumn => Boolean(column)) : sharedX.length ? sharedX : layer.element === 'box' ? [boxCategoryColumn] : []
     if (layer.element === 'histogram') return x.map((xColumn) => ({ xColumn, yColumn: xColumn }))
-    const y = facet.custom ? (facet.y ? [facet.y] : []) : layer.y ? [columnFor(layer.y)].filter((column): column is DataColumn => Boolean(column)) : sharedY
+    const y = facet.custom ? (facet.y ? [facet.y] : []) : facet.axisSplit ? (splitY && facet.y ? [facet.y] : sharedY) : layer.y ? [columnFor(layer.y)].filter((column): column is DataColumn => Boolean(column)) : sharedY
     return x.flatMap((xColumn) => y.map((yColumn) => ({ xColumn, yColumn })))
   }
   if (!facets.some((facet) => spec.layers.some((layer) => pairsFor(layer, facet).length))) return <div className="empty-canvas"><div className="empty-illustration">↗</div><h2>Build a graph</h2><p>{requiresYAssignment(spec.layers) ? 'Assign Y, and X for plots other than a Y-only box plot.' : 'Assign a numeric variable to X.'}</p></div>
@@ -86,7 +94,10 @@ export function GraphCanvas() {
     const keys = orderByPreference([...keyByLegendId.keys()], spec.legendOrder).map((id) => keyByLegendId.get(id)!)
     return keys.flatMap<unknown>((key) => {
       const rows = facet.rows.filter((row) => ([colorColumn && String(row.values[colorColumn.id]), overlayColumn && String(row.values[overlayColumn.id])].filter(Boolean).join(' · ') || 'All observations') === key)
-      const legendId = legendIdFor(key); const axisNumber = facetIndex + 1; const colorKey = colorColumn ? String(rows[0]?.values[colorColumn.id]) : key; const colorIndex = Math.max(0, uniqueValues(includedRows, colorColumn?.id).indexOf(colorKey)); const paletteIndex = colorColumn ? colorIndex : layerIndex + Math.max(0, availableKeys.indexOf(key)); const color = spec.seriesColors?.[legendId] ?? layer.colorHex ?? palette[paletteIndex % palette.length]
+      const legendId = legendIdFor(key); const axisNumber = facetIndex + 1; const colorKey = colorColumn ? String(rows[0]?.values[colorColumn.id]) : key; const colorIndex = Math.max(0, uniqueValues(includedRows, colorColumn?.id).indexOf(colorKey))
+      const collatedBars = spec.yDisplay === 'collate' && layer.element === 'bar' && sharedY.length > 1 && !facet.custom && !facet.axisSplit && xColumn.modelingType !== 'continuous'
+      const paletteIndex = colorColumn ? colorIndex : collatedBars ? sharedY.findIndex((column) => column.id === yColumn.id) : layerIndex + Math.max(0, availableKeys.indexOf(key))
+      const color = spec.seriesColors?.[legendId] ?? (collatedBars ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length]
       const nameParts = [facet.custom && facet.label, spec.layers.length > 1 && layer.name, (facet.custom || sharedX.length > 1 || sharedY.length > 1) && `${yColumn.name} vs ${xColumn.name}`, key].filter(Boolean)
       const legendKey = spec.seriesNames?.[legendId] || nameParts.join(' · '); const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
       const xValues = [...new Set(rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id]))))]
@@ -131,7 +142,7 @@ export function GraphCanvas() {
         const confidence = layer.confidenceLevel ?? 0.95
         const extents = errorType === 'none' ? [] : bars.map((bar) => { const grouped = rows.filter((row) => String(displayValue(xColumn, row.values[xColumn.id])) === bar.key); return errorBarExtent(summaryStatistics(grouped.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? grouped.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, confidence), errorType) })
         const errorLabel = errorType === 'ci' ? `${Math.round(confidence * 100)}% CI` : errorType.toUpperCase()
-        return { ...base, type: 'bar', x: bars.map((bar) => bar.key), y: bars.map((bar) => bar.value), width: spec.barWidth, customdata: bars.map((bar) => [bar.n, rows.filter((row) => String(displayValue(xColumn, row.values[xColumn.id])) === bar.key).map((row) => row.id)]), marker: { color, opacity: spec.markerOpacity ?? 0.84 }, error_y: errorType === 'none' ? undefined : { type: 'data', visible: true, symmetric: false, array: extents.map((extent) => extent?.plus ?? 0), arrayminus: extents.map((extent) => extent?.minus ?? 0), color: layer.errorColor ?? spec.errorColor ?? color, thickness: layer.errorThickness ?? spec.errorThickness ?? 1.5, width: layer.errorCap ?? spec.errorCap ?? 4 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${layer.barAggregation ?? 'mean'}: %{y:.4g}<br>n: %{customdata[0]}${errorType === 'none' ? '' : `<br>Error bars: ${errorLabel}`}<extra></extra>` }
+        return { ...base, type: 'bar', x: bars.map((bar) => bar.key), y: bars.map((bar) => bar.value), width: collatedBars && spec.barWidth ? spec.barWidth / sharedY.length : spec.barWidth, offsetgroup: collatedBars ? availableKeys.length > 1 ? `${yColumn.id}::${key}` : yColumn.id : undefined, alignmentgroup: collatedBars ? xColumn.id : undefined, customdata: bars.map((bar) => [bar.n, rows.filter((row) => String(displayValue(xColumn, row.values[xColumn.id])) === bar.key).map((row) => row.id)]), marker: { color, opacity: spec.markerOpacity ?? 0.84 }, error_y: errorType === 'none' ? undefined : { type: 'data', visible: true, symmetric: false, array: extents.map((extent) => extent?.plus ?? 0), arrayminus: extents.map((extent) => extent?.minus ?? 0), color: layer.errorColor ?? spec.errorColor ?? color, thickness: layer.errorThickness ?? spec.errorThickness ?? 1.5, width: layer.errorCap ?? spec.errorCap ?? 4 }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${layer.barAggregation ?? 'mean'}: %{y:.4g}<br>n: %{customdata[0]}${errorType === 'none' ? '' : `<br>Error bars: ${errorLabel}`}<extra></extra>` }
       }
       if (layer.element === 'area') {
         const series = sortedSeries(rows.map((row) => displayValue(xColumn, row.values[xColumn.id])), rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])))
@@ -161,13 +172,13 @@ export function GraphCanvas() {
   const recolorLegend = (id: string, color: string) => { if (spec.seriesColors?.[id] !== color) updateSpec({ seriesColors: { ...spec.seriesColors, [id]: color } }) }
   const toggleSeries = (id: string) => { const hidden = useBuilderStore.getState().spec.hiddenSeries ?? []; updateSpec({ hiddenSeries: hidden.includes(id) ? hidden.filter((item) => item !== id) : [...hidden, id] }) }
   const renameSeries = (id: string, name: string) => { const seriesNames = { ...useBuilderStore.getState().spec.seriesNames }; if (name) seriesNames[id] = name; else delete seriesNames[id]; updateSpec({ seriesNames }) }
-  const horizontalGap = facetColumns > 1 ? 0.08 : 0; const verticalGap = facetRows > 1 ? spec.panels?.length ? 0.18 : 0.13 : 0; const cellWidth = (1 - horizontalGap * (facetColumns - 1)) / facetColumns; const cellHeight = (1 - verticalGap * (facetRows - 1)) / facetRows
+  const horizontalGap = facetColumns > 1 ? Math.min(0.08, 0.3 / (facetColumns - 1)) : 0; const verticalGap = facetRows > 1 ? Math.min(spec.panels?.length || axisSubplots ? 0.18 : 0.13, 0.3 / (facetRows - 1)) : 0; const cellWidth = (1 - horizontalGap * (facetColumns - 1)) / facetColumns; const cellHeight = (1 - verticalGap * (facetRows - 1)) / facetRows
   const axes: Record<string, unknown> = {}; const annotations: unknown[] = [...fitAnnotations]; const panelTitleAnnotations = new Map<number, string>(); const shapes: unknown[] = []
   let axisError: string | undefined; let hasCategoricalX = false
   facets.forEach((facet, index) => {
     const number = index + 1; const xStart = facet.column * (cellWidth + horizontalGap); const yTop = 1 - facet.row * (cellHeight + verticalGap); const xKey = number === 1 ? 'xaxis' : `xaxis${number}`; const yKey = number === 1 ? 'yaxis' : `yaxis${number}`
-    const xColumn = facet.custom ? facet.x : sharedX.length === 1 ? sharedX[0] : undefined
-    const yColumn = facet.custom ? facet.y : sharedY.length === 1 ? sharedY[0] : undefined
+    const xColumn = facet.custom || facet.axisSplit && splitX ? facet.x : sharedX.length === 1 ? sharedX[0] : undefined
+    const yColumn = facet.custom || facet.axisSplit && splitY ? facet.y : sharedY.length === 1 ? sharedY[0] : undefined
     const categoricalX = !xColumn && spec.layers.some((layer) => layer.element === 'box')
     const naturalXCategories = categoricalX ? [boxCategoryColumn.name] : xColumn && (xColumn.modelingType !== 'continuous' || spec.layers.some((layer) => layer.element === 'box' || layer.element === 'bar')) ? stableCategoryOrder(includedRows.map((row) => row.values[xColumn.id]), xColumn).map(String) : undefined
     const preferredXCategories = xColumn ? orderedLegendItems.filter((item) => item.xColumnId === xColumn.id && item.xCategory !== undefined).map((item) => item.xCategory!) : []
@@ -179,10 +190,10 @@ export function GraphCanvas() {
     const xAxis = axisConfiguration(spec.xAxis, plottedValues('x'), xCategories ? 'category' : xColumn?.dataType === 'date' ? 'date' : 'number', xCategories)
     const yAxis = axisConfiguration(spec.yAxis, plottedValues('y'), yCategories ? 'category' : yColumn?.dataType === 'date' ? 'date' : 'number', yCategories)
     axisError ??= xAxis.error ? `Panel ${number} X axis: ${xAxis.error}` : yAxis.error ? `Panel ${number} Y axis: ${yAxis.error}` : undefined
-    const xTitle = (facet.custom ? spec.panels?.[index]?.xAxisTitle : undefined) || spec.xAxis?.title || (facet.custom ? xColumn ? columnLabel(xColumn) : boxCategoryColumn.name : sharedX.length ? sharedX.map(columnLabel).join(' / ') : boxCategoryColumn.name)
-    const yTitle = (facet.custom ? spec.panels?.[index]?.yAxisTitle : undefined) || spec.yAxis?.title || (facet.custom ? yColumn ? columnLabel(yColumn) : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : '' : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / '))
-    axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
-    axes[yKey] = { ...yAxis.axis, domain: [yTop - cellHeight, yTop], anchor: number === 1 ? 'x' : `x${number}`, matches: !facet.custom && spec.facetScale !== 'independent' && number > 1 ? 'y' : undefined, title: { text: facet.custom || (!groupYColumn && facet.column === 0) ? yTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
+    const xTitle = (facet.custom ? spec.panels?.[index]?.xAxisTitle : undefined) || spec.xAxis?.title || (facet.custom || facet.axisSplit && splitX ? xColumn ? columnLabel(xColumn) : boxCategoryColumn.name : sharedX.length ? sharedX.map(columnLabel).join(' / ') : boxCategoryColumn.name)
+    const yTitle = (facet.custom ? spec.panels?.[index]?.yAxisTitle : undefined) || spec.yAxis?.title || (facet.custom || facet.axisSplit && splitY ? yColumn ? columnLabel(yColumn) : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : '' : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / '))
+    axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && !splitX && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.axisSplit || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
+    axes[yKey] = { ...yAxis.axis, domain: [yTop - cellHeight, yTop], anchor: number === 1 ? 'x' : `x${number}`, matches: !facet.custom && !splitY && spec.facetScale !== 'independent' && number > 1 ? 'y' : undefined, title: { text: facet.custom || facet.axisSplit || (!groupYColumn && facet.column === 0) ? yTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
     if (facet.label) { if (facet.custom) panelTitleAnnotations.set(annotations.length, spec.panels![index].id); annotations.push({ text: `<b>${facet.label}</b>`, x: 0.5, y: 1.04, xref: number === 1 ? 'x domain' : `x${number} domain`, yref: number === 1 ? 'y domain' : `y${number} domain`, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 10, color: '#53656e' } }) }
     const xRef = number === 1 ? 'x' : `x${number}`; const yRef = number === 1 ? 'y' : `y${number}`
     spec.referenceLines?.forEach((line) => {
@@ -200,9 +211,9 @@ export function GraphCanvas() {
       if (region.label) annotations.push(region.axis === 'x' ? { text: region.label, x: (region.min + region.max) / 2, y: 0.98, xref: xRef, yref: `${yRef} domain`, showarrow: false, font: { size: 10, color: region.color } } : { text: region.label, x: 0.98, y: (region.min + region.max) / 2, xref: `${xRef} domain`, yref: yRef, showarrow: false, xanchor: 'right', font: { size: 10, color: region.color } })
     })
   })
-  if (!wrapColumn && groupXColumn) groupXValues.forEach((value, column) => annotations.push({ text: `<b>${value}</b>`, x: column * (cellWidth + horizontalGap) + cellWidth / 2, y: 1.035, xref: 'paper', yref: 'paper', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
-  if (!wrapColumn && groupYColumn) groupYValues.forEach((value, row) => annotations.push({ text: `<b>${value}</b>`, x: -0.075, y: 1 - row * (cellHeight + verticalGap) - cellHeight / 2, xref: 'paper', yref: 'paper', xanchor: 'right', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
-  const stackedBars = spec.layers.some((layer) => layer.element === 'bar' && layer.stack && stackCompatibility(includedRows, layer.x ?? spec.x[0], layer.color ?? spec.color ?? spec.overlay).compatible)
+  if (!axisSubplots && !wrapColumn && groupXColumn) groupXValues.forEach((value, column) => annotations.push({ text: `<b>${value}</b>`, x: column * (cellWidth + horizontalGap) + cellWidth / 2, y: 1.035, xref: 'paper', yref: 'paper', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
+  if (!axisSubplots && !wrapColumn && groupYColumn) groupYValues.forEach((value, row) => annotations.push({ text: `<b>${value}</b>`, x: -0.075, y: 1 - row * (cellHeight + verticalGap) - cellHeight / 2, xref: 'paper', yref: 'paper', xanchor: 'right', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
+  const stackedBars = spec.yDisplay !== 'collate' && spec.layers.some((layer) => layer.element === 'bar' && layer.stack && stackCompatibility(includedRows, layer.x ?? spec.x[0], layer.color ?? spec.color ?? spec.overlay).compatible)
   const beginTitleEdit = ({ kind, axisNumber, annotationIndex, text, rect }: PlotTitleTarget) => {
     const panelId = kind === 'annotation' ? panelTitleAnnotations.get(annotationIndex ?? -1) : axisNumber ? spec.panels?.[axisNumber - 1]?.id : undefined
     if (kind === 'annotation' && !panelId) return

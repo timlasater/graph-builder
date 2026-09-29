@@ -63,7 +63,9 @@ Open the local address printed in the terminal, normally `http://localhost:5173`
 
 ## Make custom panels or a Y-only box plot
 
-To compare different variables side by side, open **Properties → Graph** and click **+ Panel** for each subplot. Choose the X and Y variable in each panel; panels with different variables use independent axes. Every graph layer appears in each panel when it has the needed variables. While custom panels are present, Group X, Group Y, Wrap, layer X/Y overrides, and the shared facet-scale setting are paused. Remove all custom panels to return to the usual shared-axis graph.
+When you assign multiple X or Y variables, open **Properties → Graph** and choose **Display together** or **Subplots** for that axis. Subplots can run horizontally or vertically; for three or more, set how many appear in each row. If both axes use subplots, each X/Y pair gets a panel. For a categorical X and a Bars layer, choose **Collate bars by category** under Y variables to place the different Y measures next to each other for each category (for example, Emitted Dose and Captured Dose for each Device). Axis subplots pause Group X, Group Y, Wrap, and layer X/Y overrides while shown.
+
+For panels with different combinations or titles, click **+ Panel** in **Properties → Graph**. Choose the X and Y variable in each custom panel; panels with different variables use independent axes. Every graph layer appears in each panel when it has the needed variables. While custom panels are present, Group X, Group Y, Wrap, layer X/Y overrides, and the shared facet-scale setting are paused. Remove all custom panels to return to the usual axis graph.
 
 For a single box plot of all values in one variable, choose **Box plot** in the layer settings, put the numeric variable on Y, and clear X. The chart groups the values under **All observations**. In a custom panel, choose **None** for Panel X and a numeric Panel Y to do the same there.
 

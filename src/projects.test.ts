@@ -14,9 +14,13 @@ describe('project files', () => {
     savedGraph.spec.panels = [{ id: 'panel-1', title: 'Dose panel', x: 'pressure', y: 'dose', xAxisTitle: 'Pressure input', yAxisTitle: 'Dose output' }]
     savedGraph.spec.xAxis = { title: 'Shared pressure' }
     savedGraph.spec.yAxis = { title: 'Shared dose' }
+    savedGraph.spec.xDisplay = 'subplots'
+    savedGraph.spec.yDisplay = 'collate'
+    savedGraph.spec.subplotColumns = 2
     const project = makeProject('Engineering results', dataset, [savedGraph], 'one', 'embedded')
     expect(parseProject(projectJson(project))).toEqual(project)
     expect(parseProject(projectJson(project)).graphs[0].spec.panels?.[0].xAxisTitle).toBe('Pressure input')
+    expect(parseProject(projectJson(project)).graphs[0].spec).toMatchObject({ xDisplay: 'subplots', yDisplay: 'collate', subplotColumns: 2 })
     expect(project.data.mode === 'embedded' && project.data.dataset.rows[0].values.doubled).toBe(Number(dataset.rows[0].values.dose) * 2)
   })
 

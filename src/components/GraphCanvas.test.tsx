@@ -12,6 +12,33 @@ const original = useBuilderStore.getState()
 afterEach(() => { cleanup(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
 
 describe('GraphCanvas panels', () => {
+  it('splits assigned X and Y variables into a chosen number of columns', () => {
+    useBuilderStore.setState({ spec: { ...original.spec, x: ['pressure', 'run'], y: ['dose', 'pressure'], xDisplay: 'subplots', yDisplay: 'subplots', subplotColumns: 1, color: undefined } })
+    render(<GraphCanvas />)
+    const traces = chart.props!.data
+    expect(new Set(traces.map((trace) => trace.xaxis))).toEqual(new Set(['x', 'x2', 'x3', 'x4']))
+    expect(traces.filter((trace) => trace.xaxis === 'x3').flatMap((trace) => trace.x as number[])).toEqual(original.dataset.rows.map((row) => row.values.pressure))
+    expect(traces.filter((trace) => trace.xaxis === 'x3').flatMap((trace) => trace.y as number[])).toEqual(original.dataset.rows.map((row) => row.values.pressure))
+    expect((chart.props!.layout.xaxis2 as { domain: number[] }).domain).toEqual([0, 1])
+    expect((chart.props!.layout.yaxis4 as { domain: number[] }).domain[1]).toBeLessThan(0.3)
+    expect((chart.props!.layout.yaxis3 as { title: { text: string } }).title.text).toBe('Test Pressure (psi)')
+  })
+
+  it('collates two Y measures into adjacent bars for each X category', () => {
+    const dataset = datasetFromMatrix([['Device', 'Emitted Dose', 'Captured Dose'], ['A', 4, 3], ['B', 8, 6]], 'Devices')
+    const [device, emitted, captured] = dataset.columns.map((column) => column.id)
+    const layer = { id: 'bars', name: 'Bars', element: 'bar' as const }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [device], y: [emitted, captured], yDisplay: 'collate', color: undefined, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    const bars = chart.props!.data.filter((trace) => trace.type === 'bar')
+    expect(bars).toHaveLength(2)
+    expect(bars.map((trace) => trace.x)).toEqual([['A', 'B'], ['A', 'B']])
+    expect(bars.map((trace) => trace.y)).toEqual([[4, 8], [3, 6]])
+    expect(bars.map((trace) => trace.offsetgroup)).toEqual([emitted, captured])
+    expect((bars[0].marker as { color: string }).color).not.toBe((bars[1].marker as { color: string }).color)
+    expect(chart.props!.layout.barmode).toBe('group')
+  })
+
   it('draws sample-SD and range error bars for mean bars only', () => {
     const dataset = datasetFromMatrix([['Group', 'Dose'], ['A', 2], ['A', 4], ['B', 9], ['B', 11]], 'Bar errors')
     const [group, dose] = dataset.columns.map((column) => column.id)

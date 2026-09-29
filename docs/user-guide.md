@@ -16,6 +16,8 @@ Drag a column from **Variables** onto **X** or **Y**. To work entirely with the 
 
 Drag a column onto **Filter**, or select it and click **Filter selected column**, to limit the rows shown in the graph and table. A filter does not delete rows. Use **View data table** to edit a cell or exclude a row. For replicate means, choose **Mean line**; its uncertainty choices include sample standard deviation, standard error, confidence interval, and range. **Bars** has the same choices when its Bar summary is **Mean**. Error bars are unavailable for sums, counts, and stacked bars. A Y-only box plot needs no X column.
 
+If you put more than one variable on X or Y, use **Properties → Graph → X variables / Y variables** to show them together or in subplots. Choose horizontal or vertical panels, or set the panels per row. With a categorical X and Bars, **Collate bars by category** places the Y measures side by side for each category, such as Emitted Dose and Captured Dose for each Device.
+
 Use **Properties → Graph → + Panel** to compare different X or Y variables side by side. Each panel has its own variable and axis-title controls. Double-click a displayed graph title, subtitle, panel title, or axis title to edit it in place. Press Enter to save or Escape to cancel.
 
 ## Save and reopen

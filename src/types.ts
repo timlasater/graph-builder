@@ -117,6 +117,9 @@ export interface GraphSpec {
   hiddenSeries?: string[]
   highlightedSeries?: string
   facetScale?: 'shared' | 'independent'
+  xDisplay?: 'together' | 'subplots'
+  yDisplay?: 'together' | 'subplots' | 'collate'
+  subplotColumns?: number
   panels?: GraphPanel[]
   referenceLines?: ReferenceLine[]
   referenceRegions?: ReferenceRegion[]

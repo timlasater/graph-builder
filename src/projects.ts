@@ -48,7 +48,10 @@ const validDataset = (value: unknown): value is Dataset => {
 const validSpec = (value: unknown): value is GraphSpec => {
   if (!record(value) || typeof value.title !== 'string' || typeof value.subtitle !== 'string' || !strings(value.x) || !strings(value.y) || !Array.isArray(value.layers) || !value.layers.length || !value.layers.every(validLayer) || typeof value.activeLayerId !== 'string' || !value.layers.some((layer) => layer.id === value.activeLayerId) || typeof value.showGrid !== 'boolean' || typeof value.markerSize !== 'number' || !Number.isFinite(value.markerSize)) return false
   if (!['color', 'groupX', 'groupY', 'wrap', 'overlay', 'size', 'shape', 'weight', 'page', 'highlightedSeries', 'fontFamily', 'markerShape', 'lineStyle', 'errorColor', 'theme', 'legendPlacement', 'facetScale', 'categoryOrder'].every((key) => optionalString(value, key))) return false
+  if (value.xDisplay !== undefined && !['together', 'subplots'].includes(String(value.xDisplay))) return false
+  if (value.yDisplay !== undefined && !['together', 'subplots', 'collate'].includes(String(value.yDisplay))) return false
   if (!['fontSize', 'graphWidth', 'graphHeight', 'aspectRatio', 'markerOpacity', 'markerJitter', 'barGap', 'barWidth', 'errorCap', 'errorThickness'].every((key) => optionalNumber(value, key))) return false
+  if (value.subplotColumns !== undefined && (typeof value.subplotColumns !== 'number' || !Number.isInteger(value.subplotColumns) || value.subplotColumns < 1)) return false
   if (!['manualCategories', 'palette', 'legendOrder', 'hiddenSeries'].every((key) => optionalStrings(value, key)) || !['seriesNames', 'seriesColors'].every((key) => optionalStringMap(value, key))) return false
   if (!validAxis(value.xAxis) || !validAxis(value.yAxis) || !optionalItems(value, 'referenceLines', validLine) || !optionalItems(value, 'referenceRegions', validRegion)) return false
   if (value.pageValue !== undefined && !cell(value.pageValue)) return false

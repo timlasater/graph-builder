@@ -98,7 +98,13 @@ function App() {
   const suggestion = suggestElement(suggestionX, suggestionY, suggestionRows); const suggestionMatches = activeLayer?.element === suggestion.element
   const suggestionHelp = `${suggestionMatches ? 'Already using' : `Use ${elementLabel(suggestion.element)}`}: ${suggestion.reason}`
   const stackCheck = stackCompatibility(suggestionRows, activeLayer?.x ?? spec.x[0], activeLayer?.color ?? spec.color ?? spec.overlay)
-  const customPanelHeight = spec.panels?.length ? Math.ceil(spec.panels.length / Math.ceil(Math.sqrt(spec.panels.length))) * 320 + 80 : undefined
+  const splitX = spec.x.length > 1 && spec.xDisplay === 'subplots'
+  const splitY = spec.y.length > 1 && spec.yDisplay === 'subplots'
+  const axisPanelCount = (splitX ? spec.x.length : 1) * (splitY ? spec.y.length : 1)
+  const subplotCount = spec.panels?.length || (splitX || splitY ? axisPanelCount : 0)
+  const subplotColumns = Math.min(subplotCount, Math.max(1, Math.round(spec.subplotColumns ?? Math.ceil(Math.sqrt(subplotCount)))))
+  const customPanelHeight = subplotCount ? Math.ceil(subplotCount / (spec.panels?.length ? Math.ceil(Math.sqrt(subplotCount)) : subplotColumns)) * 320 + 80 : undefined
+  const canCollate = spec.x.some((id) => { const column = columnFor(id); return column && column.modelingType !== 'continuous' }) && spec.layers.some((layer) => layer.element === 'bar')
 
   const savePng = async () => {
     setSavingPng(true); setPngError(undefined)
@@ -262,6 +268,10 @@ function App() {
             <CollapsibleSection title="Graph">
               <label>Title<input value={spec.title} onChange={(event) => updateSpec({ title: event.target.value })} /></label>
               <label>Subtitle<input value={spec.subtitle} onChange={(event) => updateSpec({ subtitle: event.target.value })} /></label>
+              {spec.x.length > 1 && <label>X variables<select value={spec.xDisplay ?? 'together'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ xDisplay: event.target.value as 'together' | 'subplots' })}><option value="together">Display together</option><option value="subplots">Subplots</option></select></label>}
+              {spec.y.length > 1 && <label>Y variables<select value={spec.yDisplay ?? 'together'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ yDisplay: event.target.value as 'together' | 'subplots' | 'collate' })}><option value="together">Display together</option><option value="subplots">Subplots</option>{canCollate && <option value="collate">Collate bars by category</option>}</select></label>}
+              {(splitX || splitY) && !spec.panels?.length && <><label>Subplot arrangement<select value={subplotColumns === 1 ? 'vertical' : subplotColumns === axisPanelCount ? 'horizontal' : 'grid'} onChange={(event) => { const value = event.target.value; updateSpec({ subplotColumns: value === 'vertical' ? 1 : value === 'horizontal' ? axisPanelCount : Math.min(2, axisPanelCount) }) }}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option>{axisPanelCount > 2 && <option value="grid">Grid</option>}</select></label>{axisPanelCount > 2 && <div className="property-grid"><label>Subplots per row<input type="number" min="1" max={axisPanelCount} value={subplotColumns} onChange={(event) => updateSpec({ subplotColumns: Math.min(axisPanelCount, Math.max(1, Number(event.target.value) || 1)) })} /></label><label>Subplots per column<input type="number" min="1" max={axisPanelCount} value={Math.ceil(axisPanelCount / subplotColumns)} onChange={(event) => updateSpec({ subplotColumns: Math.ceil(axisPanelCount / Math.min(axisPanelCount, Math.max(1, Number(event.target.value) || 1))) })} /></label></div>}<small className="setting-help">Each selected variable gets its own panel. X and Y subplot choices combine into one panel for each pair. Group X, Group Y, Wrap, and layer X/Y overrides pause while these subplots are shown.</small></>}
+              {spec.yDisplay === 'collate' && canCollate && spec.y.length > 1 && <small className="setting-help">For each X category, show the Y measures side by side in one graph.</small>}
               <label>Facet scales<select value={spec.facetScale ?? 'shared'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ facetScale: event.target.value as 'shared' | 'independent' })}><option value="shared">Shared across panels</option><option value="independent">Independent per panel</option></select></label>
               <div className="reference-heading"><strong>Custom panels</strong><button onClick={() => updateSpec({ panels: [...(spec.panels ?? []), { id: crypto.randomUUID(), title: `Panel ${(spec.panels?.length ?? 0) + 1}`, x: spec.x[0], y: spec.y[0] }] })}>+ Panel</button></div>
               {!!spec.panels?.length && <><small className="custom-panel-help">Each custom panel uses its own X and Y choices and shows all layers. Group X, Group Y, Wrap, and layer X/Y overrides are paused until you remove the custom panels. Leave X empty for a Y-only box plot. Double-click a displayed title to edit it.</small>{spec.panels.map((panel, index) => <div className="custom-panel-settings" key={panel.id}>
