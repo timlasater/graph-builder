@@ -4,9 +4,9 @@
 
 - `npm test`: unit, edge-case, schema, statistics, recovery, performance, and workflow tests.
 - `npm run test:workflow`: in-process data workflow covering import → edit → build → filter → save → reopen → plotted-data export.
-- `npm run test:e2e`: browser-driven Chrome test that imports a CSV fixture, edits a cell, assigns Color with the keyboard-accessible control, filters rows, downloads and reopens an embedded project, checks the edited and filtered rows, and exports plotted data. The test runner starts and stops its own local server.
+- `npm run test:e2e`: browser-driven Chrome tests that import a CSV fixture, edit and filter rows, reopen an embedded project, and export plotted data; they also render every graph element with the cartesian Plotly bundle, select graph points, zoom, and verify downloaded PNG and SVG files. The test runner starts and stops its own local server. The same suite also passed against `vite preview` serving the production build on 2026-09-29.
 - `npm run lint` and `npm run build`: required source and production checks.
-- `npm audit --json`: 0 reported advisories for the lockfile on 2026-09-28. A future audit may differ.
+- `npm audit --audit-level=moderate`: 0 reported advisories for the updated lockfile on 2026-09-29. A future audit may differ.
 - Optional real-data check: set `GB_NEBULIZER_CSV` to the user's local CSV path, then run `npm test -- src/nebulizer.test.ts`. The source file is read only and never copied into the repository. It checks 511 rows, 13 columns, numeric Drug (mg), and the imported mean against an independent calculation.
 
 ## Performance sample
@@ -22,7 +22,7 @@ These are single-run measurements of data processing, not a guarantee for other 
 
 ## Production size and accessibility
 
-The production JavaScript is about 5.96 MB minified / 1.81 MB compressed; CSS is about 321 KB / 55 KB compressed. Plotly dominates the bundle. Vite reports a large-chunk warning. The app is local-first, so this is primarily startup/download cost, but code splitting or a smaller Plotly distribution should be considered after chart-feature compatibility testing.
+The cartesian Plotly swap reduced production JavaScript from 5.98 MB minified / 1.81 MB compressed to 3.35 MB / 1.04 MB compressed on 2026-09-29. CSS remains about 321 KB / 55 KB compressed. Vite still reports a large-chunk warning; loading the data table and Excel reader on demand remains a possible follow-up. These are build artifact sizes, not measured startup times.
 
 Keyboard users can tab to variables, select one, and assign it through Properties without drag-and-drop. Focus outlines, descriptive graph text, import status, button labels, and a readable error recovery view were added. The chart's Plotly controls and the full workflow still need a human screen-reader pass; automated tests cannot establish accessibility by themselves.
 

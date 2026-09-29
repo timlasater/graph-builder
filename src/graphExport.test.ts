@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { plottedDataCsv, renderGraphImage, setExportFigure } from './graphExport'
 
 const plotly = vi.hoisted(() => ({ newPlot: vi.fn(async () => {}), toImage: vi.fn(async () => 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4='), purge: vi.fn() }))
-vi.mock('plotly.js-dist-min', () => ({ default: plotly }))
+vi.mock('plotly.js-cartesian-dist-min', () => ({ default: plotly }))
 
 afterEach(() => { setExportFigure(undefined); plotly.newPlot.mockClear(); plotly.toImage.mockClear(); plotly.purge.mockClear() })
 

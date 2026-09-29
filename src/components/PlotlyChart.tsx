@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
-import Plotly from 'plotly.js-dist-min'
+import Plotly from 'plotly.js-cartesian-dist-min'
 import { setExportFigure, type LegendPlacement } from '../graphExport'
 
 export type PlotTitleTarget = { kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }

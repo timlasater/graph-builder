@@ -255,7 +255,7 @@ Deliverables:
 - Manual comparison with representative JMP graphs using the user's nebulizer datasets
 - Plain-language user guide with screenshots
 
-Bundle-size follow-up: The current production JavaScript is about 5.98 MB minified / 1.81 MB compressed, with the complete Plotly bundle as the main contributor. First replace the complete Plotly import in chart rendering and figure export with Plotly's smaller cartesian bundle, which includes the scatter, bar, and box traces used by the app. Measure the actual production build before and after; verify every plot type, selection, zoom, and PNG/SVG export before keeping the change. Then consider loading the data table and Excel reader only when opened or needed. Measure initial download and startup time as well as total asset size; loading code on demand can improve the initial load without reducing what a user downloads after using every feature.
+Bundle-size follow-up: Replacing the complete Plotly bundle with its cartesian bundle reduced production JavaScript from 5.98 MB minified / 1.81 MB compressed to 3.35 MB / 1.04 MB compressed. Browser tests cover every graph element, point selection, zoom, and PNG/SVG downloads. Then consider loading the data table and Excel reader only when opened or needed. Measure initial download and startup time as well as total asset size; loading code on demand can improve the initial load without reducing what a user downloads after using every feature.
 
 Acceptance criteria:
 

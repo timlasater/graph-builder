@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-vi.mock('plotly.js-dist-min', () => ({ default: {} }))
+vi.mock('plotly.js-cartesian-dist-min', () => ({ default: {} }))
 import { datasetFromMatrix } from './importData'
 import { setExportFigure, plottedDataCsv } from './graphExport'
 import { makeProject, parseProject, projectJson } from './projects'

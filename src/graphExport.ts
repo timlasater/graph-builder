@@ -1,4 +1,4 @@
-import Plotly from 'plotly.js-dist-min'
+import Plotly from 'plotly.js-cartesian-dist-min'
 
 export type ImageFormat = 'png' | 'svg'
 export type LegendPlacement = 'bottom' | 'top' | 'right' | 'hidden'
