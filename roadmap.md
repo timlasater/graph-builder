@@ -300,6 +300,12 @@ Prefer two real HTML entry points in the web build: `index.html` for the landing
 
 Use a GitHub Actions Pages workflow to build and deploy the static site after changes reach `main`. Use a separate release workflow to build the Windows package from a version tag and upload it, together with signed updater artifacts, to GitHub Releases. Start the download button at the latest published release page; a direct Windows installer link can follow once asset names and fallback behavior are tested. Draft releases are invisible to ordinary visitors. Add macOS or Linux download choices only after those releases have been tested and published. Verify the browser remains local-data-only; loading the app shell from the website does require internet access on first visit unless offline caching is added and tested.
 
+Native In-App Comment Section: Use Giscus, an open-source commenting system powered by GitHub Discussions. It embeds a clean comment box directly on the landing page. Also include a way to submit bug reports, mapping to the Issues tab.
+
+Revise read me and other project documentation to be publicly presentable. Read me should be aimed at a developer audience, while the user guide should be accessible to lay users and perhaps those with a bit of statistical or scientific training. The user guide should also include full instructions for using every feature, indexed with a table of contents, and complete guide to keyboard shortcuts, and keyboard only usage of the app. The user guide should be an integrated part of the desktop application, and there should also be a link inside the desktop app to the main graph builder website, as well as the GitHub repository.
+
+Roadmap may be retained for historical purposes, but important information for developers should be migrated to the read me, and important information for end users should be in the user guide. The roadmap should also be updated to a professional, publishable style. The built-in data example should be changed to be something other than nebulizer data, so as not to give me impression that this data comes from my work. Should just be generic dummy data.
+
 Acceptance criteria:
 
 - Both requested URLs load directly and after refresh on the configured custom domain.
