@@ -77,12 +77,13 @@ export const plottedDataCsv = () => {
     const name = String(trace.name ?? '')
     const element = String(trace.type ?? '')
     if (element === 'box') {
-      const groups = [...new Set(x.map(String))]
+      const categoryAt = (index: number) => Array.isArray(custom[index]) && typeof custom[index][1] === 'string' ? custom[index][1] : x[index]
+      const groups = [...new Set(x.map((_, index) => String(categoryAt(index))))]
       for (const group of groups) {
-        const indices = x.map((value, index) => String(value) === group ? index : -1).filter((index) => index >= 0)
+        const indices = x.map((_, index) => String(categoryAt(index)) === group ? index : -1).filter((index) => index >= 0)
         const values = indices.map((index) => Number(y[index])).filter(Number.isFinite).sort((a, b) => a - b)
         if (!values.length) continue
-        const row = [panel, name, element, group, values.reduce((sum, value) => sum + value, 0) / values.length, values.length, values[0], quantile(values, .25), quantile(values, .5), quantile(values, .75), values.at(-1), '', '', indices.map((index) => custom[index]).filter(Boolean).join(';')]
+        const row = [panel, name, element, group, values.reduce((sum, value) => sum + value, 0) / values.length, values.length, values[0], quantile(values, .25), quantile(values, .5), quantile(values, .75), values.at(-1), '', '', indices.map((index) => Array.isArray(custom[index]) ? custom[index][0] : custom[index]).filter(Boolean).join(';')]
         lines.push(row.map(csvCell).join(','))
       }
       continue
@@ -91,8 +92,9 @@ export const plottedDataCsv = () => {
     for (let index = 0; index < Math.max(x.length, y.length); index += 1) {
       const meta = custom[index]
       const n = Array.isArray(meta) && typeof meta[0] === 'number' ? meta[0] : element === 'bar' && !custom.length ? y[index] : ''
-      const sources = Array.isArray(meta) ? Array.isArray(meta[1]) ? meta[1].join(';') : '' : typeof meta === 'string' ? meta : ''
-      const row = [panel, name, element, x[index], y[index], n, '', '', '', '', '', error?.arrayminus?.[index] ?? '', error?.array?.[index] ?? '', sources]
+      const sources = Array.isArray(meta) ? Array.isArray(meta[1]) ? meta[1].join(';') : typeof meta[0] === 'string' ? meta[0] : '' : typeof meta === 'string' ? meta : ''
+      const category = Array.isArray(meta) && typeof meta[0] === 'string' && typeof meta[1] === 'string' ? meta[1] : Array.isArray(meta) && typeof meta[2] === 'string' ? meta[2] : x[index]
+      const row = [panel, name, element, category, y[index], n, '', '', '', '', '', error?.arrayminus?.[index] ?? '', error?.array?.[index] ?? '', sources]
       lines.push(row.map(csvCell).join(','))
     }
   }

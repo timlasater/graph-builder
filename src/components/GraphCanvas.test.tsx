@@ -32,11 +32,25 @@ describe('GraphCanvas panels', () => {
     render(<GraphCanvas />)
     const bars = chart.props!.data.filter((trace) => trace.type === 'bar')
     expect(bars).toHaveLength(2)
-    expect(bars.map((trace) => trace.x)).toEqual([['A', 'B'], ['A', 'B']])
+    expect(bars.map((trace) => trace.x)).toEqual([[-0.19, 0.81], [0.19, 1.19]])
     expect(bars.map((trace) => trace.y)).toEqual([[4, 8], [3, 6]])
-    expect(bars.map((trace) => trace.offsetgroup)).toEqual([emitted, captured])
+    expect(chart.props!.layout.xaxis).toMatchObject({ type: 'linear', tickvals: [0, 1], ticktext: ['A', 'B'] })
     expect((bars[0].marker as { color: string }).color).not.toBe((bars[1].marker as { color: string }).color)
     expect(chart.props!.layout.barmode).toBe('group')
+  })
+
+  it.each(['points', 'box'] as const)('collates %s by device and measure', (element) => {
+    const dataset = datasetFromMatrix([['Device', 'Emitted Dose', 'Captured Dose'], ['A', 4, 3], ['A', 5, 4], ['B', 8, 6]], 'Devices')
+    const [device, emitted, captured] = dataset.columns.map((column) => column.id)
+    const layer = { id: element, name: element, element }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [device], y: [emitted, captured], yDisplay: 'collate', color: undefined, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    const traces = chart.props!.data
+    expect(traces).toHaveLength(2)
+    expect(traces.map((trace) => trace.x)).toEqual([[-0.19, -0.19, 0.81], [0.19, 0.19, 1.19]])
+    expect(traces.map((trace) => trace.y)).toEqual([[4, 5, 8], [3, 4, 6]])
+    expect(traces.map((trace) => trace.type)).toEqual(element === 'box' ? ['box', 'box'] : ['scatter', 'scatter'])
+    expect(chart.props!.layout.xaxis).toMatchObject({ type: 'linear', tickvals: [0, 1], ticktext: ['A', 'B'] })
   })
 
   it('draws sample-SD and range error bars for mean bars only', () => {

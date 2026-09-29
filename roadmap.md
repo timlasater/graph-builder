@@ -109,7 +109,7 @@ Acceptance criteria:
 
 ## Phase 4 — Plot types and layer engine
 
-Status: complete (September 2026). Histogram, box-plot, aggregated grouped/stacked bar, area/stacked-area, multi-layer, and reference-line/region paths are implemented with transformation tests and stacking validation. Multiple assigned X/Y variables can now be displayed together or as automatically arranged subplots; categorical bars can collate multiple Y measures beside each other within each X category.
+Status: complete (September 2026). Histogram, box-plot, aggregated grouped/stacked bar, area/stacked-area, multi-layer, and reference-line/region paths are implemented with transformation tests and stacking validation. Multiple assigned X/Y variables can now be displayed together or as automatically arranged subplots; categorical bars, points, and box plots can collate multiple Y measures beside each other within each X category.
 
 Implement plotting paths in this order:
 

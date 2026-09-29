@@ -26,4 +26,16 @@ describe('graph export', () => {
     expect(csv).toContain('x,Dose,scatter,1,42')
     expect(csv).toContain('x2,Distribution,box,A,3,5,1,2,3,4,5')
   })
+
+  it('exports category names rather than drawing positions for collated marks', () => {
+    setExportFigure({ data: [
+      { type: 'scatter', name: 'Emitted Dose', x: [-0.19], y: [4], customdata: [['row-1', 'Device A']] },
+      { type: 'bar', name: 'Captured Dose', x: [0.19], y: [3], customdata: [[1, ['row-1'], 'Device A']] },
+      { type: 'box', name: 'Dose spread', x: [-0.19, -0.19], y: [2, 4], customdata: [['row-1', 'Device A'], ['row-2', 'Device A']] },
+    ], layout: {}, legendPlacement: 'hidden' })
+    const csv = plottedDataCsv()
+    expect(csv).toContain('x,Emitted Dose,scatter,Device A,4,,,,,,,,,row-1')
+    expect(csv).toContain('x,Captured Dose,bar,Device A,3,1')
+    expect(csv).toContain('x,Dose spread,box,Device A,3,2,2,2.5,3,3.5,4,,,row-1;row-2')
+  })
 })
