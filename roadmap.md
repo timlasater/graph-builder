@@ -6,7 +6,7 @@ This document is the working handoff for future coding agents. Continue the exis
 
 Build an offline-first, Windows-focused scientific graph builder inspired by JMP Graph Builder. The primary user is an engineer rather than a software developer, so changes should be explained in plain language and demonstrated through visible workflows.
 
-The application must comfortably handle typical files with 100–500 rows and 1,000–10,000 cells, and a practical maximum of approximately 5,000 rows and 50,000 populated cells. Dataset contents must remain local. The browser version is the development target until it is stable; Windows desktop packaging comes last.
+The application must comfortably handle typical files with 100–500 rows and 1,000–10,000 cells, and a practical maximum of approximately 5,000 rows and 50,000 populated cells. Dataset contents must remain local. The browser version is the development target until it is stable; desktop packaging follows after validation.
 
 This is an independent product inspired by a workflow. Do not copy JMP branding, proprietary assets, or source code.
 
@@ -261,7 +261,7 @@ Acceptance criteria:
 - Typical interactions feel immediate; long imports/calculations show progress without freezing the interface.
 - `npm test`, `npm run lint`, `npm run build`, and the end-to-end suite all pass from a clean checkout.
 
-## Phase 10 — Windows desktop packaging
+## Phase 10 — Desktop packaging
 
 Start only after the browser application and project format are stable.
 
@@ -275,12 +275,30 @@ Deliverables:
 - Recent-project list
 - Fully offline runtime and packaged assets
 - Application signing and update strategy decided before distribution beyond the user
+- Extend the proven Windows package to macOS and Linux, with platform-specific open/save behavior and installers tested on each system
 
 Do not introduce Electron. Tauri is preferred for a smaller Windows application, but validate all prerequisites and WebView behavior before committing to installer details.
 
 Acceptance criteria:
 
 - A clean Windows machine can install, run, import a workbook, save/reopen a project, and export a graph without Node.js, internet access, or a development server.
+- Equivalent macOS and Linux packages pass the same core workflow on supported machines before those downloads are advertised.
+
+## Phase 11 — Public website and downloads
+
+After the browser app and desktop packages are ready, publish a landing page at `https://timothylasater.com/graph-builder/` and the browser app at `https://timothylasater.com/graph-builder/app/`. The landing page should show verified features and engineering specifications, plus prominent **Launch in Browser** and **Download Desktop App** buttons. Keep the portfolio home page in its own repository and add a link to the landing page there.
+
+GitHub Pages can host this project repository beneath the custom domain of the account's user site. Its repository name supplies the `/graph-builder/` path. Verify the actual Pages URL and domain settings when publishing.
+
+Prefer two real HTML entry points in the web build: `index.html` for the landing page and `app/index.html` for the application. This lets GitHub Pages serve a direct visit or refresh of `/graph-builder/app/` without a single-page-router 404 workaround. Set Vite's web asset base to `/graph-builder/`, and verify scripts, styles, imported files, and downloads at both URLs. Keep the Tauri frontend entry pointed at the application rather than the landing page; use a desktop-appropriate base and confirm packaged assets work offline.
+
+Use a GitHub Actions Pages workflow to build and deploy the static site after changes reach `main`. Use a separate release workflow to build Windows, macOS, and Linux packages from a version tag and upload them to GitHub Releases. Start the download button at the latest published release page; platform-specific direct links can follow once asset names and fallback behavior are tested. Draft releases are invisible to ordinary visitors. Do not display a platform download until its installer has been tested and published. Verify the browser remains local-data-only; loading the app shell from the website does require internet access on first visit unless offline caching is added and tested.
+
+Acceptance criteria:
+
+- Both requested URLs load directly and after refresh on the configured custom domain.
+- Landing-page feature and specification claims match measured and tested behavior.
+- The browser app, desktop packages, and release links work from a clean device; user datasets remain local.
 
 ## Suggested next task
 

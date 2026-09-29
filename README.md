@@ -124,6 +124,12 @@ npm test
 npm run build
 ```
 
+## Planned public release
+
+The intended website has a feature and engineering-specification landing page at `https://timothylasater.com/graph-builder/`, with **Launch in Browser** leading to `https://timothylasater.com/graph-builder/app/` and **Download Desktop App** leading to tested installers on GitHub Releases. These URLs and downloads are plans, not live features yet. The browser app will remain usable without an account or data upload; loading it from the website initially needs an internet connection. Desktop packages are intended to run offline.
+
+The website can be built as static pages and hosted by GitHub Pages under this repository's `/graph-builder/` path. A real `app/index.html` in the built site will make the app's address work on direct visits and refreshes. A separate GitHub Actions workflow can build Tauri installers for Windows, macOS, and Linux and attach them to a published GitHub Release. See [roadmap.md](roadmap.md) for the release sequence and checks.
+
 Phases 2, 3, 4, 6, 7, and 8 are complete. Phase 5 still has statistical features outstanding. Phase 6's linked filtering and exploration features have passed functional testing; responsiveness at the uncommon 5,000-row / 50,000-cell maximum is recorded as a future optimization.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.
