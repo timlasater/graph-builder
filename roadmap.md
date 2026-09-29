@@ -312,6 +312,7 @@ Continue Phase 9 release validation and manual accessibility checks. A later opt
 
 ## Definition of done for every task
 
+- Work on `main` by default. Use a side branch only for a specific reason, and merge it back when practical.
 - The requested workflow works visibly in the running app.
 - Existing workflows still work.
 - State changes are undoable when appropriate.
@@ -319,3 +320,4 @@ Continue Phase 9 release validation and manual accessibility checks. A later opt
 - User-facing failure modes have clear messages.
 - `npm test`, `npm run lint`, and `npm run build` pass.
 - README and this roadmap are updated when capabilities or sequencing change.
+- For major new features, the handoff includes brief steps a non-developer can use to test the feature and what they should see.

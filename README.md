@@ -146,4 +146,4 @@ Automatic updates require a free Tauri signing key pair so the app can verify th
 
 Phases 2–8 are complete. Phase 9 automated validation and hardening are in progress; the remaining manual JMP and screen-reader checks are documented in the validation record. The 5,000-row / 50,000-cell data-processing fixture is measured there.
 
-See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance.
+See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance. Development stays on `main` by default; a side branch is used only when the work needs isolation or coordination, then merged back when practical. Major feature handoffs include short steps for checking the result in the app.
