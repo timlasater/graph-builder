@@ -274,16 +274,17 @@ Deliverables:
 - File association for `.graphbuilder.json`
 - Recent-project list
 - Fully local application assets: starting the installed app, importing local data, building graphs, saving, and exporting must work with no internet connection
-- Windows installer that can install without internet even when WebView2 is absent; configure Tauri's `offlineInstaller` WebView2 mode (or another tested offline mode) instead of its default download bootstrapper
+- Keep the installer small with Tauri's default `downloadBootstrapper` WebView2 mode. Installation may require internet if the machine lacks WebView2; after successful installation, app startup and graph work must not require internet.
 - Optional update check when a connection is available, using Tauri's signed updater artifacts and a published release endpoint; a failed or timed-out check must never block launch or graphing
 - If a newer version exists, show **Update Available** with **Update** and **Continue with current version** choices; never download, install, or restart without the user's choice
-- Application signing and update-signing key storage decided before distribution beyond the user
+- Generate a Tauri updater signing key pair during packaging setup. Keep the private key out of Git, back it up securely, and give the release workflow access through GitHub Actions secrets; include the public key in the app so it can verify updates. Test a signed update before enabling the prompt.
+- Decide separately whether to buy a Windows code-signing certificate for the installer. This is distinct from the free Tauri update signature; an unsigned installer can run but may show a Windows SmartScreen warning.
 
 Do not introduce Electron. Tauri is preferred for a smaller Windows application, but validate all prerequisites and WebView behavior before committing to installer details. Keep update checks separate from the core application and do not make an online service a dependency for ordinary use. Installing an update on Windows exits the app, so warn about unsaved work and save or cancel before starting installation.
 
 Acceptance criteria:
 
-- A clean Windows machine can install, run, import a workbook, build a graph, save/reopen a project, and export without Node.js, internet access, or a development server, including when WebView2 was not previously installed.
+- A clean Windows machine can install with internet if WebView2 needs to be downloaded. Once installed, it can run, import a workbook, build a graph, save/reopen a project, and export without Node.js, internet access, or a development server.
 - Offline launch and the full core workflow are tested with networking disabled. An unavailable update endpoint causes no startup error or lost work.
 - With a newer published release available, the prompt appears and both choices work; declining leaves the current version fully usable. Installation happens only after consent and handles unsaved work.
 
