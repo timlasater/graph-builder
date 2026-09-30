@@ -39,15 +39,22 @@ try {
   const origin = `http://127.0.0.1:${server.address().port}`
   await page.goto(`${origin}/graph-builder/`)
   await page.getByRole('heading', { name: /Turn your data into/ }).waitFor()
+  const hero = page.locator('.hero')
+  assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundAttachment), 'scroll, fixed')
+  assert.ok(await hero.evaluate((element) => element.getBoundingClientRect().height) > await page.evaluate(() => innerHeight))
   assert.equal(await page.getByRole('link', { name: 'Read the user guide' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md')
   assert.equal(await page.getByRole('link', { name: 'GitHub repository' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder')
   if (process.env.GB_CAPTURE_PAGES === '1') {
     await mkdir('test-results/pages', { recursive: true })
     await page.screenshot({ path: 'test-results/pages/landing-desktop.png', fullPage: true })
+    await page.evaluate(() => scrollTo(0, 550))
+    await page.screenshot({ path: 'test-results/pages/landing-scrolled.png' })
+    await page.evaluate(() => scrollTo(0, 0))
   }
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
   await mobile.goto(`${origin}/graph-builder/`)
   await mobile.getByRole('link', { name: 'Launch Graph Builder' }).waitFor()
+  assert.equal(await mobile.locator('.hero').evaluate((element) => getComputedStyle(element).backgroundAttachment), 'scroll, scroll')
   assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
   if (process.env.GB_CAPTURE_PAGES === '1') await mobile.screenshot({ path: 'test-results/pages/landing-mobile.png', fullPage: true })
   await page.getByRole('link', { name: 'Launch Graph Builder' }).click()
