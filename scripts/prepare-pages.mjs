@@ -12,5 +12,5 @@ if (!appHtml.includes('/graph-builder/assets/')) {
 await mkdir(app, { recursive: true })
 await writeFile(new URL('index.html', app), appHtml)
 await copyFile(landing, new URL('index.html', dist))
-await copyFile(new URL('../site/sinus-setup.jpg', import.meta.url), new URL('sinus-setup.jpg', dist))
+await copyFile(new URL('../docs/screenshots/workspace.png', import.meta.url), new URL('workspace.png', dist))
 await writeFile(new URL('.nojekyll', dist), '')
