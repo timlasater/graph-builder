@@ -47,7 +47,7 @@ try {
   if (process.env.GB_CAPTURE_PAGES === '1') {
     await mkdir('test-results/pages', { recursive: true })
     await page.screenshot({ path: 'test-results/pages/landing-desktop.png', fullPage: true })
-    await page.evaluate(() => scrollTo(0, 550))
+    await page.evaluate(() => scrollTo(0, 460))
     await page.screenshot({ path: 'test-results/pages/landing-scrolled.png' })
     await page.evaluate(() => scrollTo(0, 0))
   }
