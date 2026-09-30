@@ -37,6 +37,13 @@ export function DataTableModal({ onClose }: { onClose: () => void }) {
     requestAnimationFrame(() => api.ensureIndexVisible(rowIndex, 'middle'))
   }, [rows, selectedRowIds])
   useEffect(() => { revealFirstSelectedRow() }, [revealFirstSelectedRow])
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose() }
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
   const rowClicked = (event: RowClickedEvent<GridRow>) => {
     if (!event.data) return
     const sourceEvent = event.event as MouseEvent | undefined

@@ -23,3 +23,10 @@ This check requires JMP or trusted JMP exports of the same dataset. The optional
 5. Note each result as **match**, **expected method difference**, or **unexplained difference**. For an unexplained difference, save the graph settings, the affected values or a de-identified subset, and JMP's calculation settings so it can be reproduced without sharing private data.
 
 Phase 9's human acceptance checks are complete only after both reviews are recorded and any unexplained differences or accessibility blockers are resolved.
+
+## Review notes — September 29, 2026
+
+- User reports that the keyboard and Windows Narrator checks passed, except that dropdowns had no visible Tab focus outline and Escape did not close the data table. Fixes for both are included in the subsequent code change; a manual retest is still needed.
+- User found that clearing the moving-average window immediately reset it to 1, making a custom number difficult to enter. The field now permits an empty draft while editing and sets it to 1 only when focus leaves the empty field. A manual retest is still needed.
+- At 200% Chrome zoom, all panels are difficult to fit on screen, but the graph can be reached by scrolling. This is recorded as usable with scrolling, not a full simultaneous-panel view.
+- JMP comparisons were not run because the user does not have access to JMP. The comparison review remains open.

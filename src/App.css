@@ -130,6 +130,7 @@
 .property-section-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 2px; }
 .property-section label { display: grid; gap: 5px; margin-top: 10px; color: #62717a; font-size: 10px; }
 .property-section input:not([type]), .property-section input[type="text"], .property-section select { height: 32px; width: 100%; border: 1px solid #ccd5d9; border-radius: 4px; padding: 0 8px; background: white; color: var(--ink); font-size: 11px; outline: 0; }
+.property-section select:focus-visible { outline: 3px solid #0f6c75; outline-offset: 2px; }
 .property-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .column-properties { background: #edf5f5; margin: 0 -8px 14px; padding: 14px 8px 16px; border: 1px solid #d5e4e5; border-radius: 6px; }
 .property-section input:focus { border-color: #6ba9ad; box-shadow: 0 0 0 2px #6ba9ad22; }
