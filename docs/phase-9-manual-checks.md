@@ -14,7 +14,7 @@ For a failure, note the exact control, keystrokes, what was spoken or displayed,
 
 ## Comparison with another graphing program
 
-Use free [R](https://www.r-project.org/) or JMP if available, with the same dataset. The independent [SciPy comparison](phase-9-validation.md#free-independent-statistics-comparison) already verifies representative calculations; this manual check focuses on the remaining graph presentation and exported plotted values. The optional 511-row nebulizer CSV import test confirms row count, column count, and one mean; it does not compare graphs.
+Use free [R](https://www.r-project.org/) or JMP if available, with the same dataset. If R is new to you, follow the [step-by-step R practice comparison](r-visual-comparison.md) first. The independent [SciPy comparison](phase-9-validation.md#free-independent-statistics-comparison) already verifies representative calculations; this manual check focuses on the remaining graph presentation and exported plotted values. The optional 511-row nebulizer CSV import test confirms row count, column count, and one mean; it does not compare graphs.
 
 1. Open the same local dataset in the reference program and Graph Builder. Record which rows are filtered or excluded, the X and Y columns, grouping/color column, units, category order, and any missing values. Use identical rows in both programs.
 2. Make representative point, line, bar, histogram, and box graphs. Compare category labels and order, plotted positions, group colors, axis limits, and missing-value behavior. Export Graph Builder's plotted-data CSV to compare underlying numbers, not only the picture.
