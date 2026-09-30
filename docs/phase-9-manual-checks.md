@@ -1,6 +1,6 @@
 # Phase 9 human review
 
-These checks need a person because automated tests cannot judge spoken feedback, ease of keyboard use, or visual agreement with JMP. Use a downloaded embedded project as a backup before testing with important data. Record the browser, Windows version, dataset, and any step that does not behave as expected.
+These checks need a person because automated tests cannot judge spoken feedback, ease of keyboard use, or visual agreement with another graphing program. Use a downloaded embedded project as a backup before testing with important data. Record the browser, Windows version, dataset, and any step that does not behave as expected.
 
 ## Keyboard and screen-reader review
 
@@ -12,15 +12,15 @@ These checks need a person because automated tests cannot judge spoken feedback,
 
 For a failure, note the exact control, keystrokes, what was spoken or displayed, and what you expected. A screenshot helps with visual issues; avoid including private data in screenshots shared publicly.
 
-## Comparison with JMP
+## Comparison with another graphing program
 
-This check requires JMP or trusted JMP exports of the same dataset. The optional 511-row nebulizer CSV import test confirms row count, column count, and one mean; it does not compare graphs.
+Use free [R](https://www.r-project.org/) or JMP if available, with the same dataset. The independent [SciPy comparison](phase-9-validation.md#free-independent-statistics-comparison) already verifies representative calculations; this manual check focuses on the remaining graph presentation and exported plotted values. The optional 511-row nebulizer CSV import test confirms row count, column count, and one mean; it does not compare graphs.
 
-1. Open the same local dataset in JMP and Graph Builder. Record which rows are filtered or excluded, the X and Y columns, grouping/color column, units, category order, and any missing values. Use identical rows in both programs.
+1. Open the same local dataset in the reference program and Graph Builder. Record which rows are filtered or excluded, the X and Y columns, grouping/color column, units, category order, and any missing values. Use identical rows in both programs.
 2. Make representative point, line, bar, histogram, and box graphs. Compare category labels and order, plotted positions, group colors, axis limits, and missing-value behavior. Export Graph Builder's plotted-data CSV to compare underlying numbers, not only the picture.
-3. Compare a mean graph with sample SD, standard error, and a 95% two-sided Student's t confidence interval. Match the statistical definitions and confidence level in JMP before comparing. Check groups with different sample sizes and a group with a missing response. Graph Builder's raw sample SD divides by `n − 1`; its quartiles use linear interpolation, so a different JMP quartile setting can yield a legitimate difference.
-4. Compare a linear fit's slope, intercept, sample size, and R². Try a fixed intercept only if the JMP graph uses the same constraint. Compare one smoothed trend only after matching its documented centered moving-average window and handling of repeated X values.
-5. Note each result as **match**, **expected method difference**, or **unexplained difference**. For an unexplained difference, save the graph settings, the affected values or a de-identified subset, and JMP's calculation settings so it can be reproduced without sharing private data.
+3. Compare a mean graph with sample SD, standard error, and a 95% two-sided Student's t confidence interval. Match the statistical definitions and confidence level in the reference program before comparing. Check groups with different sample sizes and a group with a missing response. Graph Builder's raw sample SD divides by `n − 1`; its quartiles use linear interpolation, so another quartile setting can yield a legitimate difference.
+4. Compare a linear fit's slope, intercept, sample size, and R². Try a fixed intercept only if the reference graph uses the same constraint. Compare one smoothed trend only after matching its documented centered moving-average window and handling of repeated X values.
+5. Note each result as **match**, **expected method difference**, or **unexplained difference**. For an unexplained difference, save the graph settings, the affected values or a de-identified subset, and the reference program's calculation settings so it can be reproduced without sharing private data.
 
 Phase 9's human acceptance checks are complete only after both reviews are recorded and any unexplained differences or accessibility blockers are resolved.
 
@@ -29,4 +29,4 @@ Phase 9's human acceptance checks are complete only after both reviews are recor
 - User reports that the keyboard and Windows Narrator checks passed, except that dropdowns had no visible Tab focus outline and Escape did not close the data table. Fixes for both are included in the subsequent code change; a manual retest is still needed.
 - User found that clearing the moving-average window immediately reset it to 1, making a custom number difficult to enter. The field now permits an empty draft while editing and sets it to 1 only when focus leaves the empty field. A manual retest is still needed.
 - At 200% Chrome zoom, all panels are difficult to fit on screen, but the graph can be reached by scrolling. This is recorded as usable with scrolling, not a full simultaneous-panel view.
-- JMP comparisons were not run because the user does not have access to JMP. The comparison review remains open.
+- JMP comparisons were not run because the user does not have access to JMP. A free SciPy/NumPy numerical comparison now passes; a representative visual comparison remains open and can use R without a license purchase.

@@ -243,7 +243,7 @@ Acceptance criteria:
 
 ## Phase 9 — Validation and hardening
 
-Status: automated validation and hardening complete (September 2026). Human keyboard/screen-reader review and comparison with JMP remain as acceptance checks; use the [manual review instructions](docs/phase-9-manual-checks.md) and record the results before marking this phase complete.
+Status: automated validation and hardening complete (September 2026). The user reports that the keyboard and Windows Narrator review passes, and an independent numerical comparison with free SciPy/NumPy now passes. A manual retest of three fixes and a representative visual comparison with a free graphing tool such as R remain; use the [manual review instructions](docs/phase-9-manual-checks.md) before marking this phase complete.
 
 Deliverables:
 
@@ -254,7 +254,7 @@ Deliverables:
 - Keyboard navigation, focus states, labels, contrast, and screen-reader review
 - Friendly error boundary and recovery paths
 - Dependency audit and production build-size review
-- Manual comparison with representative JMP graphs using the user's nebulizer datasets
+- Independent numerical comparison with free SciPy/NumPy and visual comparison with a reference graphing tool using representative datasets
 - Plain-language user guide with screenshots
 
 Bundle-size follow-up: Replacing the complete Plotly bundle with its cartesian bundle reduced production JavaScript from 5.98 MB minified / 1.81 MB compressed to 3.35 MB / 1.04 MB compressed. Browser tests cover every graph element, point selection, zoom, and PNG/SVG downloads. Then consider loading the data table and Excel reader only when opened or needed. Measure initial download and startup time as well as total asset size; loading code on demand can improve the initial load without reducing what a user downloads after using every feature.
@@ -318,7 +318,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Complete the two Phase 9 human reviews in the [manual review instructions](docs/phase-9-manual-checks.md). The automated suite, maximum-size browser workflow, and production build are passing. Phase 10 Windows packaging follows once the remaining Phase 9 acceptance checks are recorded.
+Retest the three Phase 9 fixes and compare representative graph presentation with a free tool such as R using the [manual review instructions](docs/phase-9-manual-checks.md). The automated suite, independent numerical comparison, maximum-size browser workflow, and production build are passing. Phase 10 Windows packaging follows once the remaining Phase 9 acceptance checks are recorded.
 
 ## Definition of done for every task
 

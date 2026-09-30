@@ -143,6 +143,6 @@ The website can be built as static pages and hosted by GitHub Pages under this r
 
 Automatic updates require a free Tauri signing key pair so the app can verify that an update came from this project. This is separate from a Windows code-signing certificate for the downloadable installer, which is optional and may cost money. Neither signing setup is implemented yet.
 
-Phases 2–8 are complete. Phase 9 automated validation and hardening are complete; human keyboard/screen-reader and JMP comparisons remain before the phase can be signed off. See the [validation record](docs/phase-9-validation.md) and [manual review steps](docs/phase-9-manual-checks.md), including the measured 5,000-row / 50,000-cell browser workflow.
+Phases 2–8 are complete. Phase 9 automated validation and hardening are complete, the user reports passing keyboard and Windows Narrator checks, and an independent numerical comparison with free SciPy/NumPy passes. A manual retest of three fixes and a representative visual comparison remain before sign-off; JMP is not required. See the [validation record](docs/phase-9-validation.md) and [manual review steps](docs/phase-9-manual-checks.md), including the measured 5,000-row / 50,000-cell browser workflow.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance. Development stays on `main` by default; a side branch is used only when the work needs isolation or coordination, then merged back when practical. Major feature handoffs include short steps for checking the result in the app.
