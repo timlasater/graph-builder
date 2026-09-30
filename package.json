@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "tsc -b && vite build --base /graph-builder/ && node scripts/prepare-pages.mjs",
     "lint": "oxlint",
     "test": "vitest run src",
     "test:workflow": "vitest run src/workflow.e2e.test.ts",
     "test:e2e": "node e2e/run.mjs",
+    "test:pages": "node scripts/smoke-pages.mjs",
     "test:perf": "vitest run src/performance.test.ts --reporter=verbose",
     "preview": "vite preview"
   },
