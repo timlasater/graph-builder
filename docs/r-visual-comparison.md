@@ -37,7 +37,7 @@ Choose **Line** in Graph Builder. R can connect each group's observations in X o
 
 ```r
 plot(v$X, v$Response, type = "n", xlab = "X", ylab = "Response", main = "Lines")
-for (g in levels(v$Group)) { z <- v[v$Group == g, ]; z <- z[order(z$X), ]; lines(z$X, z$Response, type = "b", col = match(g, levels(v$Group)), pch = 16) }
+for (g in levels(v$Group)) { z <- v[v$Group == g, ]; z <- z[order(z$X), ]; lines(z$X, z$Response, col = match(g, levels(v$Group))); points(z$X, z$Response, col = match(g, levels(v$Group)), pch = 16) }
 legend("topleft", legend = levels(v$Group), col = 1:3, lty = 1, pch = 16)
 ```
 
@@ -95,8 +95,8 @@ fit <- lm(Response ~ X, data = v)
 coef(fit)
 nobs(fit)
 summary(fit)$r.squared
-plot(v$X, v$Response, pch = 16, xlab = "X", ylab = "Response", main = "Linear fit")
-abline(fit, col = "blue", lwd = 2)
+fit_x <- range(v$X)
+plot(fit_x, predict(fit, newdata = data.frame(X = fit_x)), type = "l", xlab = "X", ylab = "Fitted Response", main = "Linear fit")
 ```
 
 Compare R's intercept, slope, sample size, and R² with Graph Builder's displayed numbers. They should be about **−1.0202**, **3.1233**, **15**, and **0.4641**. The app rounds displayed figures, so a small difference in the last printed digit is normal. Compare the fitted line's endpoints through the plotted-data CSV if you need more precision.
@@ -107,7 +107,7 @@ Now choose **Smooth trend** with **Moving average window = 3**. Graph Builder fi
 by_x <- aggregate(Response ~ X, data = v, FUN = mean)
 smooth <- sapply(seq_len(nrow(by_x)), function(i) mean(by_x$Response[max(1, i - 1):min(nrow(by_x), i + 1)]))
 data.frame(X = by_x$X, smooth = smooth)
-plot(by_x$X, smooth, type = "b", xlab = "X", ylab = "Moving average", main = "Smooth trend")
+plot(by_x$X, smooth, type = "l", xlab = "X", ylab = "Moving average", main = "Smooth trend")
 ```
 
 Compare each R `smooth` value with Graph Builder's exported `y` for the same X. The five values should be about **4.3333, 5.1111, 7.0556, 10.6111, 12.5833**. R's line color and marker shape are unimportant.

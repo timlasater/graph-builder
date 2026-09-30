@@ -20,6 +20,14 @@ The comparison covered three groups with unequal sample sizes, one missing respo
 
 This verifies representative calculations independently of Graph Builder's implementation. It does not establish that every graph's labels, category order, colors, or appearance match JMP or another graphing program, and it does not compare the user's full nebulizer dataset. No JMP license is needed for the numerical check. A free tool such as [R](https://www.r-project.org/) can be used for the remaining visual comparison.
 
+## R graph comparison on public practice data
+
+On 2026-09-29, R 4.6.1 ran the [base-R reference script](../scripts/r_visual_reference.R) against the [16-row practice CSV](../test-data/r-visual-reference.csv). It generated point, line, mean-bar, box, histogram, linear-fit, and smooth-trend PNGs plus numeric result CSVs under the ignored `test-results/r-visual/` directory. The [browser comparison test](../e2e/r-visual-reference.spec.ts) imported the same file into Graph Builder and checked its downloaded plotted-data CSV against R's results. All seven browser tests passed, including this comparison.
+
+The comparison found matching valid point counts and positions; group means and 95% confidence-interval widths; line groups; linear-interpolation quartiles; five histogram counts; fitted line values; and the five smoothed values. I inspected the two programs' images for all seven graph types: the plotted positions, group order, error-bar extents, outlier, histogram bins, and line shapes agreed. R's default box edges use hinges, while Graph Builder's exported quartiles use linear interpolation; that is an expected method difference. To regenerate the screenshots in PowerShell, run `$env:GB_CAPTURE_R_REFERENCE = '1'; npm run test:e2e` first, then `& 'C:\Program Files\R\R-4.6.1\bin\Rscript.exe' scripts/r_visual_reference.R` from the project folder. The browser runner clears `test-results` when it starts, so run R last.
+
+This checks graph presentation on a small public dataset. The user's full nebulizer CSV was not available in this session, so a comparison on that dataset remains open.
+
 ## Performance sample
 
 On this development computer, a deterministic 10-column fixture most recently took:
@@ -40,4 +48,4 @@ Keyboard users can tab to variables, select one, and assign it through Propertie
 ## Remaining manual checks
 
 - Manually retest the three reported keyboard and input fixes in the [review notes](phase-9-manual-checks.md#review-notes--september-29-2026).
-- Compare representative graph presentation and plotted-data exports with a free independent graphing tool such as R, or with JMP if it later becomes available. The SciPy comparison above already covers representative statistical calculations.
+- If a broader visual check is needed, repeat the [R walkthrough](r-visual-comparison.md) on a de-identified subset of the user's nebulizer dataset. The public practice dataset and representative calculations have already been compared.
