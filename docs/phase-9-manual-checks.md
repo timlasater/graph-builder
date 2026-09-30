@@ -26,8 +26,12 @@ Phase 9's human acceptance checks are complete only after both reviews are recor
 
 ## Review notes — September 29, 2026
 
-- User reports that the keyboard and Windows Narrator checks passed, except that dropdowns had no visible Tab focus outline and Escape did not close the data table. Fixes for both are included in the subsequent code change; a manual retest is still needed.
-- User found that clearing the moving-average window immediately reset it to 1, making a custom number difficult to enter. The field now permits an empty draft while editing and sets it to 1 only when focus leaves the empty field. A manual retest is still needed.
+- User reports that the keyboard and Windows Narrator checks passed, except that dropdowns had no visible Tab focus outline and Escape did not close the data table. Both were fixed and later passed manual retest.
+- User found that clearing the moving-average window immediately reset it to 1, making a custom number difficult to enter. The field now permits an empty draft while editing and sets it to 1 only when focus leaves the empty field; the fix later passed manual retest.
 - At 200% Chrome zoom, all panels are difficult to fit on screen, but the graph can be reached by scrolling. This is recorded as usable with scrolling, not a full simultaneous-panel view.
 - JMP comparisons were not run because the user does not have access to JMP. A free SciPy/NumPy numerical comparison passes.
-- R 4.6.1 was subsequently used for a public 16-row practice-data comparison. All seven browser tests passed, including comparison of Graph Builder's graph exports with R's results. Graph shapes and plotted values agreed on inspection; R's default box hinges are an expected method difference. A comparison using the user's full nebulizer dataset remains open because the source file was not available in this session.
+- R 4.6.1 was subsequently used for a public 16-row practice-data comparison. All seven browser tests passed, including comparison of Graph Builder's graph exports with R's results. Graph shapes and plotted values agreed on inspection; R's default box hinges are an expected method difference. The user's full nebulizer dataset was not available for this additional comparison.
+
+## Sign-off — September 29, 2026
+
+The user confirms that visual comparisons with R pass and that the corrected dropdown focus outline, Escape closing the data table, and moving-average number entry all pass manual retest. The earlier keyboard and Windows Narrator review passed. The 200% zoom layout remains usable by scrolling. There are no unexplained statistical differences or accessibility blockers reported, so the required Phase 9 human reviews are complete. Comparing the full nebulizer CSV with R is optional additional coverage.

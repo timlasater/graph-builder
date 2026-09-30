@@ -243,7 +243,7 @@ Acceptance criteria:
 
 ## Phase 9 — Validation and hardening
 
-Status: automated validation and hardening complete (September 2026). The user reports that the keyboard and Windows Narrator review passes, and an independent numerical comparison with free SciPy/NumPy now passes. A manual retest of three fixes and a representative visual comparison with a free graphing tool such as R remain; use the [manual review instructions](docs/phase-9-manual-checks.md) before marking this phase complete.
+Status: complete (September 2026). Automated checks, independent SciPy/NumPy calculations, R graph comparison, and the user's keyboard, Windows Narrator, and three-fix manual retest pass. See the [validation record](docs/phase-9-validation.md) and [manual review sign-off](docs/phase-9-manual-checks.md#sign-off--september-29-2026).
 
 Deliverables:
 
@@ -318,7 +318,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Retest the three Phase 9 fixes and compare representative graph presentation with a free tool such as R using the [manual review instructions](docs/phase-9-manual-checks.md). The automated suite, independent numerical comparison, maximum-size browser workflow, and production build are passing. Phase 10 Windows packaging follows once the remaining Phase 9 acceptance checks are recorded.
+Begin Phase 10 Windows desktop packaging. Phase 9's automated, independent numerical, visual, and human accessibility checks are complete. The [Phase 9 validation record](docs/phase-9-validation.md) documents the results and remaining optional coverage.
 
 ## Definition of done for every task
 
