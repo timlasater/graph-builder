@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { extname } from 'node:path'
 import { chromium } from '@playwright/test'
 
 const dist = new URL('../dist/', import.meta.url)
-const mime = { '.css': 'text/css', '.html': 'text/html', '.js': 'text/javascript', '.svg': 'image/svg+xml' }
+const mime = { '.css': 'text/css', '.html': 'text/html', '.jpg': 'image/jpeg', '.js': 'text/javascript', '.svg': 'image/svg+xml' }
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname
   if (!pathname.startsWith('/graph-builder/')) {
@@ -38,10 +38,24 @@ try {
   page.on('response', (response) => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`) })
   const origin = `http://127.0.0.1:${server.address().port}`
   await page.goto(`${origin}/graph-builder/`)
-  await page.getByRole('heading', { name: 'Make scientific graphs from your own data.' }).waitFor()
+  await page.getByRole('heading', { name: /Turn your data into/ }).waitFor()
+  assert.equal(await page.getByRole('link', { name: 'Read the user guide' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md')
+  assert.equal(await page.getByRole('link', { name: 'GitHub repository' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder')
+  if (process.env.GB_CAPTURE_PAGES === '1') {
+    await mkdir('test-results/pages', { recursive: true })
+    await page.screenshot({ path: 'test-results/pages/landing-desktop.png', fullPage: true })
+  }
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } })
+  await mobile.goto(`${origin}/graph-builder/`)
+  await mobile.getByRole('link', { name: 'Launch Graph Builder' }).waitFor()
+  assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true)
+  if (process.env.GB_CAPTURE_PAGES === '1') await mobile.screenshot({ path: 'test-results/pages/landing-mobile.png', fullPage: true })
   await page.getByRole('link', { name: 'Launch Graph Builder' }).click()
   assert.equal(new URL(page.url()).pathname, '/graph-builder/app/')
   await page.getByRole('region', { name: 'Graph preview' }).waitFor()
+  assert.equal(await page.getByRole('link', { name: 'Graph Builder page' }).getAttribute('href'), 'https://timothylasater.com/graph-builder/')
+  assert.equal(await page.getByRole('link', { name: 'Website home' }).getAttribute('href'), 'https://timothylasater.com/')
+  if (process.env.GB_CAPTURE_PAGES === '1') await page.screenshot({ path: 'test-results/pages/app.png', fullPage: false })
   await page.reload()
   await page.getByRole('region', { name: 'Graph preview' }).waitFor()
   assert.deepEqual(errors, [])

@@ -188,6 +188,10 @@ function App() {
             <button onClick={redo} disabled={!future.length} title="Redo">↷</button>
             <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? This closes the current project and clears Undo. Download an embedded project first if you need to keep your work.')) reset() }}>Reset example</button>
           </div>
+          <nav className="site-links" aria-label="Website links">
+            <a href="https://timothylasater.com/graph-builder/" target="_blank" rel="noopener noreferrer">Graph Builder page</a>
+            <a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">Website home</a>
+          </nav>
         </header>
 
         <main className="workspace" style={{ gridTemplateColumns: `${panelVisibility.variables ? panelWidths.variables : 0}px minmax(0, 1fr) ${panelVisibility.properties ? panelWidths.properties : 0}px` }}>

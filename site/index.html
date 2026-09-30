@@ -4,47 +4,94 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/graph-builder/favicon.svg" />
-    <title>Graph Builder — Browser preview</title>
+    <title>Graph Builder | Timothy Lasater</title>
     <meta name="description" content="Try Graph Builder in your browser and help test its scientific graphing tools." />
     <style>
-      :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #182338; background: #f6f8fc; }
+      :root { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1f2937; background: #f4f7f5; line-height: 1.6; }
       * { box-sizing: border-box; }
       body { margin: 0; }
-      main { max-width: 900px; padding: clamp(28px, 7vw, 72px) 24px; margin: auto; }
-      .eyebrow { color: #6553a5; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-      h1 { max-width: 740px; margin: 12px 0 18px; font-size: clamp(38px, 7vw, 68px); line-height: 1.05; letter-spacing: -.04em; }
-      .intro { max-width: 650px; color: #46546b; font-size: clamp(17px, 2.3vw, 21px); line-height: 1.5; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 32px 0 44px; }
-      .button { display: inline-block; padding: 13px 19px; border-radius: 10px; color: #fff; background: #673ab4; font-weight: 700; text-decoration: none; }
-      .button:hover, .button:focus-visible { background: #4f298e; }
-      .button.secondary { color: #513b85; background: #e9e2f8; }
-      .button.secondary:hover, .button.secondary:focus-visible { background: #d9cbf3; }
-      .button:focus-visible, a:focus-visible { outline: 3px solid #1699c0; outline-offset: 3px; }
-      .panel { padding: 24px; border: 1px solid #dce2ee; border-radius: 14px; background: #fff; box-shadow: 0 10px 28px #1d2a4310; }
-      h2 { margin: 0 0 12px; font-size: 21px; }
-      ul { margin: 0; padding-left: 22px; line-height: 1.75; }
-      p { line-height: 1.6; }
-      .note { margin-top: 28px; color: #46546b; font-size: 14px; }
+      a:focus-visible { outline: 3px solid #0284c7; outline-offset: 3px; }
+      .site-header { padding: 42px 20px 28px; text-align: center; }
+      .site-header a { color: inherit; text-decoration: none; }
+      .site-header a:hover { color: #047857; }
+      .site-header h1 { margin: 0; font-size: 32px; line-height: 1.3; }
+      .site-header p { margin: 18px 0 0; color: #6b7280; }
+      .site-nav { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 13px 16px; border-bottom: 2px solid #059669; background: #fff; box-shadow: 0 4px 10px #0000001a; }
+      .site-nav a { padding: 5px 10px; border-radius: 4px; color: #1f2937; font-weight: 700; text-decoration: none; }
+      .site-nav a:hover, .site-nav a:focus-visible { color: #047857; background: #f4f7f5; }
+      .site-nav a[aria-current="page"] { color: #047857; }
+      .separator { color: #6b7280; }
+      .hero { display: grid; place-items: center; min-height: 360px; padding: 64px 24px; background: linear-gradient(#0009, #0009), url('/graph-builder/sinus-setup.jpg') center / cover; text-align: center; }
+      .hero-inner { max-width: 900px; }
+      .hero .kicker { margin: 0 0 12px; color: #d1fae5; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+      .hero h2 { margin: 0; color: #fff; font-size: clamp(42px, 6vw, 64px); font-weight: 300; line-height: 1.22; text-shadow: 2px 2px 10px #0008; }
+      .hero h2 strong { display: block; color: #34d399; font-weight: 700; }
+      .main-content { max-width: 850px; margin: 48px auto 72px; padding: 0 24px; }
+      .card { margin-bottom: 28px; padding: 30px 34px; border-top: 4px solid #059669; border-radius: 8px; background: #fff; box-shadow: 0 4px 6px #0000000d; }
+      .card h3 { margin: 0 0 10px; color: #059669; font-size: 24px; }
+      .card p { margin: 0 0 18px; }
+      .card .note { margin: 18px 0 0; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 0; }
+      .button { display: inline-block; padding: 12px 24px; border-radius: 30px; background: #059669; box-shadow: 0 4px 10px #00000026; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; }
+      .button:hover, .button:focus-visible { background: #047857; }
+      .button.secondary { border: 1px solid #059669; background: #fff; box-shadow: none; color: #047857; }
+      .button.secondary:hover, .button.secondary:focus-visible { background: #ecfdf5; }
+      .card ul { margin: 0; padding-left: 24px; }
+      .card li + li { margin-top: 7px; }
+      .note { color: #6b7280; font-size: 14px; }
+      .note a { color: #047857; }
+      footer { padding: 30px 20px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 14px; }
+      footer a { color: #047857; }
+      @media (max-width: 600px) {
+        .site-header { padding: 28px 16px 22px; }
+        .site-header h1 { font-size: 27px; }
+        .site-header p { margin-top: 10px; font-size: 14px; }
+        .site-nav { gap: 0; }
+        .site-nav a { padding: 5px 7px; font-size: 13px; }
+        .separator { font-size: 12px; }
+        .hero { min-height: 300px; padding: 52px 20px; }
+        .main-content { margin-top: 30px; padding: 0 16px; }
+        .card { padding: 24px 20px; }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <p class="eyebrow">Browser preview</p>
-      <h1>Make scientific graphs from your own data.</h1>
-      <p class="intro">Graph Builder lets you import a spreadsheet or CSV, explore your data, and export graphs. This early web version is ready for friends to try before the Windows app is packaged.</p>
-      <div class="actions">
-        <a class="button" href="/graph-builder/app/">Launch Graph Builder</a>
-        <a class="button secondary" href="https://github.com/timlasater/graph-builder/issues">Report a problem</a>
+    <header class="site-header">
+      <h1><a href="/">Timothy Lasater</a></h1>
+      <p>Biomedical Engineering @ UC Irvine | Medical Device R&amp;D</p>
+    </header>
+    <nav class="site-nav" aria-label="Website">
+      <a href="/">Home</a><span class="separator" aria-hidden="true">|</span>
+      <a href="/portfolio.html">Portfolio</a><span class="separator" aria-hidden="true">|</span>
+      <a href="/resume.html">Resume</a><span class="separator" aria-hidden="true">|</span>
+      <a href="/graph-builder/" aria-current="page">Graph Builder</a>
+    </nav>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-inner">
+        <p class="kicker">Browser preview</p>
+        <h2 id="hero-title">Turn your data into <strong>clear scientific graphs.</strong></h2>
       </div>
-      <section class="panel" aria-labelledby="try-heading">
-        <h2 id="try-heading">A quick way to try it</h2>
+    </section>
+    <main class="main-content">
+      <section class="card" aria-labelledby="about-heading">
+        <h3 id="about-heading">Explore Graph Builder</h3>
+        <p>Import a spreadsheet or CSV, build a graph, and export the result. This browser preview is ready for friends to try while the Windows app is being prepared.</p>
+        <div class="actions">
+          <a class="button" href="/graph-builder/app/">Launch Graph Builder</a>
+          <a class="button secondary" href="https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md">Read the user guide</a>
+        </div>
+        <p class="note">View the <a href="https://github.com/timlasater/graph-builder">GitHub repository</a> or <a href="https://github.com/timlasater/graph-builder/issues">report a problem</a>.</p>
+      </section>
+      <section class="card" aria-labelledby="try-heading">
+        <h3 id="try-heading">A quick way to try it</h3>
         <ul>
-          <li>Open the app and explore the included example data.</li>
+          <li>Explore the included example data.</li>
           <li>Import a CSV or Excel file, then drag columns onto the graph axes.</li>
           <li>Try a plot layer, save a project, and download a graph image.</li>
         </ul>
       </section>
-      <p class="note">Imported data and recovery copies stay in your browser. Download an embedded project file if you want a reliable backup. This preview works best on a desktop or laptop browser.</p>
+      <p class="note">Imported data and recovery copies stay in your browser. Download an embedded project file for a reliable backup. The preview works best on a desktop or laptop browser.</p>
     </main>
+    <footer>© 2026 Timothy Lasater | <a href="/">Website home</a></footer>
   </body>
 </html>
