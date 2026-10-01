@@ -4,6 +4,8 @@
 .brand, .document-name, .toolbar-actions { display: flex; align-items: center; gap: 10px; }
 .brand { flex: 1 1 auto; min-width: 0; white-space: nowrap; font-weight: 650; letter-spacing: .1px; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: #0f6c75; font-size: 12px; font-weight: 800; }
+.brand-mark-web { background: #f8fafb; }
+.brand-mark-web img { display: block; width: 26px; height: 26px; }
 .brand-setup { flex: 0 0 auto; height: 30px; padding: 0 10px; border: 1px solid #ffffff35; border-radius: 5px; background: #ffffff12; color: #fff; font-size: 11px; cursor: pointer; }
 .brand-setup:disabled { opacity: .55; cursor: default; }
 .document-name { flex: 1 1 160px; min-width: 80px; max-width: 360px; color: #dae2e5; font-size: 11px; }
