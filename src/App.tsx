@@ -1,5 +1,7 @@
 import { closestCenter, DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
-import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { getCurrentWindow } from '@tauri-apps/api/window'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { DataTableModal } from './components/DataTableModal'
 import { DropZone } from './components/DropZone'
 import { GraphCanvas } from './components/GraphCanvas'
@@ -31,6 +33,7 @@ const graphElements: { id: GraphElement; label: string; icon: string }[] = [
   { id: 'fit', label: 'Fit', icon: '⌿' },
   { id: 'smooth', label: 'Smooth trend', icon: '〰' },
 ]
+const UserGuide = lazy(() => import('./components/UserGuide'))
 
 function VariablesDropPanel({ children }: { children: ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({ id: 'variables-panel' })
@@ -73,8 +76,10 @@ function App() {
   const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, reset } = useBuilderStore()
   const [showDataTable, setShowDataTable] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
+  const [showUserGuide, setShowUserGuide] = useState(false)
   const [savingPng, setSavingPng] = useState(false)
   const [pngError, setPngError] = useState<string>()
+  const [linkError, setLinkError] = useState<string>()
   const recovery = useProjectRecovery()
   const recoveryDialogRef = useDialogFocus<HTMLElement>(Boolean(recovery.recovery))
   const [variableSearch, setVariableSearch] = useState('')
@@ -108,6 +113,18 @@ function App() {
   const subplotColumns = Math.min(subplotCount, Math.max(1, Math.round(spec.subplotColumns ?? Math.ceil(Math.sqrt(subplotCount)))))
   const customPanelHeight = subplotCount ? Math.ceil(subplotCount / (spec.panels?.length ? Math.ceil(Math.sqrt(subplotCount)) : subplotColumns)) * 320 + 80 : undefined
   const canCollate = spec.x.length === 1 && columnFor(spec.x[0])?.modelingType !== 'continuous' && spec.layers.every((layer) => ['bar', 'points', 'box'].includes(layer.element))
+  const desktop = isDesktop()
+  const documentTitle = `${projectName} · ${activeGraphName}`
+
+  useEffect(() => {
+    if (desktop) void getCurrentWindow().setTitle(documentTitle).catch((error: unknown) => setLinkError(error instanceof Error ? error.message : 'The window title could not be updated.'))
+  }, [desktop, documentTitle])
+
+  const reportProblem = async () => {
+    setLinkError(undefined)
+    try { await openUrl('https://github.com/timlasater/graph-builder/issues') }
+    catch (error) { setLinkError(error instanceof Error ? error.message : 'The problem-report page could not be opened.') }
+  }
 
   const savePng = async () => {
     setSavingPng(true); setPngError(undefined)
@@ -181,9 +198,9 @@ function App() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragCancel={() => { setDragColumnId(undefined); setDragElement(undefined) }} onDragEnd={handleDragEnd}>
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Download the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button></div>
-          <div className="document-name"><span className="status-dot" />{projectName} · {activeGraphName}</div>
+          <div className="brand"><span className="brand-mark">GB</span><span>Graph Builder</span><span className="version">prototype</span><button className="brand-setup" onClick={() => setShowUserGuide(true)}>User guide</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Save the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button>{!desktop && <span className="document-name" title={documentTitle}><span className="status-dot" /><span className="document-name-text">{documentTitle}</span></span>}</div>
           <div className="toolbar-actions">
+            {desktop ? <button className="header-link" onClick={() => void reportProblem()}>Report a problem</button> : <nav className="site-links" aria-label="Website links"><a href="https://timothylasater.com/graph-builder/" target="_blank" rel="noopener noreferrer">Graph Builder page</a><a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">Website home</a></nav>}
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
             <ImportDataButton onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
@@ -191,10 +208,6 @@ function App() {
             <button onClick={redo} disabled={!future.length} title="Redo">↷</button>
             <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? This closes the current project and clears Undo. Download an embedded project first if you need to keep your work.')) reset() }}>Reset example</button>
           </div>
-          <nav className="site-links" aria-label="Website links">
-            <a href="https://timothylasater.com/graph-builder/" target="_blank" rel="noopener noreferrer">Graph Builder page</a>
-            <a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">Website home</a>
-          </nav>
         </header>
 
         <main className="workspace" style={{ gridTemplateColumns: `${panelVisibility.variables ? panelWidths.variables : 0}px minmax(0, 1fr) ${panelVisibility.properties ? panelWidths.properties : 0}px` }}>
@@ -320,11 +333,13 @@ function App() {
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
       {showProjects && <ProjectModal onClose={() => setShowProjects(false)} autosaveStatus={recovery.status} />}
+      {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}
       {pngError && <div className="compatibility-message" role="alert"><span>{pngError}</span><button aria-label="Dismiss PNG error" onClick={() => setPngError(undefined)}>×</button></div>}
+      {linkError && <div className="compatibility-message" role="alert"><span>{linkError}</span><button aria-label="Dismiss link error" onClick={() => setLinkError(undefined)}>×</button></div>}
       {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size requires numeric data · Frequency requires whole-number counts</span></div>}
       {dragElement && <div className="drag-preview" role="status"><strong>{dragElement}</strong><span>Drop onto the graph to add this layer without changing role assignments</span></div>}
     </DndContext>

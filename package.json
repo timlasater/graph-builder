@@ -1,7 +1,7 @@
 {
   "name": "graph-builder",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -27,6 +27,7 @@
     "plotly.js-cartesian-dist-min": "^4.1.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zustand": "^5.0.15"
   },
@@ -37,6 +38,7 @@
     "@tauri-apps/cli": "^2.12.1",
     "@tauri-apps/plugin-dialog": "^2.8.1",
     "@tauri-apps/plugin-fs": "^2.6.0",
+    "@tauri-apps/plugin-opener": "^2.7.0",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.3",
     "@types/papaparse": "^5.5.2",

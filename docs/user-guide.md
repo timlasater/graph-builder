@@ -1,6 +1,6 @@
 # Graph Builder: a quick guide
 
-Graph Builder runs in your browser and keeps data on your computer. The built-in example is safe to explore: use **Reset example** to return to it. If you have work you want to keep, download an embedded project before resetting.
+Graph Builder keeps data on your computer, whether you use the browser preview or the Windows app. This guide is bundled with the app and works offline. The built-in example is safe to explore: use **Reset example** to return to it. If you have work you want to keep, save an embedded project before resetting.
 
 ![Graph Builder workspace using only the built-in example data](screenshots/workspace.png)
 
@@ -8,7 +8,7 @@ Graph Builder runs in your browser and keeps data on your computer. The built-in
 
 Click **Import data** (or drag-and-drop over the graph area), choose a CSV, TSV, or Excel file, and select a worksheet if prompted. You can also drop a file anywhere on the app. Confirm before the new data replaces the current project. The **Variables** panel shows the imported columns; **View data table** shows the actual rows and any import warnings. Fix malformed CSV quoting or separators in the source file if an import error appears. An import can be undone with **Undo** before the session is closed.
 
-The import check keeps annotation rows out of the measurements. See [annotation instructions](../README.md#add-graph-annotations-to-imported-data) for reference lines and acceptance regions.
+The import check keeps annotation rows out of the measurements. For reference lines or acceptance regions, add tagged `GB Type` and `GB Axis` columns to a data sheet, or use a separate Excel worksheet named `Graph Annotations`.
 
 ## Build and refine a graph
 
@@ -28,7 +28,7 @@ Use **Properties → Graph → + Panel** to compare different X or Y variables s
 
 ## Save and reopen
 
-Open **Projects & export**. A project can hold several graphs sharing one dataset. Choose **Embedded — include data** and **Download project** for a reliable local backup containing edits, formulas, filters, and graph appearance. **Linked — reconnect source** saves a smaller file but requires selecting the source again and does not preserve individual cell edits or excluded rows. The app makes a browser-local recovery copy, but browser storage can be cleared; keep a downloaded embedded project for important work.
+Open **Projects & export**. A project can hold several graphs sharing one dataset. Choose **Embedded — include data** and **Save project…** in the Windows app, or **Download project** in a browser, for a reliable local backup containing edits, formulas, filters, and graph appearance. **Linked — reconnect source** saves a smaller file but does not preserve individual cell edits or excluded rows. In the Windows app, it tries to reopen the exact source path when the project is opened; if that fails, choose the source file. In a browser, choose the source file when reopening. The app also makes a local recovery copy, but storage can be cleared; keep a saved embedded project for important work.
 
 ![Projects and export dialog using only the built-in example data](screenshots/projects.png)
 
@@ -38,7 +38,7 @@ If you saved graphs through the older browser-only feature, **Projects & export*
 
 ## Export results
 
-Click **Save PNG** at the top for a quick image. In **Projects & export**, choose dimensions and download PNG or SVG; SVG stays sharp when enlarged. **Export plotted data CSV** downloads the values currently represented in the graph, not the whole source table.
+Click **Save PNG** at the top for a quick image. In **Projects & export**, choose dimensions and save or download PNG or SVG; SVG stays sharp when enlarged. **Export plotted data CSV** saves the values currently represented in the graph, not the whole source table.
 
 ## If something goes wrong
 

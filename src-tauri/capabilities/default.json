@@ -5,12 +5,17 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-set-title",
     "dialog:allow-open",
     "dialog:allow-save",
     "fs:allow-read-file",
     "fs:allow-read-text-file",
     "fs:allow-stat",
     "fs:allow-write-file",
-    "fs:allow-write-text-file"
+    "fs:allow-write-text-file",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://github.com/timlasater/graph-builder/issues" }]
+    }
   ]
 }
