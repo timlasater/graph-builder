@@ -4,7 +4,6 @@
 .brand, .document-name, .toolbar-actions { display: flex; align-items: center; gap: 10px; }
 .brand { flex: 1 1 auto; min-width: 0; white-space: nowrap; font-weight: 650; letter-spacing: .1px; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; background: #0f6c75; font-size: 12px; font-weight: 800; }
-.version { padding: 2px 7px; border: 1px solid #ffffff35; border-radius: 20px; color: #b8c5ca; font-size: 10px; text-transform: uppercase; letter-spacing: .8px; }
 .brand-setup { flex: 0 0 auto; height: 30px; padding: 0 10px; border: 1px solid #ffffff35; border-radius: 5px; background: #ffffff12; color: #fff; font-size: 11px; cursor: pointer; }
 .brand-setup:disabled { opacity: .55; cursor: default; }
 .document-name { flex: 1 1 160px; min-width: 80px; max-width: 360px; color: #dae2e5; font-size: 11px; }
@@ -99,7 +98,6 @@
 .fit-intercept-help { font-size: 9px; line-height: 1.35; }
 .element-toolbar button.active { color: var(--teal); background: var(--teal-soft); border-color: #b8d8da; font-weight: 650; }
 .toolbar-spacer { flex: 1; }
-.offline-pill { color: #548063; background: #e5f3e9; border: 1px solid #c8e3d0; border-radius: 20px; font-size: 10px; padding: 4px 9px; }
 .graph-builder-grid { flex: 1; display: grid; gap: 8px; padding: 12px; min-width: 0; min-height: 0; overflow: auto; align-content: start; }
 .filter-zone { grid-column: 1; grid-row: 1; }
 .filter-drop-zone { flex-direction: column; gap: 3px; cursor: default; }.filter-drop-zone.filled { cursor: pointer; }.filter-drop-zone.filled:hover { border-color: #5a969b; background: #edf7f7; }

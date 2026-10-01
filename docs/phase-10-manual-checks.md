@@ -9,3 +9,5 @@ Use the newest `Graph Builder_…_x64-setup.exe` in `src-tauri/target/release/bu
 5. Close Graph Builder. Open **Settings → Apps → Installed apps**, find **Graph Builder**, choose **Uninstall**, and follow the prompts. Confirm it disappears from Installed apps and the Start menu. Your separately saved project and PNG files should remain where you saved them.
 
 The browser version should show the project and graph name immediately after **Save PNG**, and its two website links immediately before **Variables** in a one-row header. It should also open the bundled **User guide**.
+
+Uninstall was confirmed working by the user on October 1, 2026. Repeat this check for the final release installer.
