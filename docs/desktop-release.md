@@ -4,12 +4,12 @@ The app uses Tauri's updater signature to verify each downloaded update. Its pub
 
 Before the first release, add the entire private key file content as the GitHub repository Actions secret named `TAURI_SIGNING_PRIVATE_KEY` under **Settings → Secrets and variables → Actions**. The release workflow needs no separate password for this key. This secret is required only to build releases; it is never included in the app.
 
-The workflow in `.github/workflows/desktop-release.yml` runs manually from `main`. It tests the app and builds a Windows NSIS installer, its Tauri update signature, and `latest.json` into a **draft** GitHub Release. Inspect the draft's version and assets before publishing it. Publishing makes that version available to installed apps at the configured GitHub Releases endpoint. Do not publish a newer version before the earlier baseline has been installed for the update test.
+The workflow in `.github/workflows/desktop-release.yml` runs manually from `main`. It tests the app and builds a Windows NSIS installer, its Tauri update signature, and `latest.json` into a **draft** GitHub Release. Inspect the draft's version and assets before publishing it. Publishing makes that version available to installed apps at the configured GitHub Releases endpoint. Do not publish a newer version before the earlier baseline has been installed for the update test. This process was completed successfully for the 0.1.2 and 0.1.3 releases on October 1, 2026.
 
 For the first update test:
 
 1. Release and install version 0.1.2, which still has the desktop **GB** header mark. Earlier 0.1.1 installations need this one manual install because they have no updater.
 2. Release version 0.1.3, whose desktop header uses the favicon square.
-3. In 0.1.2, open **Projects & export**, check for updates, choose **Save project and install**, and save the embedded project copy. The signed installer should download, install, and restart the app. Verify the favicon appears and the saved project reopens.
+3. In 0.1.2, open **Projects & export**, check for updates, choose **Save project and install**, and save the embedded project copy. The signed installer should download, install, and restart the app. Verify the favicon appears and the saved project reopens. This installed update path has been verified with the published 0.1.3 release.
 
 Tauri update signatures do not remove Windows SmartScreen warnings on an installer downloaded from the web. That requires a separate Windows code-signing certificate, which is not configured here.

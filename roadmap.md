@@ -269,7 +269,7 @@ Acceptance criteria:
 
 Start only after the browser application and project format are stable.
 
-Status: in progress (October 2026). Phase 9's required checks are signed off. The Tauri wrapper, local file dialogs, recent-project list, linked-source path handling, `.graphbuilder` file association, and signed updater code are implemented. The user verified uninstall. Installed-app file-association and signed-update testing remain before release.
+Status: in progress (October 2026). Phase 9's required checks are signed off. The Tauri wrapper, local file dialogs, recent-project list, linked-source path handling, `.graphbuilder` file association, and signed updater code are implemented. The user verified uninstall and completed the published 0.1.2 → 0.1.3 signed-update test. Remaining Phase 10 work is final Windows validation of file association and offline operation on a clean machine, plus deciding whether the optional Windows code-signing certificate is needed.
 
 Deliverables:
 
@@ -292,7 +292,7 @@ Acceptance criteria:
 
 - A clean Windows machine can install with internet if WebView2 needs to be downloaded. Once installed, it can run, import a workbook, build a graph, save/reopen a project, and export without Node.js, internet access, or a development server.
 - Offline launch and the full core workflow are tested with networking disabled. An unavailable update endpoint causes no startup error or lost work.
-- With a newer published release available, the prompt appears and both choices work; declining leaves the current version fully usable. Installation happens only after consent and handles unsaved work.
+- With a newer published release available, the update check offers the newer version; the user can leave the current version running or install only after saving a project copy. The published 0.1.2 → 0.1.3 update was verified. A final check of the no-update/decline path remains.
 
 macOS and Linux packages are optional future work. Build and publish them only after the same core workflow and installer behavior can be tested on real machines for each platform.
 
@@ -320,7 +320,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Continue Phase 10 by testing installation, the offline core workflow, and uninstall on Windows, then complete file association and signed update behavior. Phase 9's automated, independent numerical, visual, and human accessibility checks are complete. The [Phase 9 validation record](docs/phase-9-validation.md) documents the results and remaining optional coverage.
+Continue Phase 10 by testing the installed app's file association and offline core workflow on a clean Windows machine, then perform the final no-update/decline check. The published signed-update behavior, installer uninstall, and core import/save/reopen/export workflow have been verified. Phase 9's automated, independent numerical, visual, and human accessibility checks are complete. The [Phase 9 validation record](docs/phase-9-validation.md) documents the results and remaining optional coverage.
 
 ## Definition of done for every task
 
