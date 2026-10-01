@@ -1,6 +1,6 @@
 # Signed Windows desktop releases
 
-The app uses Tauri's updater signature to verify each downloaded update. Its public key is in `src-tauri/tauri.conf.json`. The matching private key is stored outside this repository at `%USERPROFILE%\.tauri\graph-builder.key`; never commit it or paste it into a chat. Back it up securely. Losing it prevents existing installations from verifying future updates.
+The app uses Tauri's updater signature to verify each downloaded update. Its public key is in `src-tauri/tauri.conf.json`. The matching private key is stored outside this repository at `%USERPROFILE%\.tauri\graph-builder.key`; never commit it or paste it into a chat. The file is not protected by a passphrase, but its Windows file permissions allow only the owner, administrators, and Windows itself to read it. Back it up in a password manager's secure file storage or on an encrypted drive. Losing it prevents existing installations from verifying future updates.
 
 Before the first release, add the entire private key file content as the GitHub repository Actions secret named `TAURI_SIGNING_PRIVATE_KEY` under **Settings → Secrets and variables → Actions**. The release workflow needs no separate password for this key. This secret is required only to build releases; it is never included in the app.
 
