@@ -44,6 +44,7 @@ export interface DatasetSource {
   fileName: string
   sheetName?: string
   handleId?: string
+  nativePath?: string
   signature?: string
 }
 

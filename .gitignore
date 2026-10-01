@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+src-tauri/target
+src-tauri/gen
+src-tauri/icons/*
+!src-tauri/icons/icon.ico
+!src-tauri/icons/icon.png
 test-results
 playwright-report
 *.local

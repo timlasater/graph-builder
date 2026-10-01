@@ -12,6 +12,7 @@ import { ProjectModal } from './components/ProjectModal'
 import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
 import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
+import { isDesktop, saveDesktopImage } from './desktopFiles'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
@@ -112,7 +113,9 @@ function App() {
     setSavingPng(true); setPngError(undefined)
     try {
       const image = await renderGraphImage('png', spec.graphWidth ?? 1200, spec.graphHeight ?? 800, 2)
-      downloadImage(`${safeFileName(activeGraphName)}.png`, image)
+      const filename = `${safeFileName(activeGraphName)}.png`
+      if (isDesktop()) await saveDesktopImage(filename, image, 'png')
+      else downloadImage(filename, image)
     } catch (error) { setPngError(error instanceof Error ? error.message : 'The PNG could not be saved.') }
     finally { setSavingPng(false) }
   }

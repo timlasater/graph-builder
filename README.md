@@ -62,6 +62,12 @@ npm run dev
 
 Open the local address printed in the terminal, normally `http://localhost:5173`. The application does not upload dataset contents or require a server.
 
+## Windows desktop work in progress
+
+Phase 10 now has a Tauri wrapper around the existing app. In a desktop build, import, project, template, and export actions use Windows file dialogs. Linked projects save the exact local source path and try to reload that file when reopened; if it has moved or its columns changed, the app asks for a source file. Recent projects appear in **Projects & export**. Browser behavior remains available.
+
+To build or run the desktop app locally, install [Rust with rustup](https://rustup.rs/) using the Windows MSVC toolchain and [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with **Desktop development with C++**. WebView2 is also required; it is usually already installed on current Windows systems. Then run `npm install` and `npm run desktop:dev` for a development window, or `npm run desktop:build` for an NSIS installer. The installer is configured to download WebView2 during installation if needed. A Windows installer build succeeded on October 1, 2026, and the app launched locally. File association, signed updates, and a full installed and offline workflow test remain to be done before a Windows release.
+
 ## Make custom panels or a Y-only box plot
 
 When you assign multiple X or Y variables, open **Properties → Graph** and choose **Display together** or **Subplots** for that axis. Subplots can run horizontally or vertically; for three or more, set how many appear in each row. If both axes use subplots, each X/Y pair gets a panel. For one categorical X and Bars, Points, or Box plot layers, choose **Collate by category** under Y variables to place the different Y measures next to each other for each category (for example, Emitted Dose and Captured Dose for each Device). Axis subplots pause Group X, Group Y, Wrap, and layer X/Y overrides while shown.
@@ -143,6 +149,6 @@ GitHub Pages publishes the preview from `main` using [.github/workflows/pages.ym
 
 Automatic updates require a free Tauri signing key pair so the app can verify that an update came from this project. This is separate from a Windows code-signing certificate for the downloadable installer, which is optional and may cost money. Neither signing setup is implemented yet.
 
-Phases 2–9 are complete. Phase 9 passed automated validation, independent SciPy/NumPy calculations, an R graph comparison, and the user's keyboard, Windows Narrator, and fix retests. JMP is not required. See the [validation record](docs/phase-9-validation.md) and [manual review sign-off](docs/phase-9-manual-checks.md#sign-off--september-29-2026), including the measured 5,000-row / 50,000-cell browser workflow. The browser preview is available for friend testing before Phase 10 Windows desktop packaging.
+Phases 2–9 are complete; Phase 10 desktop packaging is in progress. Phase 9 passed automated validation, independent SciPy/NumPy calculations, an R graph comparison, and the user's keyboard, Windows Narrator, and fix retests. JMP is not required. See the [validation record](docs/phase-9-validation.md) and [manual review sign-off](docs/phase-9-manual-checks.md#sign-off--september-29-2026), including the measured 5,000-row / 50,000-cell browser workflow. The browser preview is available for friend testing before the Windows installer is released.
 
 See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance. Development stays on `main` by default; a side branch is used only when the work needs isolation or coordination, then merged back when practical. Major feature handoffs include short steps for checking the result in the app.

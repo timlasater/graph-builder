@@ -10,6 +10,14 @@ describe('linked project source data', () => {
     expect(withFileSource(compatibleSheet, 'results.xlsx', 'handle-1').source).toEqual({ fileName: 'results.xlsx', sheetName: 'Results', handleId: 'handle-1', signature: datasetSignature(compatibleSheet.dataset) })
   })
 
+  it('retains an exact desktop source path for reopening updated data', () => {
+    const path = 'C:\\Studies\\results.xlsx'
+    const imported = withFileSource(compatibleSheet, 'results.xlsx', undefined, path)
+    expect(imported.source?.nativePath).toBe(path)
+    const refreshed = chooseSourceDataset([compatibleSheet], imported.source!, imported.source!.signature!)
+    expect(refreshed?.source?.nativePath).toBe(path)
+  })
+
   it('selects the original compatible worksheet from refreshed file contents', () => {
     const signature = datasetSignature(sampleDataset)
     const refreshed = chooseSourceDataset([{ name: 'Notes', dataset: { ...sampleDataset, columns: sampleDataset.columns.slice(1) } }, compatibleSheet], { fileName: 'results.xlsx', sheetName: 'Results', handleId: 'handle-1' }, signature)

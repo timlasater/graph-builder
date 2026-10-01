@@ -11,7 +11,7 @@ export interface ProjectFile {
   version: typeof PROJECT_VERSION
   name: string
   savedAt: string
-  data: { mode: 'embedded'; dataset: Dataset } | { mode: 'linked'; source: { fileName: string; sheetName?: string; signature: string }; columns: DataColumn[] }
+  data: { mode: 'embedded'; dataset: Dataset } | { mode: 'linked'; source: { fileName: string; sheetName?: string; signature: string; nativePath?: string }; columns: DataColumn[] }
   graphs: GraphDocument[]
   activeGraphId: string
 }
@@ -40,7 +40,7 @@ const validDataset = (value: unknown): value is Dataset => {
   if (!value.rows.every((row) => record(row) && typeof row.id === 'string' && typeof row.excluded === 'boolean' && record(row.values) && ids.every((id) => record(row.values) && id in row.values && cell(row.values[id])))) return false
   if (new Set(value.rows.map((row) => row.id)).size !== value.rows.length) return false
   if (!value.warnings.every((warning) => record(warning) && typeof warning.code === 'string' && typeof warning.message === 'string')) return false
-  if (value.source !== undefined && (!record(value.source) || typeof value.source.fileName !== 'string' || !optionalString(value.source, 'sheetName') || !optionalString(value.source, 'handleId') || !optionalString(value.source, 'signature'))) return false
+  if (value.source !== undefined && (!record(value.source) || typeof value.source.fileName !== 'string' || !optionalString(value.source, 'sheetName') || !optionalString(value.source, 'handleId') || !optionalString(value.source, 'nativePath') || !optionalString(value.source, 'signature'))) return false
   if (value.importedAnnotations !== undefined && (!record(value.importedAnnotations) || !Array.isArray(value.importedAnnotations.referenceLines) || !value.importedAnnotations.referenceLines.every(validLine) || !Array.isArray(value.importedAnnotations.referenceRegions) || !value.importedAnnotations.referenceRegions.every(validRegion))) return false
   return true
 }
@@ -83,7 +83,7 @@ export const parseProject = (content: string): ProjectFile => {
   if (!record(value) || value.version !== PROJECT_VERSION) throw new Error('This project uses an unsupported version. The current project was not changed.')
   if (typeof value.name !== 'string' || !value.name.trim() || typeof value.savedAt !== 'string' || !validGraphs(value.graphs) || typeof value.activeGraphId !== 'string' || !value.graphs.some((graph) => graph.id === value.activeGraphId)) throw new Error('This project is incomplete or damaged. The current project was not changed.')
   const data = value.data
-  if (!record(data) || data.mode === 'embedded' && !validDataset(data.dataset) || data.mode === 'linked' && (!record(data.source) || typeof data.source.fileName !== 'string' || typeof data.source.signature !== 'string' || data.source.sheetName !== undefined && typeof data.source.sheetName !== 'string' || data.columns !== undefined && !validColumns(data.columns)) || data.mode !== 'embedded' && data.mode !== 'linked') throw new Error('This project has invalid data information. The current project was not changed.')
+  if (!record(data) || data.mode === 'embedded' && !validDataset(data.dataset) || data.mode === 'linked' && (!record(data.source) || typeof data.source.fileName !== 'string' || typeof data.source.signature !== 'string' || data.source.sheetName !== undefined && typeof data.source.sheetName !== 'string' || data.source.nativePath !== undefined && typeof data.source.nativePath !== 'string' || data.columns !== undefined && !validColumns(data.columns)) || data.mode !== 'embedded' && data.mode !== 'linked') throw new Error('This project has invalid data information. The current project was not changed.')
   const columns = data.mode === 'embedded' ? (data.dataset as Dataset).columns : data.columns as DataColumn[] | undefined
   if (columns && !graphsFitColumns(value.graphs, columns)) throw new Error('This project refers to columns that are missing from its data. The current project was not changed.')
   return structuredClone(value) as unknown as ProjectFile
@@ -93,8 +93,8 @@ export const makeProject = (name: string, dataset: Dataset, graphs: GraphDocumen
   if (!name.trim() || !validGraphs(graphs) || !graphs.some((graph) => graph.id === activeGraphId)) throw new Error('The project needs a name and at least one valid graph.')
   if (!graphsFitColumns(graphs, dataset.columns)) throw new Error('A graph or filter refers to a missing column. Fix it before saving the project.')
   if (mode === 'linked' && !dataset.source?.fileName) throw new Error('Linked projects need an imported source file. Use embedded data for the built-in example.')
-  const data: ProjectFile['data'] = mode === 'embedded' ? { mode, dataset: structuredClone(dataset) } : { mode, source: { fileName: dataset.source!.fileName, sheetName: dataset.source?.sheetName, signature: dataset.source?.signature ?? datasetSignature({ columns: dataset.columns.filter((column) => !column.formula) }) }, columns: structuredClone(dataset.columns) }
-  if (data.mode === 'embedded' && data.dataset.source) delete data.dataset.source.handleId
+  const data: ProjectFile['data'] = mode === 'embedded' ? { mode, dataset: structuredClone(dataset) } : { mode, source: { fileName: dataset.source!.fileName, sheetName: dataset.source?.sheetName, signature: dataset.source?.signature ?? datasetSignature({ columns: dataset.columns.filter((column) => !column.formula) }), ...(dataset.source?.nativePath ? { nativePath: dataset.source.nativePath } : {}) }, columns: structuredClone(dataset.columns) }
+  if (data.mode === 'embedded' && data.dataset.source) { delete data.dataset.source.handleId; delete data.dataset.source.nativePath }
   return { format: PROJECT_FORMAT, version: PROJECT_VERSION, name: name.trim(), savedAt: new Date().toISOString(), data, graphs: structuredClone(graphs), activeGraphId }
 }
 

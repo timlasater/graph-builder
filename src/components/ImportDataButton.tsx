@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { persistentFilePickerAvailable, pickPersistentFile } from '../fileHandles'
+import { chooseDesktopFile, isDesktop, readDesktopFile } from '../desktopFiles'
 import { importTabularFile, type ImportedSheet } from '../importData'
 import { withFileSource } from '../sourceData'
 import { useDialogFocus } from '../useDialogFocus'
@@ -9,6 +10,7 @@ interface PendingSheets {
   sheets: ImportedSheet[]
   fileName: string
   handleId?: string
+  nativePath?: string
 }
 
 export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) => void }) {
@@ -20,14 +22,14 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
   const [busy, setBusy] = useState(false)
   const [fileDragging, setFileDragging] = useState(false)
 
-  const readFile = useCallback(async (file?: File, handleId?: string) => {
+  const readFile = useCallback(async (file?: File, handleId?: string, nativePath?: string) => {
     if (!file) return
     setBusy(true)
     setError(undefined)
     try {
       const imported = await importTabularFile(file)
-      if (imported.length === 1) onImport(withFileSource(imported[0], file.name, handleId))
-      else setPending({ sheets: imported, fileName: file.name, handleId })
+      if (imported.length === 1) onImport(withFileSource(imported[0], file.name, handleId, nativePath))
+      else setPending({ sheets: imported, fileName: file.name, handleId, nativePath })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The file could not be imported.')
     } finally {
@@ -74,6 +76,13 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
   }, [readFile])
 
   const chooseFile = async () => {
+    if (isDesktop()) {
+      setBusy(true); setError(undefined)
+      try { const path = await chooseDesktopFile('data'); if (path) await readFile(await readDesktopFile(path), undefined, path) }
+      catch (reason) { setError(reason instanceof Error ? reason.message : 'The file could not be opened.') }
+      finally { setBusy(false) }
+      return
+    }
     if (!persistentFilePickerAvailable()) { inputRef.current?.click(); return }
     setBusy(true)
     setError(undefined)
@@ -101,7 +110,7 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
             <h2 id="sheet-title">Choose a worksheet</h2>
             <p>Select the sheet you want to graph. Graph Annotations are applied automatically; tagged rows are not counted as measurements.</p>
             <div className="sheet-list">
-              {pending.sheets.map((sheet) => <button key={sheet.name} onClick={() => { onImport(withFileSource(sheet, pending.fileName, pending.handleId)); setPending(undefined) }}><strong>{sheet.name}</strong><span>{sheet.dataset.rows.length} rows · {sheet.dataset.columns.length} columns · {(sheet.dataset.importedAnnotations?.referenceLines.length ?? 0) + (sheet.dataset.importedAnnotations?.referenceRegions.length ?? 0)} annotations</span></button>)}
+              {pending.sheets.map((sheet) => <button key={sheet.name} onClick={() => { onImport(withFileSource(sheet, pending.fileName, pending.handleId, pending.nativePath)); setPending(undefined) }}><strong>{sheet.name}</strong><span>{sheet.dataset.rows.length} rows · {sheet.dataset.columns.length} columns · {(sheet.dataset.importedAnnotations?.referenceLines.length ?? 0) + (sheet.dataset.importedAnnotations?.referenceRegions.length ?? 0)} annotations</span></button>)}
             </div>
             <button className="dialog-cancel" onClick={() => setPending(undefined)}>Cancel</button>
           </section>

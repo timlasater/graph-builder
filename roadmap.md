@@ -269,6 +269,8 @@ Acceptance criteria:
 
 Start only after the browser application and project format are stable.
 
+Status: in progress (October 2026). Phase 9's required checks are signed off. The initial Tauri wrapper, local file dialogs, recent-project list, and linked-source path handling are implemented. A Windows NSIS installer builds, and the app launches locally. Installed-app/offline workflow testing, file association, and signed updater work remain.
+
 Deliverables:
 
 - Tauri wrapper using the existing frontend
@@ -318,7 +320,7 @@ Acceptance criteria:
 
 ## Suggested next task
 
-Begin Phase 10 Windows desktop packaging. Phase 9's automated, independent numerical, visual, and human accessibility checks are complete. The [Phase 9 validation record](docs/phase-9-validation.md) documents the results and remaining optional coverage.
+Continue Phase 10 by testing installation, the offline core workflow, and uninstall on Windows, then complete file association and signed update behavior. Phase 9's automated, independent numerical, visual, and human accessibility checks are complete. The [Phase 9 validation record](docs/phase-9-validation.md) documents the results and remaining optional coverage.
 
 ## Definition of done for every task
 
