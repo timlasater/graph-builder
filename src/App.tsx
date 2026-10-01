@@ -18,6 +18,7 @@ import { isDesktop, saveDesktopImage } from './desktopFiles'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
+import { useAssociatedProjects } from './useAssociatedProjects'
 import { useDialogFocus } from './useDialogFocus'
 import type { BarAggregation, BoxPointMode, ErrorBarType, GraphElement, GraphRole, GraphSpec, ValueTransform } from './types'
 import './App.css'
@@ -114,6 +115,7 @@ function App() {
   const customPanelHeight = subplotCount ? Math.ceil(subplotCount / (spec.panels?.length ? Math.ceil(Math.sqrt(subplotCount)) : subplotColumns)) * 320 + 80 : undefined
   const canCollate = spec.x.length === 1 && columnFor(spec.x[0])?.modelingType !== 'continuous' && spec.layers.every((layer) => ['bar', 'points', 'box'].includes(layer.element))
   const desktop = isDesktop()
+  const associatedProject = useAssociatedProjects(desktop)
   const documentTitle = `${projectName} · ${activeGraphName}`
 
   useEffect(() => {
@@ -331,7 +333,7 @@ function App() {
         </main>
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
-      {showProjects && <ProjectModal onClose={() => setShowProjects(false)} autosaveStatus={recovery.status} />}
+      {(showProjects || associatedProject.path) && <ProjectModal key={associatedProject.path ?? 'manual'} initialProjectPath={associatedProject.path} onClose={() => { if (associatedProject.path) associatedProject.finish(); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}

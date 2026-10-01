@@ -12,7 +12,7 @@ describe('app error recovery', () => {
       render(<AppErrorBoundary><BrokenView /></AppErrorBoundary>)
       expect(screen.getByRole('alert').textContent).toContain('Graph Builder hit a display problem')
       expect(screen.getByRole('button', { name: 'Reload Graph Builder' })).toBeDefined()
-      expect(screen.getByRole('alert').textContent).toContain('.graphbuilder.json')
+      expect(screen.getByRole('alert').textContent).toContain('.graphbuilder')
     } finally { log.mockRestore() }
   })
 })

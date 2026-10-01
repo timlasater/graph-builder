@@ -7,7 +7,7 @@ export const isDesktop = () => isTauri()
 const basename = (path: string) => path.split(/[\\/]/).at(-1) || path
 
 const dataExtensions = ['csv', 'tsv', 'txt', 'xlsx', 'xls']
-const projectExtensions = ['graphbuilder.json']
+const projectExtensions = ['graphbuilder', 'graphbuilder.json']
 
 export const chooseDesktopFile = async (kind: 'data' | 'project' | 'source' | 'template') => {
   const path = await open({ multiple: false, directory: false, filters: [{ name: kind === 'project' ? 'Graph Builder project' : kind === 'template' ? 'Graph Builder template' : 'Data file', extensions: kind === 'project' ? projectExtensions : kind === 'template' ? ['graphbuilder-template.json'] : dataExtensions }] })

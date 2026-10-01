@@ -6,10 +6,11 @@ import { readLegacyTemplates } from '../legacySetups'
 import { importTabularFile } from '../importData'
 import { makeProject, parseProject, projectJson, rebuildLinkedDataset, type ProjectFile } from '../projects'
 import { chooseSourceDataset } from '../sourceData'
+import { DesktopUpdater } from './DesktopUpdater'
 import { projectGraphs, useBuilderStore } from '../store'
 import { useDialogFocus } from '../useDialogFocus'
 
-export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void; autosaveStatus: string }) {
+export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { onClose: () => void; autosaveStatus: string; initialProjectPath?: string }) {
   const state = useBuilderStore()
   const { dataset, spec, filters, projectName, activeGraphId, activeGraphName, openProject, openGraph, newGraph, duplicateGraph, deleteGraph, renameGraph, renameProject, applyGraphTemplate } = state
   const projectInput = useRef<HTMLInputElement>(null)
@@ -25,16 +26,17 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
   const [height, setHeight] = useState(spec.graphHeight ?? 800)
   const [scale, setScale] = useState(2)
   const [busy, setBusy] = useState(false)
+  const [updateInstalling, setUpdateInstalling] = useState(false)
   const [message, setMessage] = useState<string>()
   const dialogRef = useDialogFocus<HTMLElement>()
   const [legacyTemplates] = useState(() => readLegacyTemplates())
   const [recent, setRecent] = useState(() => isDesktop() ? recentProjects() : [])
 
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !pendingLinked) onClose() }
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !pendingLinked && !updateInstalling) onClose() }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose, pendingLinked])
+  }, [onClose, pendingLinked, updateInstalling])
 
   const report = (error: unknown) => setMessage(error instanceof Error ? error.message : 'This action could not be completed.')
   const graphs = projectGraphs(state)
@@ -50,13 +52,25 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
     try {
       const project = makeProject(name, dataset, projectGraphs(state), activeGraphId, mode)
       if (isDesktop()) {
-        const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder.json`, projectJson(project), 'graphbuilder.json')
+        const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project), 'graphbuilder')
         if (!path) return
         rememberProject(path, project.name); setRecent(recentProjects())
-      } else downloadText(`${safeFileName(project.name)}.graphbuilder.json`, projectJson(project))
+      } else downloadText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project))
       renameProject(project.name)
       setMessage(isDesktop() ? 'Project saved on this computer.' : mode === 'embedded' ? 'Project downloaded with its data and graph settings.' : 'Linked project downloaded. Its source data must be reconnected when opened.')
     } catch (error) { report(error) }
+  }
+  const saveBeforeUpdate = async () => {
+    try {
+      const current = useBuilderStore.getState()
+      const project = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded')
+      const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project), 'graphbuilder')
+      if (!path) return false
+      rememberProject(path, project.name)
+      setRecent(recentProjects())
+      setMessage('An embedded copy of your project was saved before updating.')
+      return true
+    } catch (error) { report(error); return false }
   }
   const readProject = async (file?: File, nativePath?: string) => {
     if (!file && !nativePath) return
@@ -85,6 +99,20 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
     } catch (error) { report(error) }
     finally { setBusy(false); if (projectInput.current) projectInput.current.value = '' }
   }
+  const readAssociatedProject = useRef(readProject)
+  const openedAssociatedPath = useRef<string | undefined>(undefined)
+  useEffect(() => { readAssociatedProject.current = readProject })
+  useEffect(() => {
+    if (!initialProjectPath) return
+    let active = true
+    queueMicrotask(() => {
+      if (active && openedAssociatedPath.current !== initialProjectPath) {
+        openedAssociatedPath.current = initialProjectPath
+        void readAssociatedProject.current(undefined, initialProjectPath)
+      }
+    })
+    return () => { active = false }
+  }, [initialProjectPath])
   const readLinkedSource = async (file?: File, nativePath?: string) => {
     if (!file || !pendingLinked || pendingLinked.data.mode !== 'linked') return
     setBusy(true); setMessage(undefined)
@@ -164,11 +192,12 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
     catch (error) { report(error) }
   }
 
-  return <div className="modal-backdrop project-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+  return <div className="modal-backdrop project-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !updateInstalling) onClose() }}>
     <section ref={dialogRef} className="project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-title" tabIndex={-1}>
-      <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" onClick={onClose}>×</button></header>
+      <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" disabled={updateInstalling} onClick={onClose}>×</button></header>
       <div className="project-body">
         <section className="project-section"><h3>Project file</h3><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={() => void saveFile()}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div><small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
+        {isDesktop() && <DesktopUpdater saveBeforeInstall={saveBeforeUpdate} onInstalling={setUpdateInstalling} />}
         {recent.length > 0 && <section className="project-section"><h3>Recent projects</h3><div className="project-graph-list">{recent.map((item) => <button key={item.path} title={item.path} disabled={busy} onClick={() => void readProject(undefined, item.path)}>{item.name}</button>)}</div></section>}
         {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.') }}>Cancel</button></div></section>}
         <section className="project-section"><h3>Graphs in this project</h3><div className="project-graph-list">{graphs.map((graph) => <div className="project-graph-item" key={graph.id}><button className={graph.id === activeGraphId ? 'active' : ''} disabled={graph.id === activeGraphId} onClick={() => { openGraph(graph.id); setGraphName(graph.name); setTemplateName(graph.name); setPendingDeleteId(undefined) }}>{graph.name}{graph.id === activeGraphId ? ' · open' : ''}</button><button className="project-delete-button" disabled={graphs.length === 1} aria-label={`Delete ${graph.name}`} title={graphs.length === 1 ? 'A project must have at least one graph' : `Delete ${graph.name}`} onClick={() => setPendingDeleteId(graph.id)}>Delete</button></div>)}</div>{pendingDelete && <div className="project-delete-confirm" role="group" aria-label="Confirm graph deletion"><span>Delete “{pendingDelete.name}” from this project?</span><button onClick={confirmDelete}>Delete graph</button><button onClick={() => setPendingDeleteId(undefined)}>Cancel</button></div>}<div className="project-actions"><button onClick={() => { newGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>New graph</button><button onClick={() => { duplicateGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>Duplicate open graph</button></div><div className="project-actions"><label>Open graph name<input value={graphName} onChange={(event) => setGraphName(event.target.value)} /></label><button onClick={() => renameGraph(graphName)}>Rename</button></div></section>
@@ -177,7 +206,7 @@ export function ProjectModal({ onClose, autosaveStatus }: { onClose: () => void;
         <section className="project-section"><h3>Export open graph</h3><div className="project-dimensions"><label>Width (px)<input type="number" min="320" max="6000" value={width} onChange={(event) => setWidth(Math.max(320, Math.min(6000, Number(event.target.value) || 320)))} /></label><label>Height (px)<input type="number" min="240" max="6000" value={height} onChange={(event) => setHeight(Math.max(240, Math.min(6000, Number(event.target.value) || 240)))} /></label><label>PNG resolution<select value={scale} onChange={(event) => setScale(Number(event.target.value))}><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label></div><div className="project-actions"><button disabled={busy} onClick={() => void image('png')}>{isDesktop() ? 'Save PNG…' : 'Download PNG'}</button><button disabled={busy} onClick={() => void image('svg')}>{isDesktop() ? 'Save SVG…' : 'Download SVG'}</button><button disabled={busy} onClick={() => void clipboard()}>Copy PNG</button><button disabled={busy} onClick={() => void exportData()}>Export plotted data CSV</button></div><small>SVG is vector artwork that stays sharp when resized. PNG uses the chosen resolution. The export includes a printable legend.</small></section>
       </div>
       {message && <p className="project-message" role="status">{message}</p>}
-      <input ref={projectInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a project file" accept=".graphbuilder.json,.json" onChange={(event) => void readProject(event.target.files?.[0])} />
+      <input ref={projectInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a project file" accept=".graphbuilder,.graphbuilder.json,.json" onChange={(event) => void readProject(event.target.files?.[0])} />
       <input ref={sourceInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose linked source data" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readLinkedSource(event.target.files?.[0])} />
       <input ref={templateInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a graph template file" accept=".graphbuilder-template.json,.json" onChange={(event) => void importTemplate(event.target.files?.[0])} />
     </section>

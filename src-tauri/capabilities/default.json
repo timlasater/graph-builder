@@ -13,6 +13,7 @@
     "fs:allow-stat",
     "fs:allow-write-file",
     "fs:allow-write-text-file",
+    "updater:default",
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "https://github.com/timlasater/graph-builder/issues" }]

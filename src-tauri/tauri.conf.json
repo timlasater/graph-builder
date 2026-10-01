@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Graph Builder",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "identifier": "com.timothylasater.graphbuilder",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -16,7 +16,16 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
+    "fileAssociations": [{ "ext": ["graphbuilder"], "name": "Graph Builder project", "description": "Graph Builder project" }],
     "icon": ["icons/icon.ico", "icons/icon.png"],
     "windows": { "webviewInstallMode": { "type": "downloadBootstrapper" } }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczQjk2MUM0NTY4OUQ4RUEKUldUcTJJbFd4R0c1YytFeHVYcWdSVzlldGdhQ2d1dFBSQ1dEdi9jVlZHbFZKbUN6d0h0ditWVUIK",
+      "endpoints": ["https://github.com/timlasater/graph-builder/releases/latest/download/latest.json"],
+      "windows": { "installMode": "passive" }
+    }
   }
 }

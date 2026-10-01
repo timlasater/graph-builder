@@ -269,7 +269,7 @@ Acceptance criteria:
 
 Start only after the browser application and project format are stable.
 
-Status: in progress (October 2026). Phase 9's required checks are signed off. The initial Tauri wrapper, local file dialogs, recent-project list, and linked-source path handling are implemented. A Windows NSIS installer builds, and the app launches locally. Installed-app/offline workflow testing, file association, and signed updater work remain.
+Status: in progress (October 2026). Phase 9's required checks are signed off. The Tauri wrapper, local file dialogs, recent-project list, linked-source path handling, `.graphbuilder` file association, and signed updater code are implemented. The user verified uninstall. Installed-app file-association and signed-update testing remain before release.
 
 Deliverables:
 
@@ -277,7 +277,7 @@ Deliverables:
 - Native open/save dialogs
 - Silent reopening by an exact Windows source path so updated data can load without a browser permission prompt
 - Windows installer and uninstall flow
-- File association for `.graphbuilder.json`
+- File association for new `.graphbuilder` project files; older `.graphbuilder.json` projects remain openable from the app
 - Recent-project list
 - Fully local application assets: starting the installed app, importing local data, building graphs, saving, and exporting must work with no internet connection
 - Keep the installer small with Tauri's default `downloadBootstrapper` WebView2 mode. Installation may require internet if the machine lacks WebView2; after successful installation, app startup and graph work must not require internet.
@@ -304,7 +304,7 @@ GitHub Pages can host this project repository beneath the custom domain of the a
 
 The Pages build has two real HTML entry points: `index.html` for the landing page and `app/index.html` for the application. This lets GitHub Pages serve a direct visit or refresh of `/graph-builder/app/` without a single-page-router 404 workaround. Vite's web asset base is `/graph-builder/`; the ordinary build still targets the application for future Tauri packaging. Verify scripts, styles, imported files, and downloads at both URLs and confirm packaged desktop assets work offline later.
 
-Use a GitHub Actions Pages workflow to build and deploy the static site after changes reach `main`. Use a separate release workflow to build the Windows package from a version tag and upload it, together with signed updater artifacts, to GitHub Releases. Start the download button at the latest published release page; a direct Windows installer link can follow once asset names and fallback behavior are tested. Draft releases are invisible to ordinary visitors. Add macOS or Linux download choices only after those releases have been tested and published. Verify the browser remains local-data-only; loading the app shell from the website does require internet access on first visit unless offline caching is added and tested.
+Use a GitHub Actions Pages workflow to build and deploy the static site after changes reach `main`. Run the separate desktop release workflow manually from `main`; it builds the Windows package, signs updater artifacts, creates the version tag, and uploads them to a draft GitHub Release. Start the download button at the latest published release page; a direct Windows installer link can follow once asset names and fallback behavior are tested. Draft releases are invisible to ordinary visitors. Add macOS or Linux download choices only after those releases have been tested and published. Verify the browser remains local-data-only; loading the app shell from the website does require internet access on first visit unless offline caching is added and tested.
 
 Native In-App Comment Section: Use Giscus, an open-source commenting system powered by GitHub Discussions. It embeds a clean comment box directly on the landing page. Also include a way to submit bug reports, mapping to the Issues tab.
 

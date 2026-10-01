@@ -37,7 +37,7 @@ test('imports a file, builds a graph, saves and reopens a project, then exports'
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download project' }).click()
   const project = await download
-  expect(project.suggestedFilename()).toContain('.graphbuilder.json')
+  expect(project.suggestedFilename()).toMatch(/\.graphbuilder$/)
   await page.getByRole('button', { name: 'Close projects' }).click()
   await page.getByRole('button', { name: 'Projects & export' }).click()
   page.once('dialog', (dialog) => dialog.accept())

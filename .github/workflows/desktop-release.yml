@@ -1,0 +1,44 @@
+name: Build signed Windows desktop release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --maxWorkers=4
+      - name: Confirm updater signing key is configured
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'Set the TAURI_SIGNING_PRIVATE_KEY repository secret before building a release.'
+          }
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        with:
+          tagName: desktop-v__VERSION__
+          releaseName: Graph Builder desktop v__VERSION__
+          releaseBody: Download the Windows setup file to install Graph Builder.
+          releaseDraft: true
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
