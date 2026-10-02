@@ -1,15 +1,19 @@
 # Signed Windows desktop releases
 
-The app uses Tauri's updater signature to verify each downloaded update. Its public key is in `src-tauri/tauri.conf.json`. The matching private key is stored outside this repository at `%USERPROFILE%\.tauri\graph-builder.key`; never commit it or paste it into a chat. The file is not protected by a passphrase, but its Windows file permissions allow only the owner, administrators, and Windows itself to read it. Back it up in a password manager's secure file storage or on an encrypted drive. Losing it prevents existing installations from verifying future updates.
+Graph Builder uses Tauri's update signature to verify downloaded updates. The public verification key is in `src-tauri/tauri.conf.json`. The matching private key is stored outside this repository at `%USERPROFILE%\.tauri\graph-builder.key` on the original release machine. Never commit or share it. Keep an encrypted backup: losing the key prevents existing installations from verifying future updates.
 
-Before the first release, add the entire private key file content as the GitHub repository Actions secret named `TAURI_SIGNING_PRIVATE_KEY` under **Settings → Secrets and variables → Actions**. The release workflow needs no separate password for this key. This secret is required only to build releases; it is never included in the app.
+The GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` was configured for the published 0.1.2 and 0.1.3 releases. The [desktop release workflow](../.github/workflows/desktop-release.yml) uses that secret to sign releases built on GitHub. A second computer can start the workflow without copying the private key to that computer, provided its GitHub account has permission to run the workflow. If the secret is rotated or missing, restore it from the secure backup before building another update.
 
-The workflow in `.github/workflows/desktop-release.yml` runs manually from `main`. It tests the app and builds a Windows NSIS installer, its Tauri update signature, and `latest.json` into a **draft** GitHub Release. Inspect the draft's version and assets before publishing it. Publishing makes that version available to installed apps at the configured GitHub Releases endpoint. Do not publish a newer version before the earlier baseline has been installed for the update test. This process was completed successfully for the 0.1.2 and 0.1.3 releases on October 1, 2026.
+## Prepare a release
 
-For the first update test:
+1. Set the same new version in `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`.
+2. Complete the current [0.1.4 release test plan](release-0.1.4-test-plan.md) on a Windows machine with the desktop prerequisites. Record any failing checks and fix them. Commit and push the tested source on `main`.
+3. Run **Desktop Release** from the repository's GitHub Actions page. The workflow runs checks and creates a **draft** GitHub Release with a Windows NSIS installer, a Tauri update signature, and `latest.json`.
+4. Inspect the draft version, installer, signature, and `latest.json`. Publish the draft only after the assets and test results are correct. Publishing makes the new version available to installed apps through the configured GitHub Releases endpoint.
+5. On a machine with the preceding release installed, test **Projects & export → Check for updates**. Save current work, accept the update, and confirm that the app restarts and the saved project reopens. Also verify the installer and file association on a clean Windows machine.
 
-1. Release and install version 0.1.2, which still has the desktop **GB** header mark. Earlier 0.1.1 installations need this one manual install because they have no updater.
-2. Release version 0.1.3, whose desktop header uses the favicon square.
-3. In 0.1.2, open **Projects & export**, check for updates, choose **Save project and install**, and save the embedded project copy. The signed installer should download, install, and restart the app. Verify the favicon appears and the saved project reopens. This installed update path has been verified with the published 0.1.3 release.
+The Tauri signature authenticates updates downloaded by the app. It does not sign the Windows installer for SmartScreen; that requires a separate Windows code-signing certificate, which is not configured here.
 
-Tauri update signatures do not remove Windows SmartScreen warnings on an installer downloaded from the web. That requires a separate Windows code-signing certificate, which is not configured here.
+## Historical validation
+
+The signed 0.1.2 → 0.1.3 update through GitHub Releases was verified on October 1, 2026. Version 0.1.1 lacked the updater and required one manual install of 0.1.2. The detailed earlier checklist is archived in [Phase 10 Windows checks](phase-10-manual-checks.md). Repeat the current acceptance plan for each new release; the prior result does not establish that a later installer works.

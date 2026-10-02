@@ -7,6 +7,10 @@ Graph Builder is a local-first scientific graphing application for Windows and m
 - [0.1.4 Windows release test plan](docs/release-0.1.4-test-plan.md)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)
 
+![Graph Builder workspace with synthetic example measurements and a scatter graph](docs/screenshots/workspace.png)
+
+*The workspace with the built-in synthetic example data.*
+
 ## Architecture
 
 The UI is React and TypeScript, built with Vite and packaged for Windows with Tauri 2. Zustand stores the dataset, graph specification, filters, project state, and undo history. Plotly renders graphs from a renderer-independent specification. AG Grid provides the editable data table. Papa Parse and SheetJS handle text and spreadsheet imports; dnd-kit handles variable and layer dragging.
@@ -61,7 +65,7 @@ Annotations can be supplied as tagged rows in a data table or in a `Graph Annota
 
 ## Project status
 
-Browser graphing and the Windows desktop application are implemented. A signed 0.1.2 → 0.1.3 desktop update was tested. Final clean-machine file-association, offline, and no-update/decline checks are tracked in the [roadmap](roadmap.md). macOS and Linux releases await testing on those platforms.
+Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The [0.1.4 release test plan](docs/release-0.1.4-test-plan.md) tracks the current acceptance checks, including file association, offline use, and update choices. macOS and Linux releases await testing on those platforms.
 
 ## Contributing
 
