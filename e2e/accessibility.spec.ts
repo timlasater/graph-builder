@@ -34,7 +34,9 @@ test('workspace and main dialogs have no detectable WCAG A or AA issues', async 
   const projectDownload = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download project' }).click()
   const savedProject = await projectDownload
+  await page.getByRole('button', { name: 'New graph' }).click()
   await page.getByLabel('Choose a project file').setInputFiles(await savedProject.path())
+  await expect(page.getByRole('dialog', { name: /Save before opening/ })).toBeVisible()
   const openingPrompt = await new AxeBuilder({ page }).withTags(wcagTags).analyze()
   expect(summary(openingPrompt.violations)).toEqual([])
   await page.getByRole('button', { name: 'Cancel opening' }).click()

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { persistentFilePickerAvailable, pickPersistentFile } from '../fileHandles'
-import { chooseDesktopFile, isDesktop, readDesktopFile } from '../desktopFiles'
+import { chooseDesktopFile, desktopOpenKind, isDesktop, readDesktopFile } from '../desktopFiles'
 import { importTabularFile, type ImportedSheet } from '../importData'
 import { withFileSource } from '../sourceData'
 import { useDialogFocus } from '../useDialogFocus'
@@ -15,8 +16,11 @@ interface PendingSheets {
 
 interface OpenRequest { id: number; path: string }
 
-export function ImportDataButton({ onImport, openRequest }: { onImport: (dataset: Dataset) => void; openRequest?: OpenRequest }) {
+export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onImport: (dataset: Dataset) => void; onProjectDrop: (file: File | string) => void; openRequest?: OpenRequest }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const onImportRef = useRef(onImport)
+  const onProjectDropRef = useRef(onProjectDrop)
+  useEffect(() => { onImportRef.current = onImport; onProjectDropRef.current = onProjectDrop }, [onImport, onProjectDrop])
   const dragDepthRef = useRef(0)
   const processedOpenRequest = useRef<number | undefined>(undefined)
   const [pending, setPending] = useState<PendingSheets>()
@@ -31,7 +35,7 @@ export function ImportDataButton({ onImport, openRequest }: { onImport: (dataset
     setError(undefined)
     try {
       const imported = await importTabularFile(file)
-      if (imported.length === 1) onImport(withFileSource(imported[0], file.name, handleId, nativePath))
+      if (imported.length === 1) onImportRef.current(withFileSource(imported[0], file.name, handleId, nativePath))
       else setPending({ sheets: imported, fileName: file.name, handleId, nativePath })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The file could not be imported.')
@@ -39,7 +43,28 @@ export function ImportDataButton({ onImport, openRequest }: { onImport: (dataset
       setBusy(false)
       if (inputRef.current) inputRef.current.value = ''
     }
-  }, [onImport])
+  }, [])
+
+  useEffect(() => {
+    if (!isDesktop()) return
+    let active = true
+    let unlisten: (() => void) | undefined
+    void getCurrentWindow().onDragDropEvent((event) => {
+      const payload = event.payload
+      if (payload.type === 'enter') setFileDragging(payload.paths.length > 0)
+      else if (payload.type === 'leave') setFileDragging(false)
+      else if (payload.type === 'drop') {
+        setFileDragging(false)
+        const path = payload.paths[0]
+        if (!path) return
+        const kind = desktopOpenKind(path)
+        if (kind === 'project') onProjectDropRef.current(path)
+        else if (kind === 'data') void readDesktopFile(path).then((file) => readFile(file, undefined, path)).catch((reason) => setError(reason instanceof Error ? reason.message : 'The file could not be opened.'))
+        else setError('Drop a CSV, TSV, TXT, XLSX, XLS, or Graph Builder project file.')
+      }
+    }).then((stop) => { if (active) unlisten = stop; else stop() }).catch((reason) => setError(reason instanceof Error ? reason.message : 'File dropping is unavailable.'))
+    return () => { active = false; unlisten?.() }
+  }, [readFile])
 
   useEffect(() => {
     if (!openRequest || processedOpenRequest.current === openRequest.id) return
@@ -72,7 +97,10 @@ export function ImportDataButton({ onImport, openRequest }: { onImport: (dataset
       event.preventDefault()
       dragDepthRef.current = 0
       setFileDragging(false)
-      void readFile(event.dataTransfer?.files[0])
+      const file = event.dataTransfer?.files[0]
+      if (!file) return
+      if (desktopOpenKind(file.name) === 'project') onProjectDropRef.current(file)
+      else void readFile(file)
     }
     window.addEventListener('dragenter', dragEnter)
     window.addEventListener('dragover', dragOver)
@@ -113,7 +141,7 @@ export function ImportDataButton({ onImport, openRequest }: { onImport: (dataset
       <input ref={inputRef} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a CSV or Excel data file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
       <button className="import-button" onClick={() => void chooseFile()} disabled={busy}>{busy ? 'Importing…' : 'Import data'}</button>
       {busy && <span role="status" className="visually-hidden">Reading and checking your data file. This may take a moment.</span>}
-      {fileDragging && <div className="file-drop-overlay" role="status" aria-live="polite"><div><strong>Drop data file to import</strong><span>CSV, TSV, TXT, XLSX, or XLS</span></div></div>}
+      {fileDragging && <div className="file-drop-overlay" role="status" aria-live="polite"><div><strong>Drop data or project file to open</strong><span>CSV, TSV, TXT, XLS, XLSX, or .graphbuilder</span></div></div>}
       {pending && (
         <div className="modal-backdrop" role="presentation">
           <section ref={sheetDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabIndex={-1}>

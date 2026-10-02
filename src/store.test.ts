@@ -1,10 +1,40 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { moveRoleAssignment, projectGraphs, rowMatchesFilters, useBuilderStore } from './store'
+import { hasUnsavedProjectChanges, moveRoleAssignment, projectFingerprint, projectGraphs, rowMatchesFilters, useBuilderStore } from './store'
 import { sampleDataset } from './sampleData'
 
 describe('graph history', () => {
   beforeEach(() => {
     useBuilderStore.getState().reset()
+  })
+
+  it('recognizes saved projects, edits, and undo back to the saved contents', () => {
+    const store = useBuilderStore.getState()
+    expect(hasUnsavedProjectChanges(store)).toBe(false)
+    store.markProjectSaved(projectFingerprint(store))
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
+    store.updateSpec({ title: 'Edited title' })
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(true)
+    store.undo()
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
+    store.redo()
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(true)
+  })
+
+  it('treats the untouched example as ready to replace without saving', () => {
+    const store = useBuilderStore.getState()
+    expect(hasUnsavedProjectChanges(store)).toBe(false)
+    store.updateSpec({ title: 'Changed example' })
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(true)
+    store.reset()
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
+  })
+
+  it('keeps the opened project data mode and resets it for new data', () => {
+    const store = useBuilderStore.getState()
+    store.openProject('Linked study', sampleDataset, projectGraphs(store), store.activeGraphId, undefined, 'linked')
+    expect(useBuilderStore.getState().projectMode).toBe('linked')
+    store.setDataset(sampleDataset)
+    expect(useBuilderStore.getState().projectMode).toBe('embedded')
   })
 
   it('restores an earlier graph element with undo and redo', () => {
@@ -66,6 +96,10 @@ describe('graph history', () => {
     store.updateSpec({ title: 'Dose view' })
     store.newGraph()
     const secondId = useBuilderStore.getState().activeGraphId
+    expect(useBuilderStore.getState().spec.x).toEqual([])
+    expect(useBuilderStore.getState().spec.y).toEqual([])
+    expect(useBuilderStore.getState().spec.layers).toHaveLength(1)
+    expect(useBuilderStore.getState().dataset).toEqual(sampleDataset)
     store.renameGraph('Pressure')
     store.updateSpec({ title: 'Pressure view' })
     const first = projectGraphs(useBuilderStore.getState()).find((graph) => graph.name === 'Dose')!

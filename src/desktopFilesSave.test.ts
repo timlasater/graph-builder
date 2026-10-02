@@ -2,13 +2,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile } from '@tauri-apps/plugin-fs'
-import { chooseDesktopFile, saveDesktopText } from './desktopFiles'
+import { chooseDesktopFile, clearRecentProjects, recentProjects, rememberProject, saveDesktopText } from './desktopFiles'
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn(), save: vi.fn() }))
 vi.mock('@tauri-apps/plugin-fs', () => ({ readFile: vi.fn(), readTextFile: vi.fn(), stat: vi.fn(), writeFile: vi.fn(), writeTextFile: vi.fn() }))
 
 describe('desktop project backup', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks(); clearRecentProjects() })
 
   it('refuses to overwrite the project that is about to open', async () => {
     vi.mocked(save).mockResolvedValue('c:/studies/INCOMING.graphbuilder')
@@ -20,5 +20,12 @@ describe('desktop project backup', () => {
     vi.mocked(save).mockResolvedValue(null)
     await chooseDesktopFile('open')
     expect(open).toHaveBeenCalledWith(expect.objectContaining({ filters: [expect.objectContaining({ extensions: expect.arrayContaining(['csv', 'xlsx', 'graphbuilder', 'graphbuilder.json']) })] }))
+  })
+
+  it('clears the recent-project list', () => {
+    rememberProject('C:\\Studies\\first.graphbuilder', 'First')
+    expect(recentProjects()).toHaveLength(1)
+    clearRecentProjects()
+    expect(recentProjects()).toEqual([])
   })
 })

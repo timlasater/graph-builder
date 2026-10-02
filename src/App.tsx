@@ -83,12 +83,13 @@ function ReferenceControls({ spec, updateSpec }: { spec: GraphSpec; updateSpec: 
 
 function App() {
   const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, reset } = useBuilderStore()
-  const [showDataTable, setShowDataTable] = useState(false)
+  const [dataTableView, setDataTableView] = useState<'default' | 'quality' | null>(null)
   const [showProjects, setShowProjects] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [dataOpenRequest, setDataOpenRequest] = useState<{ id: number; path: string }>()
   const [projectOpenRequest, setProjectOpenRequest] = useState<{ id: number; path: string }>()
+  const [projectDropRequest, setProjectDropRequest] = useState<{ id: number; file: File }>()
   const nextOpenRequestId = useRef(0)
   const openPickerInProgress = useRef(false)
   const [projectSaveStatus, setProjectSaveStatus] = useState<string>()
@@ -142,6 +143,7 @@ function App() {
       event.preventDefault()
       if (event.repeat) return
       if (shortcut === 'projects') setShowProjects(true)
+      else if (shortcut === 'newGraph') useBuilderStore.getState().newGraph()
       else setShowShortcutHelp(true)
     }
     window.addEventListener('keydown', handleNavigationShortcut)
@@ -304,7 +306,7 @@ function App() {
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
-            <ImportDataButton openRequest={dataOpenRequest} onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
+            <ImportDataButton openRequest={dataOpenRequest} onProjectDrop={(file) => { const id = ++nextOpenRequestId.current; if (typeof file === 'string') setProjectOpenRequest({ id, path: file }); else setProjectDropRequest({ id, file }) }} onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
             <button onClick={undo} disabled={!past.length} title="Undo (Ctrl+Z)">↶</button>
             <button onClick={redo} disabled={!future.length} title="Redo (Ctrl+Y)">↷</button>
             <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? This closes the current project and clears Undo. Download an embedded project first if you need to keep your work.')) reset() }}>Reset example</button>
@@ -325,7 +327,7 @@ function App() {
               {!visibleColumns.length && <p className="no-variables">No matching variables</p>}
             </div>
             <div className="modeling-key"><span><i className="continuous" /> Continuous</span><span><i className="nominal" /> Nominal</span><span><i className="ordinal" /> Ordinal</span></div>
-            <div className="data-summary"><strong>{dataset.rows.length}</strong> rows <span>•</span> <strong>{dataset.columns.length}</strong> columns {dataset.warnings.length > 0 && <span className="warning-count">⚠ {dataset.warnings.length}</span>} <button onClick={() => setShowDataTable(true)}>View data table</button></div>
+            <div className="data-summary"><strong>{dataset.rows.length}</strong> rows <span>•</span> <strong>{dataset.columns.length}</strong> columns {dataset.warnings.length > 0 && <button className="warning-count" aria-label={`View ${dataset.warnings.length} data warning${dataset.warnings.length === 1 ? '' : 's'}`} onClick={() => setDataTableView('quality')}>⚠ {dataset.warnings.length}</button>} <button onClick={() => setDataTableView('default')}>View data table</button></div>
           </VariablesDropPanel>}
           {panelVisibility.variables && <button className="panel-resize-divider variables-divider" aria-label="Resize Variables panel" title="Drag to resize Variables; use arrow keys for fine adjustment" style={{ left: panelWidths.variables - 4 }} onPointerDown={(event) => startPanelResize('variables', event)} onKeyDown={(event) => resizePanelByKey('variables', event)} />}
 
@@ -436,8 +438,8 @@ function App() {
           </aside>}
         </main>
       </div>
-      {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
-      {(showProjects || projectPathToOpen) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
+      {dataTableView && <DataTableModal openQuality={dataTableView === 'quality'} onClose={() => setDataTableView(null)} />}
+      {(showProjects || projectPathToOpen || projectDropRequest) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : projectDropRequest ? `drop:${projectDropRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} initialProjectFile={projectDropRequest?.file} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else if (projectDropRequest) setProjectDropRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {showShortcutHelp && <ShortcutHelp desktop={desktop} onClose={() => setShowShortcutHelp(false)} onFullGuide={() => { setShowShortcutHelp(false); setShowUserGuide(true) }} />}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}

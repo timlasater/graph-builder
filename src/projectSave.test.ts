@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { rememberProject, saveDesktopText, writeDesktopText } from './desktopFiles'
 import { parseProject } from './projects'
 import { saveCurrentDesktopProject } from './projectSave'
-import { useBuilderStore } from './store'
+import { hasUnsavedProjectChanges, useBuilderStore } from './store'
 
 vi.mock('./desktopFiles', () => ({
   rememberProject: vi.fn(),
@@ -20,9 +20,12 @@ describe('desktop project shortcuts', () => {
   it('updates the open file for Save and includes current data edits', async () => {
     const store = useBuilderStore.getState()
     store.setProjectPath('C:\\Studies\\current.graphbuilder')
+    store.setProjectMode('linked')
     store.updateCell(store.dataset.rows[0].id, 'dose', 777)
 
     expect(await saveCurrentDesktopProject(false)).toBe('C:\\Studies\\current.graphbuilder')
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
+    expect(useBuilderStore.getState().projectMode).toBe('embedded')
     expect(saveDesktopText).not.toHaveBeenCalled()
     expect(writeDesktopText).toHaveBeenCalledOnce()
     const [path, content] = vi.mocked(writeDesktopText).mock.calls[0]
@@ -32,11 +35,21 @@ describe('desktop project shortcuts', () => {
     if (saved.data.mode === 'embedded') expect(saved.data.dataset.rows[0].values.dose).toBe(777)
   })
 
+  it('asks for a path only when the project has not been saved yet', async () => {
+    vi.mocked(saveDesktopText).mockResolvedValue('C:\\Studies\\first-save.graphbuilder')
+
+    expect(await saveCurrentDesktopProject(false, 'C:\\Studies\\incoming.graphbuilder')).toBe('C:\\Studies\\first-save.graphbuilder')
+    expect(saveDesktopText).toHaveBeenCalledWith(`${useBuilderStore.getState().projectName}.graphbuilder`, expect.any(String), 'graphbuilder', 'C:\\Studies\\incoming.graphbuilder')
+    expect(useBuilderStore.getState().projectPath).toBe('C:\\Studies\\first-save.graphbuilder')
+    expect(writeDesktopText).not.toHaveBeenCalled()
+  })
+
   it('asks for a path for Save As and remembers the chosen file', async () => {
     useBuilderStore.getState().setProjectPath('C:\\Studies\\old.graphbuilder')
     vi.mocked(saveDesktopText).mockResolvedValue('C:\\Studies\\new.graphbuilder')
 
     expect(await saveCurrentDesktopProject(true)).toBe('C:\\Studies\\new.graphbuilder')
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
     expect(writeDesktopText).not.toHaveBeenCalled()
     expect(useBuilderStore.getState().projectPath).toBe('C:\\Studies\\new.graphbuilder')
     expect(rememberProject).toHaveBeenCalledWith('C:\\Studies\\new.graphbuilder', useBuilderStore.getState().projectName)

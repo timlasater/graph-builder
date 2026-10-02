@@ -31,11 +31,12 @@ export const readDesktopProject = async (path: string) => {
 }
 
 const pathKey = (path: string) => path.replace(/\//g, '\\').replace(/\\+$/, '').toLocaleLowerCase()
+export const sameDesktopPath = (left: string, right: string) => pathKey(left) === pathKey(right)
 
 export const saveDesktopText = async (name: string, content: string, extension: string, forbiddenPath?: string) => {
   const path = await save({ defaultPath: name, filters: [{ name: 'Graph Builder file', extensions: [extension] }] })
   if (!path) return undefined
-  if (forbiddenPath && pathKey(path) === pathKey(forbiddenPath)) throw new Error('Choose a different file name for the current project. The project you are opening was not overwritten.')
+  if (forbiddenPath && sameDesktopPath(path, forbiddenPath)) throw new Error('Choose a different file name for the current project. The project you are opening was not overwritten.')
   await writeTextFile(path, content)
   return path
 }
@@ -70,3 +71,4 @@ export const recentProjects = (): RecentProject[] => {
 export const rememberProject = (path: string, name: string) => {
   localStorage.setItem(RECENT_KEY, JSON.stringify(uniqueRecent([{ path, name }, ...recentProjects()])))
 }
+export const clearRecentProjects = () => localStorage.removeItem(RECENT_KEY)

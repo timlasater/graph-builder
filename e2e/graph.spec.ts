@@ -43,10 +43,7 @@ test('imports a file, builds a graph, saves and reopens a project, then exports'
   await page.getByRole('button', { name: 'Close projects' }).click()
   await page.getByRole('button', { name: 'Projects & export' }).click()
   await page.locator('input[type="file"][accept*=".json"]').first().setInputFiles(await project.path())
-  await expect(page.getByRole('dialog', { name: /Save before opening/ })).toBeVisible()
-  const backupDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Save current project and open' }).click()
-  expect((await backupDownload).suggestedFilename()).toMatch(/\.graphbuilder$/)
+  await expect(page.getByRole('dialog', { name: /Save before opening/ })).toHaveCount(0)
   await expect(page.getByLabel('Error bars')).toHaveValue('sd')
   await page.getByRole('button', { name: 'View data table' }).click()
   await expect(page.getByRole('dialog', { name: 'sample-study' })).toContainText('2 of 3 rows')
@@ -95,4 +92,92 @@ test('opening a project can be canceled, saved, undone, and redone; invalid file
   await expect(page.getByRole('alertdialog', { name: 'Could not open project' })).toContainText('not valid JSON')
   await page.getByRole('button', { name: 'Keep current project' }).click()
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible()
+})
+
+test('editing after a project download restores the save-before-opening prompt', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download project' }).click()
+  const savedProject = await download
+  await page.getByRole('button', { name: 'Close projects' }).click()
+
+  await page.getByRole('button', { name: 'View data table' }).click()
+  const firstDose = page.locator('.ag-row[row-index="0"] .ag-cell[col-id="dose"]')
+  await firstDose.dblclick()
+  await page.locator('.ag-cell-inline-editing input').fill('999')
+  await page.locator('.ag-cell-inline-editing input').press('Enter')
+  await page.getByRole('button', { name: 'Close data table' }).click()
+
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  await page.getByLabel('Choose a project file').setInputFiles(await savedProject.path())
+  await expect(page.getByRole('dialog', { name: /Save before opening/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Discard edits and open' }).click()
+  await page.getByRole('button', { name: 'View data table' }).click()
+  await expect(page.locator('.ag-row[row-index="0"] .ag-cell[col-id="dose"]')).not.toContainText('999')
+})
+
+test('the untouched example opens a project without a save prompt', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download project' }).click()
+  const exampleProject = await download
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Variables' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  await page.getByLabel('Choose a project file').setInputFiles(await exampleProject.path())
+  await expect(page.getByRole('dialog', { name: /Save before opening/ })).toHaveCount(0)
+  await expect(page.getByRole('dialog', { name: 'Projects' })).toHaveCount(0)
+})
+
+test('a linked project shows its data mode when reopened', async ({ page }) => {
+  await page.goto('/')
+  const source = { name: 'linked-data.csv', mimeType: 'text/csv', buffer: Buffer.from('X,Y\n1,2\n3,4\n') }
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles(source)
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  const projects = page.getByRole('dialog', { name: 'Projects' })
+  await expect(projects.getByText('Current project:')).toContainText('Embedded')
+  await projects.getByLabel('Data in saved file').selectOption('linked')
+  const download = page.waitForEvent('download')
+  await projects.getByRole('button', { name: 'Download project' }).click()
+  const linkedProject = await download
+  await projects.getByRole('button', { name: 'Close projects' }).click()
+
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  await page.getByLabel('Choose a project file').setInputFiles(await linkedProject.path())
+  await expect(page.getByText('Last found at linked-data.csv (folder path unavailable in the browser)')).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  const linkedContent = JSON.parse(await readFile(await linkedProject.path(), 'utf8'))
+  linkedContent.data.source.nativePath = 'C:\\Studies\\linked-data.csv'
+  await page.getByLabel('Choose a project file').setInputFiles({ name: 'linked-data.graphbuilder', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(linkedContent)) })
+  await expect(page.getByText('Last found at C:\\Studies\\linked-data.csv')).toBeVisible()
+  await page.getByLabel('Choose linked source data').setInputFiles(source)
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  await expect(page.getByRole('dialog', { name: 'Projects' }).getByText('Current project:')).toContainText('Linked')
+  await expect(page.getByLabel('Data in saved file')).toHaveValue('linked')
+})
+
+test('dropping a project file opens it through the save-or-discard flow', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download project' }).click()
+  const project = await download
+  await page.getByRole('button', { name: 'Close projects' }).click()
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'dropped-work.csv', mimeType: 'text/csv', buffer: Buffer.from('X,Y\n1,2\n') })
+  const content = await readFile(await project.path(), 'utf8')
+  await page.evaluate((projectContent) => {
+    const transfer = new DataTransfer()
+    transfer.items.add(new File([projectContent], 'example.graphbuilder', { type: 'application/json' }))
+    window.dispatchEvent(new DragEvent('dragenter', { bubbles: true, dataTransfer: transfer }))
+    window.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: transfer }))
+  }, content)
+  await expect(page.getByRole('dialog', { name: /Save before opening/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Discard edits and open' }).click()
+  await expect(page.getByText('dropped-work', { exact: true })).toHaveCount(0)
 })

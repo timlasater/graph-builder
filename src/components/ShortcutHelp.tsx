@@ -14,6 +14,7 @@ export function ShortcutHelp({ desktop, onClose, onFullGuide }: { desktop: boole
     <section ref={dialogRef} className="shortcut-dialog" role="dialog" aria-modal="true" aria-labelledby="shortcut-title" tabIndex={-1}>
       <header><div><span className="eyebrow">KEYBOARD HELP</span><h2 id="shortcut-title">Keyboard shortcuts</h2></div><button className="dialog-close" aria-label="Close keyboard shortcuts" onClick={onClose}>×</button></header>
       <dl className="shortcut-list">
+        <div><dt>Ctrl+N</dt><dd>New empty graph in this project{!desktop ? ' (Command on Mac)' : ''}</dd></div>
         {desktop && <><div><dt>Ctrl+O</dt><dd>Open data or a project</dd></div><div><dt>Ctrl+S</dt><dd>Save project</dd></div><div><dt>Ctrl+Shift+S</dt><dd>Save project as a new file</dd></div><div><dt>Ctrl+E</dt><dd>Projects &amp; export</dd></div></>}
         <div><dt>Ctrl+Z / Ctrl+Y</dt><dd>Undo / redo outside text fields{!desktop ? ' (Command on Mac)' : ''}</dd></div>
         <div><dt>?</dt><dd>Show this list</dd></div>

@@ -44,6 +44,7 @@ export function useProjectRecovery() {
   const restore = () => {
     if (!recovery || recovery.data.mode !== 'embedded') return
     useBuilderStore.getState().openProject(recovery.name, recovery.data.dataset, recovery.graphs, recovery.activeGraphId)
+    useBuilderStore.getState().markProjectSaved(undefined)
     setRecovery(undefined); setChecked(true); setStatus('Autosaved project restored.')
   }
   const dismiss = async () => {
