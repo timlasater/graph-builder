@@ -9,8 +9,14 @@ const basename = (path: string) => path.split(/[\\/]/).at(-1) || path
 const dataExtensions = ['csv', 'tsv', 'txt', 'xlsx', 'xls']
 const projectExtensions = ['graphbuilder', 'graphbuilder.json']
 
-export const chooseDesktopFile = async (kind: 'data' | 'project' | 'source' | 'template') => {
-  const path = await open({ multiple: false, directory: false, filters: [{ name: kind === 'project' ? 'Graph Builder project' : kind === 'template' ? 'Graph Builder template' : 'Data file', extensions: kind === 'project' ? projectExtensions : kind === 'template' ? ['graphbuilder-template.json'] : dataExtensions }] })
+export const desktopOpenKind = (path: string): 'data' | 'project' | undefined => {
+  const lower = path.toLocaleLowerCase()
+  if (lower.endsWith('.graphbuilder') || lower.endsWith('.graphbuilder.json') || lower.endsWith('.json')) return 'project'
+  return dataExtensions.some((extension) => lower.endsWith(`.${extension}`)) ? 'data' : undefined
+}
+
+export const chooseDesktopFile = async (kind: 'data' | 'project' | 'source' | 'template' | 'open') => {
+  const path = await open({ multiple: false, directory: false, filters: [{ name: kind === 'open' ? 'Data or Graph Builder project' : kind === 'project' ? 'Graph Builder project' : kind === 'template' ? 'Graph Builder template' : 'Data file', extensions: kind === 'open' ? [...dataExtensions, ...projectExtensions, 'json'] : kind === 'project' ? projectExtensions : kind === 'template' ? ['graphbuilder-template.json'] : dataExtensions }] })
   return typeof path === 'string' ? path : undefined
 }
 

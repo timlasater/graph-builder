@@ -39,6 +39,9 @@ try {
   const origin = `http://127.0.0.1:${server.address().port}`
   await page.goto(`${origin}/graph-builder/`)
   await page.getByRole('heading', { name: /Turn your data into/ }).waitFor()
+  await page.getByRole('heading', { name: 'What you can do' }).waitFor()
+  await page.getByRole('heading', { name: 'Engineering overview' }).waitFor()
+  assert.ok((await page.getByText('5,000 rows and 50,000 cells').count()) > 0)
   const hero = page.locator('.hero')
   assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundAttachment), 'fixed')
   assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundImage.includes('linear-gradient')), false)

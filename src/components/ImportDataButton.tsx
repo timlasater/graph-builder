@@ -13,9 +13,12 @@ interface PendingSheets {
   nativePath?: string
 }
 
-export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) => void }) {
+interface OpenRequest { id: number; path: string }
+
+export function ImportDataButton({ onImport, openRequest }: { onImport: (dataset: Dataset) => void; openRequest?: OpenRequest }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const dragDepthRef = useRef(0)
+  const processedOpenRequest = useRef<number | undefined>(undefined)
   const [pending, setPending] = useState<PendingSheets>()
   const sheetDialogRef = useDialogFocus<HTMLElement>(Boolean(pending))
   const [error, setError] = useState<string>()
@@ -37,6 +40,14 @@ export function ImportDataButton({ onImport }: { onImport: (dataset: Dataset) =>
       if (inputRef.current) inputRef.current.value = ''
     }
   }, [onImport])
+
+  useEffect(() => {
+    if (!openRequest || processedOpenRequest.current === openRequest.id) return
+    processedOpenRequest.current = openRequest.id
+    void readDesktopFile(openRequest.path).then((file) => readFile(file, undefined, openRequest.path)).catch((reason) => {
+      setError(reason instanceof Error ? reason.message : 'The file could not be opened.')
+    })
+  }, [openRequest, readFile])
 
   useEffect(() => {
     const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files')

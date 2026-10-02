@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { save } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import { writeTextFile } from '@tauri-apps/plugin-fs'
-import { saveDesktopText } from './desktopFiles'
+import { chooseDesktopFile, saveDesktopText } from './desktopFiles'
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn(), save: vi.fn() }))
 vi.mock('@tauri-apps/plugin-fs', () => ({ readFile: vi.fn(), readTextFile: vi.fn(), stat: vi.fn(), writeFile: vi.fn(), writeTextFile: vi.fn() }))
@@ -14,5 +14,11 @@ describe('desktop project backup', () => {
     vi.mocked(save).mockResolvedValue('c:/studies/INCOMING.graphbuilder')
     await expect(saveDesktopText('current.graphbuilder', '{}', 'graphbuilder', 'C:\\Studies\\incoming.graphbuilder')).rejects.toThrow('different file name')
     expect(writeTextFile).not.toHaveBeenCalled()
+  })
+
+  it('offers data and project extensions in the Ctrl+O picker', async () => {
+    vi.mocked(save).mockResolvedValue(null)
+    await chooseDesktopFile('open')
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ filters: [expect.objectContaining({ extensions: expect.arrayContaining(['csv', 'xlsx', 'graphbuilder', 'graphbuilder.json']) })] }))
   })
 })

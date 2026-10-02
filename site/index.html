@@ -44,6 +44,9 @@
       .button.secondary:hover, .button.secondary:focus-visible { background: #ecfdf5; }
       .card ul { margin: 0; padding-left: 24px; }
       .card li + li { margin-top: 7px; }
+      .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 28px; }
+      .detail-grid .card { margin: 0; }
+      .detail-grid strong { color: #18483e; }
       .note { color: #6b7280; font-size: 14px; }
       .note a { color: #047857; }
       footer { padding: 30px 20px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 14px; }
@@ -58,6 +61,7 @@
         .hero-inner { padding: 18px 16px 22px; }
         .main-content { margin-top: 30px; padding: 0 16px; }
         .card { padding: 24px 20px; }
+        .detail-grid { grid-template-columns: 1fr; }
       }
       @media (max-width: 380px) {
         .site-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -83,20 +87,40 @@
     </nav>
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-inner">
-        <p class="kicker">Browser preview</p>
+        <p class="kicker">Scientific graphing for browser and Windows</p>
         <h2 id="hero-title">Turn your data into <strong>clear scientific graphs.</strong></h2>
       </div>
     </section>
     <main class="main-content">
       <section class="card" aria-labelledby="about-heading">
         <h3 id="about-heading">Explore Graph Builder</h3>
-        <p>Import a spreadsheet or CSV, build a graph, and export the result. The browser app is available now; the Windows installer is in final release validation.</p>
+        <p>Explore data, build layered scientific graphs, and save figures or reusable projects. Start with the synthetic example or import your own data. Graph Builder runs in a desktop browser and as a Windows app.</p>
         <div class="actions">
           <a class="button" href="/graph-builder/app/">Launch Graph Builder</a>
           <a class="button secondary" href="https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md">Read the user guide</a>
         </div>
         <p class="note">View the <a href="https://github.com/timlasater/graph-builder">GitHub repository</a> or <a href="https://github.com/timlasater/graph-builder/issues">report a problem</a>.</p>
       </section>
+      <div class="detail-grid">
+        <section class="card" aria-labelledby="capabilities-heading">
+          <h3 id="capabilities-heading">What you can do</h3>
+          <ul>
+            <li>Assign columns to axes, color, grouping, size, and other graph roles.</li>
+            <li>Combine points, lines, bars, box plots, fitted trends, and statistical summaries.</li>
+            <li>Inspect and edit rows, apply filters, calculate columns, and add reference marks.</li>
+            <li>Keep multiple graphs in one project, undo changes, and export PNG or SVG images.</li>
+          </ul>
+        </section>
+        <section class="card" aria-labelledby="engineering-heading">
+          <h3 id="engineering-heading">Engineering overview</h3>
+          <ul>
+            <li><strong>Inputs:</strong> CSV, TSV, TXT, XLSX, and XLS, with worksheet selection for Excel files.</li>
+            <li><strong>Outputs:</strong> PNG and SVG figures, plotted-data CSV, and portable <code>.graphbuilder</code> projects.</li>
+            <li><strong>Stack:</strong> React and TypeScript with Plotly graphs; Tauri packages the Windows app.</li>
+            <li><strong>Data handling:</strong> rows are processed locally. A browser workflow with 5,000 rows and 50,000 cells has been tested; speed depends on the computer and graph.</li>
+          </ul>
+        </section>
+      </div>
       <section class="card" aria-labelledby="try-heading">
         <h3 id="try-heading">A quick way to try it</h3>
         <ul>

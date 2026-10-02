@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
-import { recentProjects, rememberProject } from './desktopFiles'
+import { desktopOpenKind, recentProjects, rememberProject } from './desktopFiles'
 
 describe('desktop recent projects', () => {
   beforeEach(() => localStorage.clear())
@@ -33,5 +33,15 @@ describe('desktop recent projects', () => {
     rememberProject('c:/studies/ONE.graphbuilder', 'One newest')
     expect(recentProjects()).toHaveLength(2)
     expect(recentProjects()[0].name).toBe('One newest')
+  })
+})
+
+describe('desktop open-file routing', () => {
+  it('recognizes supported data and project files without case sensitivity', () => {
+    expect(desktopOpenKind('C:\\Studies\\RESULTS.XLSX')).toBe('data')
+    expect(desktopOpenKind('C:\\Studies\\results.csv')).toBe('data')
+    expect(desktopOpenKind('C:\\Studies\\chart.GRAPHBUILDER')).toBe('project')
+    expect(desktopOpenKind('C:\\Studies\\old.graphbuilder.json')).toBe('project')
+    expect(desktopOpenKind('C:\\Studies\\notes.pdf')).toBeUndefined()
   })
 })

@@ -125,6 +125,8 @@ The Windows app lists recent projects in **Projects & export**. Reopen one from 
 
 In the Windows app, press **Ctrl+S** to save an embedded copy of the current project. If the project was opened from or saved to a file during this session, Ctrl+S updates that file; otherwise it asks where to save. Press **Ctrl+Shift+S** to choose a new file location. An embedded save includes data edits even if the opened file was linked to a source. If you want to keep a linked project instead, use **Projects & export → Data in saved file**.
 
+Press **Ctrl+O** in the Windows app to choose either a data file or a `.graphbuilder` project from one file dialog. Data files follow the usual import and worksheet steps; project files show the save-or-cancel prompt before replacing the open project.
+
 Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. The top-bar **Save PNG** uses the current graph size at 2× resolution.
 
 ## Annotations in imported files
@@ -156,6 +158,7 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Ctrl+click / Shift+click | Add or range-select data-table rows with a pointer. |
 | Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
+| Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
 
 **Undo** and **Redo** are also top-bar buttons. In a text field or data table, Ctrl+Z and Ctrl+Y remain available for that field's own editing behavior. Browser shortcuts, such as Ctrl+S, belong to the browser and do not save a Graph Builder project.
 

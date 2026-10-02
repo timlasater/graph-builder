@@ -14,7 +14,7 @@ import { ProjectModal } from './components/ProjectModal'
 import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
 import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
-import { isDesktop, saveDesktopImage } from './desktopFiles'
+import { chooseDesktopFile, desktopOpenKind, isDesktop, saveDesktopImage } from './desktopFiles'
 import { saveCurrentDesktopProject } from './projectSave'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
@@ -84,6 +84,10 @@ function App() {
   const [showDataTable, setShowDataTable] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
+  const [dataOpenRequest, setDataOpenRequest] = useState<{ id: number; path: string }>()
+  const [projectOpenRequest, setProjectOpenRequest] = useState<{ id: number; path: string }>()
+  const nextOpenRequestId = useRef(0)
+  const openPickerInProgress = useRef(false)
   const [projectSaveStatus, setProjectSaveStatus] = useState<string>()
   const projectSaveInProgress = useRef(false)
   const [savingPng, setSavingPng] = useState(false)
@@ -125,6 +129,7 @@ function App() {
   const desktop = isDesktop()
   const associatedProject = useAssociatedProjects(desktop)
   const openingAssociatedProject = Boolean(associatedProject.path && recovery.ready)
+  const projectPathToOpen = openingAssociatedProject ? associatedProject.path : projectOpenRequest?.path
   const documentTitle = `${projectName} · ${activeGraphName}`
 
   useEffect(() => {
@@ -196,6 +201,28 @@ function App() {
     return () => window.removeEventListener('keydown', handleSaveShortcut)
   }, [desktop])
 
+  useEffect(() => {
+    if (!desktop) return
+    const handleOpenShortcut = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'o') return
+      event.preventDefault()
+      if (document.querySelector('[aria-modal="true"]')) return
+      if (event.repeat || openPickerInProgress.current) return
+      openPickerInProgress.current = true
+      void chooseDesktopFile('open').then((path) => {
+        if (!path) return
+        const request = { id: ++nextOpenRequestId.current, path }
+        const kind = desktopOpenKind(path)
+        if (kind === 'data') setDataOpenRequest(request)
+        else if (kind === 'project') setProjectOpenRequest(request)
+        else setLinkError('Choose a CSV, TSV, TXT, XLSX, XLS, or Graph Builder project file.')
+      }).catch((error: unknown) => setLinkError(error instanceof Error ? error.message : 'The file picker could not be opened.'))
+        .finally(() => { openPickerInProgress.current = false })
+    }
+    window.addEventListener('keydown', handleOpenShortcut)
+    return () => window.removeEventListener('keydown', handleOpenShortcut)
+  }, [desktop])
+
   const startCanvasResize = (direction: ResizeDirection, event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault(); event.stopPropagation()
     const card = event.currentTarget.closest('.graph-card'); if (!card) return
@@ -261,7 +288,7 @@ function App() {
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
-            <ImportDataButton onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
+            <ImportDataButton openRequest={dataOpenRequest} onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
             <button onClick={undo} disabled={!past.length} title="Undo (Ctrl+Z)">↶</button>
             <button onClick={redo} disabled={!future.length} title="Redo (Ctrl+Y)">↷</button>
             <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? This closes the current project and clears Undo. Download an embedded project first if you need to keep your work.')) reset() }}>Reset example</button>
@@ -394,7 +421,7 @@ function App() {
         </main>
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
-      {(showProjects || openingAssociatedProject) && <ProjectModal key={openingAssociatedProject ? associatedProject.path : 'manual'} initialProjectPath={openingAssociatedProject ? associatedProject.path : undefined} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
+      {(showProjects || projectPathToOpen) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
