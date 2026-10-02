@@ -50,5 +50,5 @@ export function useProjectRecovery() {
     try { await clearRecovery() } catch { /* A new autosave will replace an unreadable entry. */ }
     setRecovery(undefined); setChecked(true); setStatus('Started with the current example. Autosave is on.')
   }
-  return { recovery, status, restore, dismiss }
+  return { recovery, ready: checked, status, restore, dismiss }
 }

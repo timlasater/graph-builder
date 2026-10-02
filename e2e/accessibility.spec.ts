@@ -27,6 +27,17 @@ test('workspace and main dialogs have no detectable WCAG A or AA issues', async 
   await expect(page.getByRole('button', { name: 'Close projects' })).toBeFocused()
   const projects = await new AxeBuilder({ page }).withTags(wcagTags).analyze()
   expect(summary(projects.violations)).toEqual([])
+  const projectDownload = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download project' }).click()
+  const savedProject = await projectDownload
+  await page.getByLabel('Choose a project file').setInputFiles(await savedProject.path())
+  const openingPrompt = await new AxeBuilder({ page }).withTags(wcagTags).analyze()
+  expect(summary(openingPrompt.violations)).toEqual([])
+  await page.getByRole('button', { name: 'Cancel opening' }).click()
+  await page.getByLabel('Choose a project file').setInputFiles({ name: 'broken.graphbuilder', mimeType: 'application/json', buffer: Buffer.from('{broken') })
+  const projectError = await new AxeBuilder({ page }).withTags(wcagTags).analyze()
+  expect(summary(projectError.violations)).toEqual([])
+  await page.getByRole('button', { name: 'Keep current project' }).click()
   await page.getByRole('button', { name: 'Close projects' }).click()
   await expect(page.getByRole('button', { name: 'Projects & export' })).toBeFocused()
 

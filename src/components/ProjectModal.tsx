@@ -9,6 +9,9 @@ import { chooseSourceDataset } from '../sourceData'
 import { DesktopUpdater } from './DesktopUpdater'
 import { projectGraphs, useBuilderStore } from '../store'
 import { useDialogFocus } from '../useDialogFocus'
+import type { Dataset } from '../types'
+
+interface PendingOpen { project: ProjectFile; dataset: Dataset; nativePath?: string }
 
 export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { onClose: () => void; autosaveStatus: string; initialProjectPath?: string }) {
   const state = useBuilderStore()
@@ -21,6 +24,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
   const [templateName, setTemplateName] = useState(activeGraphName)
   const [mode, setMode] = useState<'embedded' | 'linked'>('embedded')
   const [pendingLinked, setPendingLinked] = useState<ProjectFile>()
+  const [pendingLinkedPath, setPendingLinkedPath] = useState<string>()
   const [pendingDeleteId, setPendingDeleteId] = useState<string>()
   const [width, setWidth] = useState(spec.graphWidth ?? 1200)
   const [height, setHeight] = useState(spec.graphHeight ?? 800)
@@ -28,17 +32,53 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
   const [busy, setBusy] = useState(false)
   const [updateInstalling, setUpdateInstalling] = useState(false)
   const [message, setMessage] = useState<string>()
-  const dialogRef = useDialogFocus<HTMLElement>()
+  const [openError, setOpenError] = useState<string>()
+  const [pendingOpen, setPendingOpen] = useState<PendingOpen>()
+  const [saveError, setSaveError] = useState<string>()
+  const dialogRef = useDialogFocus<HTMLElement>(!pendingOpen && !openError)
+  const decisionRef = useDialogFocus<HTMLElement>(Boolean(pendingOpen || openError))
   const [legacyTemplates] = useState(() => readLegacyTemplates())
   const [recent, setRecent] = useState(() => isDesktop() ? recentProjects() : [])
 
   useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !pendingLinked && !updateInstalling) onClose() }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || updateInstalling || busy) return
+      if (pendingOpen || openError) { setPendingOpen(undefined); setOpenError(undefined); setSaveError(undefined); if (initialProjectPath) onClose() }
+      else if (!pendingLinked) onClose()
+    }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose, pendingLinked, updateInstalling])
+  }, [onClose, pendingLinked, pendingOpen, openError, initialProjectPath, updateInstalling, busy])
 
   const report = (error: unknown) => setMessage(error instanceof Error ? error.message : 'This action could not be completed.')
+  const reportOpenError = (error: unknown) => {
+    setPendingOpen(undefined)
+    setOpenError(error instanceof Error ? error.message : 'The project could not be opened. Your current project was not changed.')
+  }
+  const cancelOpen = () => {
+    setPendingOpen(undefined); setOpenError(undefined); setSaveError(undefined)
+    if (initialProjectPath) onClose()
+  }
+  const saveAndOpen = async () => {
+    if (!pendingOpen) return
+    setBusy(true); setSaveError(undefined)
+    try {
+      const current = useBuilderStore.getState()
+      const backup = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded')
+      if (isDesktop()) {
+        const path = await saveDesktopText(`${safeFileName(backup.name)}.graphbuilder`, projectJson(backup), 'graphbuilder', pendingOpen.nativePath)
+        if (!path) { setSaveError('Saving was canceled. Your current project is still open.'); return }
+        rememberProject(path, backup.name)
+        useBuilderStore.getState().setProjectPath(path)
+      } else downloadText(`${safeFileName(backup.name)}.graphbuilder`, projectJson(backup))
+      const { project, dataset: nextDataset, nativePath } = pendingOpen
+      openProject(project.name, nextDataset, project.graphs, project.activeGraphId, nativePath)
+      if (nativePath) rememberProject(nativePath, project.name)
+      setPendingOpen(undefined); setPendingLinked(undefined)
+      onClose()
+    } catch (error) { setSaveError(error instanceof Error ? error.message : 'The current project could not be saved. It remains open.') }
+    finally { setBusy(false) }
+  }
   const graphs = projectGraphs(state)
   const pendingDelete = graphs.find((graph) => graph.id === pendingDeleteId)
   const confirmDelete = () => {
@@ -55,6 +95,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
         const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project), 'graphbuilder')
         if (!path) return
         rememberProject(path, project.name); setRecent(recentProjects())
+        useBuilderStore.getState().setProjectPath(path)
       } else downloadText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project))
       renameProject(project.name)
       setMessage(isDesktop() ? 'Project saved on this computer.' : mode === 'embedded' ? 'Project downloaded with its data and graph settings.' : 'Linked project downloaded. Its source data must be reconnected when opened.')
@@ -74,7 +115,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
   }
   const readProject = async (file?: File, nativePath?: string) => {
     if (!file && !nativePath) return
-    setBusy(true); setMessage(undefined)
+    setBusy(true); setMessage(undefined); setOpenError(undefined); setPendingLinked(undefined); setPendingLinkedPath(undefined)
     try {
       if (file && file.size > 100 * 1024 * 1024) throw new Error('This project file is too large to open safely (100 MB limit).')
       const project = parseProject(nativePath ? await readDesktopProject(nativePath) : await file!.text())
@@ -86,17 +127,13 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
             const selected = chooseSourceDataset(sheets, source, source.signature)
             if (!selected) throw new Error('The saved source path no longer has matching columns.')
             const restored = project.data.columns ? rebuildLinkedDataset(selected, project.data.columns) : selected
-            if (window.confirm('Open this linked project and replace the current one? Save the current project first if you need to keep it.')) {
-              openProject(project.name, restored, project.graphs, project.activeGraphId)
-              if (nativePath) { rememberProject(nativePath, project.name); setRecent(recentProjects()) }
-              onClose(); return
-            }
+            setPendingOpen({ project, dataset: restored, nativePath })
             return
           } catch { /* A moved or inaccessible source can still be selected manually. */ }
         }
-        setPendingLinked(project); setMessage(`Choose the source file “${source.fileName}” to finish opening this linked project.`)
-      } else if (window.confirm('Open this project and replace the current one? Save the current project first if you need to keep it.')) { openProject(project.name, project.data.dataset, project.graphs, project.activeGraphId); if (nativePath) { rememberProject(nativePath, project.name); setRecent(recentProjects()) } onClose() }
-    } catch (error) { report(error) }
+        setPendingLinked(project); setPendingLinkedPath(nativePath); setMessage(`Choose the source file “${source.fileName}” to finish opening this linked project.`)
+      } else setPendingOpen({ project, dataset: project.data.dataset, nativePath })
+    } catch (error) { reportOpenError(error) }
     finally { setBusy(false); if (projectInput.current) projectInput.current.value = '' }
   }
   const readAssociatedProject = useRef(readProject)
@@ -122,8 +159,8 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
       const selected = chooseSourceDataset(sheets, { fileName: file.name, sheetName: source.sheetName, nativePath }, source.signature)
       if (!selected) throw new Error('This source file does not have the columns expected by the linked project. The current project was not changed.')
       const restored = pendingLinked.data.columns ? rebuildLinkedDataset(selected, pendingLinked.data.columns) : selected
-      if (window.confirm('Open this linked project and replace the current one? Download the current project first if you need to keep it.')) { openProject(pendingLinked.name, restored, pendingLinked.graphs, pendingLinked.activeGraphId); setPendingLinked(undefined); onClose() }
-    } catch (error) { report(error) }
+      setPendingOpen({ project: pendingLinked, dataset: restored, nativePath: pendingLinkedPath })
+    } catch (error) { reportOpenError(error) }
     finally { setBusy(false); if (sourceInput.current) sourceInput.current.value = '' }
   }
   const chooseProject = async () => {
@@ -192,14 +229,14 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
     catch (error) { report(error) }
   }
 
-  return <div className="modal-backdrop project-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !updateInstalling) onClose() }}>
-    <section ref={dialogRef} className="project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-title" tabIndex={-1}>
-      <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" disabled={updateInstalling} onClick={onClose}>×</button></header>
+  return <><div className="modal-backdrop project-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !updateInstalling && !pendingOpen && !openError) onClose() }}>
+    <section ref={dialogRef} className="project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-title" aria-hidden={Boolean(pendingOpen || openError)} inert={Boolean(pendingOpen || openError)} tabIndex={-1}>
+      <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" disabled={updateInstalling || Boolean(pendingOpen || openError)} onClick={onClose}>×</button></header>
       <div className="project-body">
         <section className="project-section"><h3>Project file</h3><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={() => void saveFile()}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div><small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
         {isDesktop() && <DesktopUpdater saveBeforeInstall={saveBeforeUpdate} onInstalling={setUpdateInstalling} />}
         {recent.length > 0 && <section className="project-section"><h3>Recent projects</h3><div className="project-graph-list">{recent.map((item) => <button key={item.path} title={item.path} disabled={busy} onClick={() => void readProject(undefined, item.path)}>{item.name}</button>)}</div></section>}
-        {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.') }}>Cancel</button></div></section>}
+        {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setPendingLinkedPath(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.'); if (initialProjectPath) onClose() }}>Cancel</button></div></section>}
         <section className="project-section"><h3>Graphs in this project</h3><div className="project-graph-list">{graphs.map((graph) => <div className="project-graph-item" key={graph.id}><button className={graph.id === activeGraphId ? 'active' : ''} disabled={graph.id === activeGraphId} onClick={() => { openGraph(graph.id); setGraphName(graph.name); setTemplateName(graph.name); setPendingDeleteId(undefined) }}>{graph.name}{graph.id === activeGraphId ? ' · open' : ''}</button><button className="project-delete-button" disabled={graphs.length === 1} aria-label={`Delete ${graph.name}`} title={graphs.length === 1 ? 'A project must have at least one graph' : `Delete ${graph.name}`} onClick={() => setPendingDeleteId(graph.id)}>Delete</button></div>)}</div>{pendingDelete && <div className="project-delete-confirm" role="group" aria-label="Confirm graph deletion"><span>Delete “{pendingDelete.name}” from this project?</span><button onClick={confirmDelete}>Delete graph</button><button onClick={() => setPendingDeleteId(undefined)}>Cancel</button></div>}<div className="project-actions"><button onClick={() => { newGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>New graph</button><button onClick={() => { duplicateGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>Duplicate open graph</button></div><div className="project-actions"><label>Open graph name<input value={graphName} onChange={(event) => setGraphName(event.target.value)} /></label><button onClick={() => renameGraph(graphName)}>Rename</button></div></section>
         <section className="project-section"><h3>Reusable graph template</h3><p>Templates save the current graph and filters without data; import them with a dataset that has matching columns.</p><div className="project-actions"><label>Template name<input value={templateName} onChange={(event) => setTemplateName(event.target.value)} /></label><button onClick={() => void exportTemplate()}>{isDesktop() ? 'Save template…' : 'Download template'}</button><button disabled={busy} onClick={() => void chooseTemplate()}>Open template…</button></div></section>
         {legacyTemplates.length > 0 && <section className="project-section"><h3>Previous saved graphs</h3><p>Download each saved graph as a template before clearing this browser's data. Templates keep graph settings and filters, but need the original dataset when opened.</p><div className="project-graph-list">{legacyTemplates.map((template, index) => <div className="project-graph-item" key={`${template.name}-${index}`}><span>{template.name}</span><button onClick={() => downloadText(`${safeFileName(template.name)}.graphbuilder-template.json`, JSON.stringify(template, null, 2))}>Download template</button></div>)}</div></section>}
@@ -211,4 +248,17 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath }: { 
       <input ref={templateInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a graph template file" accept=".graphbuilder-template.json,.json" onChange={(event) => void importTemplate(event.target.files?.[0])} />
     </section>
   </div>
+    {(pendingOpen || openError) && <div className="modal-backdrop project-decision-backdrop" role="presentation">
+      <section ref={decisionRef} className={`project-decision ${openError ? 'project-open-error' : ''}`} role={openError ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="project-decision-title" aria-describedby="project-decision-description" tabIndex={-1}>
+        <span className="eyebrow">{openError ? 'PROJECT FILE ERROR' : 'OPEN PROJECT'}</span>
+        <h2 id="project-decision-title">{openError ? 'Could not open project' : `Save before opening “${pendingOpen?.project.name}”?`}</h2>
+        <p id="project-decision-description">{openError ?? 'Save an embedded copy of your current work before opening this file. Cancel keeps the current project on screen. After opening, Undo can restore it during this session.'}</p>
+        {saveError && <p className="project-decision-error" role="alert">{saveError}</p>}
+        <div className="project-decision-actions">
+          {!openError && <button type="button" disabled={busy} onClick={() => void saveAndOpen()}>{busy ? 'Saving…' : 'Save current project and open'}</button>}
+          <button type="button" disabled={busy} className="secondary" onClick={cancelOpen}>{openError ? 'Keep current project' : 'Cancel opening'}</button>
+        </div>
+      </section>
+    </div>}
+  </>
 }

@@ -115,13 +115,15 @@ Give the project a name and choose a save mode:
 - **Embedded — include data** saves a `.graphbuilder` file with data rows, edits, formulas, annotations, graphs, and filters. Use this for a reproducible backup or to move between computers.
 - **Linked — reconnect source** saves graph and column settings without source rows. It requires the original compatible CSV or Excel file when reopened. Individual cell edits and excluded rows are not retained. The Windows app first tries the recorded path; a browser asks you to choose the source again. The built-in example cannot be saved as linked data.
 
-Choose **Open project…** to reopen a `.graphbuilder` file. Older `.graphbuilder.json` files can also be opened. An invalid project leaves the current work untouched. The app makes a local recovery copy and may offer it on the next launch. Browser storage can be cleared, so keep an embedded project file for important work. Older browser-only saved graphs can be downloaded as templates from **Previous saved graphs** when available.
+Choose **Open project…** to reopen a `.graphbuilder` file. Older `.graphbuilder.json` files can also be opened. The desktop app can also open these files when you double-click them in Windows, whether the app is running or closed. Before opening, choose **Save current project and open** to keep an embedded copy of your current work, or **Cancel opening** to stay where you are. If you open the new file, **Undo** restores your previous project during the current session. An invalid file shows a prominent error dialog and leaves the current project untouched. The app makes a local recovery copy and may offer it on the next launch. Browser storage can be cleared, so keep an embedded project file for important work. Older browser-only saved graphs can be downloaded as templates from **Previous saved graphs** when available.
 
 ![Projects and export with synthetic example data](screenshots/projects.png)
 
 **Download template** saves only the open graph's settings and filters; it contains no data. After importing a compatible dataset, choose **Open template…** to create a graph using that design. Matching column IDs and types matter.
 
 The Windows app lists recent projects in **Projects & export**. Reopen one from the list, or use **Open project…** to browse for a file. **Check for updates** looks for a signed release when online and offers a choice before installing. Save an embedded project first; installing an update closes the app. You can keep using the current version. The browser version has no desktop updater.
+
+In the Windows app, press **Ctrl+S** to save an embedded copy of the current project. If the project was opened from or saved to a file during this session, Ctrl+S updates that file; otherwise it asks where to save. Press **Ctrl+Shift+S** to choose a new file location. An embedded save includes data edits even if the opened file was linked to a source. If you want to keep a linked project instead, use **Projects & export → Data in saved file**.
 
 Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. The top-bar **Save PNG** uses the current graph size at 2× resolution.
 
@@ -146,14 +148,16 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Tab / Shift+Tab | Move to the next / previous control. |
 | Enter or Space | Activate a focused button, checkbox, or section heading. |
 | Arrow keys | Change a focused menu, radio choice, or number control using the browser's normal behavior. |
-| Escape | Close the user guide, data table, or filter dialog; cancel an in-place title or legend edit. |
+| Escape | Close the user guide, data table, or filter dialog; cancel opening a project or an in-place title or legend edit. |
 | Enter | Save an in-place title or legend edit; apply a filter while editing its dialog. |
 | F2 | Rename a focused legend series. |
 | Left / Right Arrow | Reorder a focused legend series. |
 | Arrow keys on a resize handle | Resize the graph or a sidebar in small steps. |
 | Ctrl+click / Shift+click | Add or range-select data-table rows with a pointer. |
+| Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
+| Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 
-**Undo** and **Redo** are top-bar buttons. The app does not assign a global Ctrl+Z/Ctrl+Y shortcut; use those buttons to reverse graph actions. Browser shortcuts, such as Ctrl+S, belong to the browser and do not save a Graph Builder project.
+**Undo** and **Redo** are also top-bar buttons. In a text field or data table, Ctrl+Z and Ctrl+Y remain available for that field's own editing behavior. Browser shortcuts, such as Ctrl+S, belong to the browser and do not save a Graph Builder project.
 
 ## Keyboard only workflow
 

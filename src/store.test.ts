@@ -21,6 +21,36 @@ describe('graph history', () => {
     expect(useBuilderStore.getState().spec.layers[0].element).toBe(changed)
   })
 
+  it('undoes and redoes opening a different project with its data and graphs', () => {
+    const store = useBuilderStore.getState()
+    store.renameProject('My work')
+    store.setProjectPath('C:\\Studies\\my-work.graphbuilder')
+    store.updateCell(sampleDataset.rows[0].id, 'dose', 777)
+    store.newGraph()
+    const original = {
+      name: useBuilderStore.getState().projectName,
+      path: useBuilderStore.getState().projectPath,
+      dataset: structuredClone(useBuilderStore.getState().dataset),
+      graphs: structuredClone(projectGraphs(useBuilderStore.getState())),
+    }
+    const incomingDataset = { ...sampleDataset, name: 'Another project', rows: sampleDataset.rows.slice(0, 2) }
+    const incomingGraphs = [{ id: 'incoming', name: 'New graph', spec: { ...store.spec, title: 'New graph' }, filters: [] }]
+
+    store.openProject('Another project', incomingDataset, incomingGraphs, 'incoming', 'C:\\Studies\\another.graphbuilder')
+    expect(useBuilderStore.getState().dataset.rows).toHaveLength(2)
+    expect(useBuilderStore.getState().projectName).toBe('Another project')
+    expect(useBuilderStore.getState().projectPath).toBe('C:\\Studies\\another.graphbuilder')
+    store.undo()
+    expect(useBuilderStore.getState().projectName).toBe(original.name)
+    expect(useBuilderStore.getState().projectPath).toBe(original.path)
+    expect(useBuilderStore.getState().dataset).toEqual(original.dataset)
+    expect(projectGraphs(useBuilderStore.getState())).toEqual(original.graphs)
+    store.redo()
+    expect(useBuilderStore.getState().projectName).toBe('Another project')
+    expect(useBuilderStore.getState().projectPath).toBe('C:\\Studies\\another.graphbuilder')
+    expect(useBuilderStore.getState().dataset.rows).toHaveLength(2)
+  })
+
   it('undoes a visual theme and axis change together', () => {
     useBuilderStore.getState().updateSpec({ theme: 'dark', yAxis: { scale: 'log' }, graphWidth: 900 })
     expect(useBuilderStore.getState().spec.yAxis?.scale).toBe('log')

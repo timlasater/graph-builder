@@ -201,6 +201,17 @@
 .project-dimensions select { width: 90px; }
 .project-reconnect { border-color: #d9a441; background: #fffaf0; }
 .project-dialog > .project-message { margin: 10px 0 0; }
+.project-decision-backdrop { z-index: 140; background: #17272fc9; }
+.project-decision { width: min(500px, calc(100vw - 32px)); padding: 24px; border: 2px solid #6eafb2; border-radius: 10px; background: #fff; color: var(--ink); box-shadow: 0 24px 75px #111d27a8; }
+.project-decision h2 { margin: 8px 0 10px; font-size: 20px; line-height: 1.3; }
+.project-decision p { margin: 0 0 18px; color: #465b65; font-size: 12px; line-height: 1.5; }
+.project-decision .project-decision-error { padding: 8px 10px; border-radius: 5px; background: #fff1ee; color: #873931; font-size: 11px; }
+.project-decision-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.project-decision-actions button { min-height: 36px; padding: 7px 12px; border: 1px solid #0c6971; border-radius: 5px; background: var(--teal); color: white; cursor: pointer; font-size: 11px; }
+.project-decision-actions button.secondary { border-color: #b9c8cc; background: white; color: #40545d; }
+.project-decision-actions button:disabled { opacity: .55; cursor: default; }
+.project-open-error { border-color: #bc665d; }
+.project-open-error .eyebrow { color: #a33730; }
 .recovery-backdrop { z-index: 130; }
 .dialog-cancel { margin-top: 18px; padding: 7px 12px; border: 1px solid #ccd5d9; border-radius: 5px; background: white; cursor: pointer; }
 .import-error { position: fixed; top: 68px; right: 18px; z-index: 120; max-width: 360px; display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid #dca8a6; border-radius: 6px; background: #fff1f0; color: #803d39; box-shadow: 0 8px 24px #24313a2b; font-size: 11px; }

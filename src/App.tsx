@@ -1,5 +1,5 @@
 import { closestCenter, DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
-import { lazy, Suspense, useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { DataTableModal } from './components/DataTableModal'
@@ -15,6 +15,7 @@ import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
 import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
 import { isDesktop, saveDesktopImage } from './desktopFiles'
+import { saveCurrentDesktopProject } from './projectSave'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
@@ -83,6 +84,8 @@ function App() {
   const [showDataTable, setShowDataTable] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
+  const [projectSaveStatus, setProjectSaveStatus] = useState<string>()
+  const projectSaveInProgress = useRef(false)
   const [savingPng, setSavingPng] = useState(false)
   const [pngError, setPngError] = useState<string>()
   const [linkError, setLinkError] = useState<string>()
@@ -121,7 +124,26 @@ function App() {
   const canCollate = spec.x.length === 1 && columnFor(spec.x[0])?.modelingType !== 'continuous' && spec.layers.every((layer) => ['bar', 'points', 'box'].includes(layer.element))
   const desktop = isDesktop()
   const associatedProject = useAssociatedProjects(desktop)
+  const openingAssociatedProject = Boolean(associatedProject.path && recovery.ready)
   const documentTitle = `${projectName} · ${activeGraphName}`
+
+  useEffect(() => {
+    const handleHistoryShortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return
+      const key = event.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      const target = event.target
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], .ag-root'))) return
+      if (document.querySelector('[aria-modal="true"]')) return
+      const current = useBuilderStore.getState()
+      if (key === 'z' ? !current.past.length : !current.future.length) return
+      event.preventDefault()
+      if (key === 'z') current.undo()
+      else current.redo()
+    }
+    window.addEventListener('keydown', handleHistoryShortcut)
+    return () => window.removeEventListener('keydown', handleHistoryShortcut)
+  }, [])
 
   useEffect(() => {
     if (desktop) void getCurrentWindow().setTitle(documentTitle).catch((error: unknown) => setLinkError(error instanceof Error ? error.message : 'The window title could not be updated.'))
@@ -148,6 +170,31 @@ function App() {
     } catch (error) { setPngError(error instanceof Error ? error.message : 'The PNG could not be saved.') }
     finally { setSavingPng(false) }
   }
+
+  useEffect(() => {
+    if (!desktop) return
+    const saveCurrentProject = async (saveAs: boolean) => {
+      if (projectSaveInProgress.current) return
+      projectSaveInProgress.current = true
+      setProjectSaveStatus(undefined)
+      try {
+        const path = await saveCurrentDesktopProject(saveAs)
+        if (path) setProjectSaveStatus(`Project saved: ${path.split(/[\\/]/).at(-1)}`)
+      } catch (error) {
+        setProjectSaveStatus(error instanceof Error ? `Could not save project: ${error.message}` : 'Could not save project.')
+      } finally { projectSaveInProgress.current = false }
+    }
+    const handleSaveShortcut = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || event.altKey || event.key.toLowerCase() !== 's') return
+      const target = event.target
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], .ag-root'))) return
+      if (document.querySelector('[aria-modal="true"]')) return
+      event.preventDefault()
+      if (!event.repeat) void saveCurrentProject(event.shiftKey)
+    }
+    window.addEventListener('keydown', handleSaveShortcut)
+    return () => window.removeEventListener('keydown', handleSaveShortcut)
+  }, [desktop])
 
   const startCanvasResize = (direction: ResizeDirection, event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault(); event.stopPropagation()
@@ -215,8 +262,8 @@ function App() {
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
             <ImportDataButton onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
-            <button onClick={undo} disabled={!past.length} title="Undo">↶</button>
-            <button onClick={redo} disabled={!future.length} title="Redo">↷</button>
+            <button onClick={undo} disabled={!past.length} title="Undo (Ctrl+Z)">↶</button>
+            <button onClick={redo} disabled={!future.length} title="Redo (Ctrl+Y)">↷</button>
             <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? This closes the current project and clears Undo. Download an embedded project first if you need to keep your work.')) reset() }}>Reset example</button>
           </div>
         </header>
@@ -347,12 +394,13 @@ function App() {
         </main>
       </div>
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
-      {(showProjects || associatedProject.path) && <ProjectModal key={associatedProject.path ?? 'manual'} initialProjectPath={associatedProject.path} onClose={() => { if (associatedProject.path) associatedProject.finish(); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
+      {(showProjects || openingAssociatedProject) && <ProjectModal key={openingAssociatedProject ? associatedProject.path : 'manual'} initialProjectPath={openingAssociatedProject ? associatedProject.path : undefined} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}
+      {projectSaveStatus && <div className="compatibility-message" role="status"><span>{projectSaveStatus}</span><button aria-label="Dismiss save message" onClick={() => setProjectSaveStatus(undefined)}>×</button></div>}
       {pngError && <div className="compatibility-message" role="alert"><span>{pngError}</span><button aria-label="Dismiss PNG error" onClick={() => setPngError(undefined)}>×</button></div>}
       {linkError && <div className="compatibility-message" role="alert"><span>{linkError}</span><button aria-label="Dismiss link error" onClick={() => setLinkError(undefined)}>×</button></div>}
       {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size requires numeric data · Frequency requires whole-number counts</span></div>}

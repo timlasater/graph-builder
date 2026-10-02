@@ -1,0 +1,18 @@
+// @vitest-environment jsdom
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { save } from '@tauri-apps/plugin-dialog'
+import { writeTextFile } from '@tauri-apps/plugin-fs'
+import { saveDesktopText } from './desktopFiles'
+
+vi.mock('@tauri-apps/plugin-dialog', () => ({ open: vi.fn(), save: vi.fn() }))
+vi.mock('@tauri-apps/plugin-fs', () => ({ readFile: vi.fn(), readTextFile: vi.fn(), stat: vi.fn(), writeFile: vi.fn(), writeTextFile: vi.fn() }))
+
+describe('desktop project backup', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('refuses to overwrite the project that is about to open', async () => {
+    vi.mocked(save).mockResolvedValue('c:/studies/INCOMING.graphbuilder')
+    await expect(saveDesktopText('current.graphbuilder', '{}', 'graphbuilder', 'C:\\Studies\\incoming.graphbuilder')).rejects.toThrow('different file name')
+    expect(writeTextFile).not.toHaveBeenCalled()
+  })
+})

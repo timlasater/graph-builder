@@ -19,4 +19,19 @@ describe('desktop recent projects', () => {
     localStorage.setItem('graph-builder-recent-projects', '{')
     expect(recentProjects()).toEqual([])
   })
+
+  it('removes existing repeats with different slash and letter casing', () => {
+    localStorage.setItem('graph-builder-recent-projects', JSON.stringify([
+      { path: 'C:\\Studies\\one.graphbuilder', name: 'One latest' },
+      { path: 'c:/studies/ONE.graphbuilder', name: 'One old' },
+      { path: 'C:\\Other\\one.graphbuilder', name: 'Another file with the same name' },
+    ]))
+    expect(recentProjects()).toEqual([
+      { path: 'C:\\Studies\\one.graphbuilder', name: 'One latest' },
+      { path: 'C:\\Other\\one.graphbuilder', name: 'Another file with the same name' },
+    ])
+    rememberProject('c:/studies/ONE.graphbuilder', 'One newest')
+    expect(recentProjects()).toHaveLength(2)
+    expect(recentProjects()[0].name).toBe('One newest')
+  })
 })
