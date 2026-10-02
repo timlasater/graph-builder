@@ -4,6 +4,7 @@ Graph Builder is a local-first scientific graphing application for Windows and m
 
 - [Try the browser app](https://timothylasater.com/graph-builder/app/)
 - [Read the complete user guide](docs/user-guide.md)
+- [0.1.4 Windows release test plan](docs/release-0.1.4-test-plan.md)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)
 
 ## Architecture

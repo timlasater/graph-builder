@@ -1,5 +1,7 @@
 # Phase 10 Windows checks
 
+This is the historical Phase 10 checklist for the 0.1.2–0.1.3 validation period. Use the [0.1.4 release test plan](release-0.1.4-test-plan.md) for the current acceptance pass.
+
 Use the newest `Graph Builder_…_x64-setup.exe` in `src-tauri/target/release/bundle/nsis/`. The installer is currently unsigned and may show a Windows SmartScreen prompt.
 
 1. Close Graph Builder and run the installer. Launch the installed app from the Start menu.

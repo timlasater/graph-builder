@@ -159,6 +159,8 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 | Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
+| Ctrl+E | In the Windows app, open **Projects & export** when focus is outside an editable field or dialog. |
+| ? | Show a compact list of keyboard shortcuts in the browser or Windows app. The top bar also has a **Keyboard shortcuts** button. |
 
 **Undo** and **Redo** are also top-bar buttons. In a text field or data table, Ctrl+Z and Ctrl+Y remain available for that field's own editing behavior. Browser shortcuts, such as Ctrl+S, belong to the browser and do not save a Graph Builder project.
 

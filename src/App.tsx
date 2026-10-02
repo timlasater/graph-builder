@@ -11,11 +11,13 @@ import { ActiveFiltersPopup, FilterDropZone, FilterPopup } from './components/Fi
 import { ImportDataButton } from './components/ImportDataButton'
 import { MovingAverageWindow } from './components/MovingAverageWindow'
 import { ProjectModal } from './components/ProjectModal'
+import { ShortcutHelp } from './components/ShortcutHelp'
 import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
 import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
 import { chooseDesktopFile, desktopOpenKind, isDesktop, saveDesktopImage } from './desktopFiles'
 import { saveCurrentDesktopProject } from './projectSave'
+import { navigationShortcut } from './navigationShortcuts'
 import { stackCompatibility } from './plotTransforms'
 import { rowMatchesFilters, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
@@ -84,6 +86,7 @@ function App() {
   const [showDataTable, setShowDataTable] = useState(false)
   const [showProjects, setShowProjects] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [dataOpenRequest, setDataOpenRequest] = useState<{ id: number; path: string }>()
   const [projectOpenRequest, setProjectOpenRequest] = useState<{ id: number; path: string }>()
   const nextOpenRequestId = useRef(0)
@@ -131,6 +134,19 @@ function App() {
   const openingAssociatedProject = Boolean(associatedProject.path && recovery.ready)
   const projectPathToOpen = openingAssociatedProject ? associatedProject.path : projectOpenRequest?.path
   const documentTitle = `${projectName} · ${activeGraphName}`
+
+  useEffect(() => {
+    const handleNavigationShortcut = (event: KeyboardEvent) => {
+      const shortcut = navigationShortcut(event, desktop, Boolean(document.querySelector('[aria-modal="true"]')))
+      if (!shortcut) return
+      event.preventDefault()
+      if (event.repeat) return
+      if (shortcut === 'projects') setShowProjects(true)
+      else setShowShortcutHelp(true)
+    }
+    window.addEventListener('keydown', handleNavigationShortcut)
+    return () => window.removeEventListener('keydown', handleNavigationShortcut)
+  }, [desktop])
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
@@ -284,7 +300,7 @@ function App() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragCancel={() => { setDragColumnId(undefined); setDragElement(undefined) }} onDragEnd={handleDragEnd}>
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand"><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span><button className="brand-setup" onClick={() => setShowUserGuide(true)}>User guide</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Save the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button>{!desktop && <span className="document-name" title={documentTitle}><span className="status-dot" /><span className="document-name-text">{documentTitle}</span></span>}</div>
+          <div className="brand"><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span><button className="brand-setup" onClick={() => setShowUserGuide(true)}>User guide</button><button className="brand-setup shortcut-help-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => setShowShortcutHelp(true)}>?</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Save the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button>{!desktop && <span className="document-name" title={documentTitle}><span className="status-dot" /><span className="document-name-text">{documentTitle}</span></span>}</div>
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
@@ -423,6 +439,7 @@ function App() {
       {showDataTable && <DataTableModal onClose={() => setShowDataTable(false)} />}
       {(showProjects || projectPathToOpen) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
+      {showShortcutHelp && <ShortcutHelp desktop={desktop} onClose={() => setShowShortcutHelp(false)} onFullGuide={() => { setShowShortcutHelp(false); setShowUserGuide(true) }} />}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
