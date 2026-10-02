@@ -5,7 +5,7 @@ Use this checklist on the Windows laptop with Node.js, Rust, Visual Studio C++ B
 ## Prepare the candidate
 
 - [ ] In PowerShell, open the Graph Builder project folder and run `git pull origin main`, then `git status --short --branch`. Expect `main` to match `origin/main` with no local changes. Do not discard local changes if the result differs.
-- [ ] Confirm that `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml` all say `0.1.4` before building the installer. They still say `0.1.3` until the release version is deliberately updated. A build made before that update is a development candidate, not the 0.1.4 installer.
+- [x] Confirm that `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml` all say `0.1.4` before building the installer.
 - [ ] Run `npm ci`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e`, `npm run build:pages`, and `npm run test:pages`, one after another. Each must finish successfully. The browser suite starts its own local server. If Chrome is missing for Playwright, install its browser as prompted, then rerun the suite.
 - [ ] Run `npm run desktop:build` after the version update. Expect a Windows setup file under `src-tauri/target/release/bundle/nsis/`. Record the exact filename and version. A local build proves packaging works; the GitHub release workflow is responsible for the signed update assets.
 
