@@ -104,7 +104,7 @@ describe('data history and filters', () => {
   it('matches explicit persistent filters', () => {
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'prototype', operator: 'contains', value: 'A' }])).toBe(true)
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'pressure', operator: 'gt', value: 100 }])).toBe(false)
-    expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'prototype', operator: 'in', values: ['Prototype A'] }])).toBe(true)
+    expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'prototype', operator: 'in', values: ['Group A'] }])).toBe(true)
     expect(rowMatchesFilters(sampleDataset.rows[0], [{ id: 'f', columnId: 'pressure', operator: 'between', min: 10, max: 25 }])).toBe(true)
   })
   it('matches date ranges and missing-value filters', () => {
@@ -182,7 +182,7 @@ describe('data history and filters', () => {
   it('loads and undoes a graph template atomically', () => {
     const original = structuredClone(useBuilderStore.getState().spec)
     const saved = { ...original, title: 'Saved setup', x: ['run'], y: ['dose'] }
-    const filters = [{ id: 'saved-filter', columnId: 'prototype', operator: 'equals' as const, value: 'Prototype B' }]
+    const filters = [{ id: 'saved-filter', columnId: 'prototype', operator: 'equals' as const, value: 'Group B' }]
     useBuilderStore.getState().applyGraphTemplate(saved, filters)
     expect(useBuilderStore.getState().spec.title).toBe('Saved setup')
     expect(useBuilderStore.getState().filters).toEqual(filters)

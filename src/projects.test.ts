@@ -26,7 +26,7 @@ describe('project files', () => {
 
   it('keeps precomputed summary settings and checks referenced columns', () => {
     const savedGraph = graph()
-    savedGraph.spec.layers = [{ id: 'supplied', name: 'Supplied', element: 'summary', summaryInput: 'precomputed', precomputedErrorColumn: 'dose', precomputedNColumn: 'pressure', valueTransform: 'control', controlCategory: 'Prototype A', showSampleSize: true }]
+    savedGraph.spec.layers = [{ id: 'supplied', name: 'Supplied', element: 'summary', summaryInput: 'precomputed', precomputedErrorColumn: 'dose', precomputedNColumn: 'pressure', valueTransform: 'control', controlCategory: 'Group A', showSampleSize: true }]
     savedGraph.spec.activeLayerId = 'supplied'
     const project = makeProject('Supplied study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')
     expect(parseProject(projectJson(project)).graphs[0].spec.layers[0]).toMatchObject({ summaryInput: 'precomputed', precomputedErrorColumn: 'dose', valueTransform: 'control' })
@@ -39,7 +39,7 @@ describe('project files', () => {
     store.reset()
     store.updateCell(sampleDataset.rows[0].id, 'dose', 91)
     store.addCalculatedColumn('Double dose', '[dose] * 2')
-    store.setFilters([{ id: 'only-a', columnId: 'prototype', operator: 'equals', value: 'Prototype A' }])
+    store.setFilters([{ id: 'only-a', columnId: 'prototype', operator: 'equals', value: 'Group A' }])
     store.updateSpec({ theme: 'dark', graphWidth: 900 })
     const state = useBuilderStore.getState()
     const project = parseProject(projectJson(makeProject('Study', state.dataset, projectGraphs(state), state.activeGraphId, 'embedded')))
@@ -48,7 +48,7 @@ describe('project files', () => {
     store.openProject(project.name, project.data.dataset, project.graphs, project.activeGraphId)
     expect(useBuilderStore.getState().dataset.rows[0].values.dose).toBe(91)
     expect(useBuilderStore.getState().dataset.columns.some((column) => column.formula)).toBe(true)
-    expect(useBuilderStore.getState().filters[0].value).toBe('Prototype A')
+    expect(useBuilderStore.getState().filters[0].value).toBe('Group A')
     expect(useBuilderStore.getState().spec.theme).toBe('dark')
     expect(useBuilderStore.getState().spec.graphWidth).toBe(900)
     store.reset()
@@ -58,7 +58,7 @@ describe('project files', () => {
     const dataset = { ...sampleDataset, source: { fileName: 'results.csv' } }
     const project = makeProject('Linked', dataset, [graph()], 'one', 'linked')
     expect(project.data).toEqual({ mode: 'linked', source: { fileName: 'results.csv', signature: expect.any(String) }, columns: sampleDataset.columns })
-    expect(projectJson(project)).not.toContain('Prototype A')
+    expect(projectJson(project)).not.toContain('Group A')
   })
 
   it('saves the desktop source path only in linked projects', () => {
@@ -91,7 +91,7 @@ describe('project files', () => {
     project.graphs[0].spec.layers = []
     expect(() => parseProject(projectJson(project))).toThrow('incomplete or damaged')
     const malformedFilter = makeProject('Good', sampleDataset, [graph()], 'one', 'embedded')
-    malformedFilter.graphs[0].filters = [{ id: 'bad', columnId: 'prototype', operator: 'in', values: 'Prototype A' as never }]
+    malformedFilter.graphs[0].filters = [{ id: 'bad', columnId: 'prototype', operator: 'in', values: 'Group A' as never }]
     expect(() => parseProject(projectJson(malformedFilter))).toThrow('incomplete or damaged')
     const malformedAnnotation = makeProject('Good', sampleDataset, [graph()], 'one', 'embedded')
     if (malformedAnnotation.data.mode === 'embedded') malformedAnnotation.data.dataset.importedAnnotations = { referenceLines: [], referenceRegions: 'broken' as never }

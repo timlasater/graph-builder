@@ -5,7 +5,9 @@ test('imports a file, builds a graph, saves and reopens a project, then exports'
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Variables' })).toBeVisible()
   if (process.env.GB_CAPTURE_GUIDE === '1') {
+    await page.setViewportSize({ width: 1440, height: 900 })
     await expect(page.getByRole('region', { name: 'Graph preview' })).toBeVisible()
+    await expect(page.locator('.interactive-legend')).toBeVisible()
     await page.screenshot({ path: 'docs/screenshots/workspace.png', fullPage: false })
     await page.getByRole('button', { name: 'Projects & export' }).click()
     await page.screenshot({ path: 'docs/screenshots/projects.png', fullPage: false })

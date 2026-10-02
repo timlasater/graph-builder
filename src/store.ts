@@ -6,7 +6,7 @@ import { elementLabel, resolveAssignment, sameAssignments, suggestElement } from
 import type { CellValue, DataColumn, Dataset, GraphDocument, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
 
 const initialSpec: GraphSpec = {
-  title: 'Emitted Dose by Test Pressure',
+  title: 'Measured Result by Input Setting',
   subtitle: 'Built-in example data · drag variables to change the graph',
   x: ['pressure'],
   y: ['dose'],

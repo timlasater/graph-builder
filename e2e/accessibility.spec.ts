@@ -37,7 +37,7 @@ test('workspace and main dialogs have no detectable WCAG A or AA issues', async 
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'View data table' })).toBeFocused()
 
-  await page.locator('.variable-list').getByRole('button', { name: 'Prototype' }).click()
+  await page.locator('.variable-list').getByRole('button', { name: 'Sample Group' }).click()
   await page.getByRole('button', { name: 'Filter selected column' }).click()
   const filter = await new AxeBuilder({ page }).withTags(wcagTags).analyze()
   expect(summary(filter.violations)).toEqual([])

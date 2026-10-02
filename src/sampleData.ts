@@ -1,18 +1,18 @@
 import type { Dataset } from './types'
 
-const prototypes = ['Prototype A', 'Prototype B', 'Prototype C']
+const prototypes = ['Group A', 'Group B', 'Group C']
 const pressures = [20, 30, 40, 50, 60]
 const offsets = [-2.1, 0.8, 1.3]
 const baselines = [43, 49, 55]
 
 export const sampleDataset: Dataset = {
-  name: 'Nebulizer engineering study',
+  name: 'Example measurements (synthetic data)',
   columns: [
-    { id: 'prototype', name: 'Prototype', dataType: 'text', modelingType: 'nominal' },
-    { id: 'pressure', name: 'Test Pressure', dataType: 'number', modelingType: 'continuous', unit: 'psi' },
-    { id: 'dose', name: 'Emitted Dose', dataType: 'number', modelingType: 'continuous', unit: '%' },
-    { id: 'run', name: 'Run', dataType: 'number', modelingType: 'ordinal' },
-    { id: 'passed', name: 'Passed', dataType: 'boolean', modelingType: 'nominal' },
+    { id: 'prototype', name: 'Sample Group', dataType: 'text', modelingType: 'nominal' },
+    { id: 'pressure', name: 'Input Setting', dataType: 'number', modelingType: 'continuous' },
+    { id: 'dose', name: 'Measured Result', dataType: 'number', modelingType: 'continuous' },
+    { id: 'run', name: 'Trial', dataType: 'number', modelingType: 'ordinal' },
+    { id: 'passed', name: 'Within Example Range', dataType: 'boolean', modelingType: 'nominal' },
   ],
   warnings: [],
   rows: prototypes.flatMap((prototype, prototypeIndex) =>

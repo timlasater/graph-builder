@@ -1,333 +1,37 @@
-# Graph Builder Development Roadmap
+# Graph Builder roadmap
 
-This document is the working handoff for future coding agents. Continue the existing application; do not replace it with a new scaffold.
+This document records completed milestones and remaining release work. For current setup, architecture, and verification commands, see [README.md](README.md). For feature instructions, see the [user guide](docs/user-guide.md). Historical validation records remain under `docs/`.
 
-## Product goal
+## Product direction
 
-Build an offline-first, Windows-focused scientific graph builder inspired by JMP Graph Builder. The primary user is an engineer rather than a software developer, so changes should be explained in plain language and demonstrated through visible workflows.
+Graph Builder is a local-first scientific graphing tool for people who work with tabular measurements. It should make common graphing and statistical workflows approachable without hiding the underlying data. The Windows app should work offline after installation; the browser version needs a connection to load but processes imported rows locally. The project uses its own interface and assets.
 
-The application must comfortably handle typical files with 100–500 rows and 1,000–10,000 cells, and a practical maximum of approximately 5,000 rows and 50,000 populated cells. Dataset contents must remain local. The browser version is the development target until it is stable; Windows desktop packaging follows after validation. macOS and Linux releases are future goals when physical machines are available for testing.
+The primary supported workload is about 100–500 rows and 1,000–10,000 populated cells. Validation has also covered a 5,000-row, 50,000-cell browser workflow. Larger or more complex graphs should be assessed on the target machine rather than assumed to perform identically.
 
-This is an independent product inspired by a workflow. Do not copy JMP branding, proprietary assets, or source code.
+## Milestones
 
-## Current implementation
+| Milestone | Status | Record |
+| --- | --- | --- |
+| Data import, quality checks, editing, formulas | Complete | CSV/TSV/TXT/Excel import, data table, derived columns |
+| Graph building and layers | Complete | Variable roles, multiple layers, plot suggestions, grouping, facets |
+| Statistical summaries | Complete | Raw and supplied summaries, error bars, fits, moving averages |
+| Filtering and linked exploration | Complete | Graph/table filters and row selection |
+| Appearance and export | Complete | Axes, themes, legends, annotations, PNG/SVG/CSV export |
+| Projects and templates | Complete | Embedded/linked projects, multiple graphs, recovery, templates |
+| Browser validation | Complete | [Phase 9 validation](docs/phase-9-validation.md) and [manual checks](docs/phase-9-manual-checks.md) |
+| Windows packaging | In final validation | [Phase 10 manual checks](docs/phase-10-manual-checks.md) |
+| Public landing page and downloads | Browser preview live; desktop download pending | `site/index.html`, Pages and desktop release workflows |
 
-The project currently uses React, TypeScript, Vite, Zustand, dnd-kit, Plotly.js Basic, AG Grid Community, Papa Parse, and SheetJS.
+## Near-term work
 
-Already working:
+1. Finish a clean-machine Windows check of installer file association: double-click a `.graphbuilder` file, confirm it opens the intended project, and verify a failed or incompatible file leaves current work intact.
+2. Verify the installed app's core workflow with networking disabled: launch, import, graph, save, reopen, and export. Installing on a machine without WebView2 may require an initial download; ordinary use after installation must not.
+3. Verify both update paths from an installed release: no update available and declining an available update. The signed 0.1.2 → 0.1.3 install path was already tested. Update installation must remain a user choice after saved-work guidance.
+4. Publish a tested Windows release and only then add a desktop download button and checked specifications to the public landing page. Test installer links from a clean device. The browser preview is available at [the Graph Builder page](https://timothylasater.com/graph-builder/) and [the app](https://timothylasater.com/graph-builder/app/).
+5. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
 
-- Three-panel Graph Builder interface with a built-in engineering dataset
-- CSV, TSV, TXT, XLSX, and XLS import, including Excel worksheet selection
-- Numeric, text, Boolean, and date/time inference
-- Editable, sortable, filterable, paginated data table
-- Column renaming, units, data types, and modeling types
-- Row inclusion and exclusion
-- X, Y, Color, Group X, Group Y, Wrap, Overlay, and Size roles
-- Moving assignments between roles or back to the Variables panel
-- Compatibility handling between Wrap and Group X/Group Y
-- Points, lines, and basic bars
-- Color grouping, overlays, marker-size mapping, grouped panels, and wrapped facets
-- Titles, subtitles, marker size, grid visibility, hover details, zoom, and legend interaction
-- Undo and redo for graph-specification changes
+## Release and maintenance notes
 
-Before starting work, run:
+The Pages build produces a landing page at `/graph-builder/` and a separate application entry point at `/graph-builder/app/` so direct visits and refreshes work. The normal build remains suitable for Tauri. The Pages workflow publishes `main`; the desktop workflow is a manual, signed release process. The signing private key belongs outside Git and in release secrets; the public verification key is bundled with the app. A Windows installer certificate is separate from the free Tauri update signature.
 
-```powershell
-npm install
-npm test
-npm run lint
-npm run build
-```
-
-Keep these checks passing. Add focused tests with each behavioral change. Do not weaken types or tests to make a change pass.
-
-## Implementation principles
-
-1. Keep the dataset model and renderer-independent graph specification separate from Plotly configuration. Plotly is an output adapter, not the saved project format.
-2. Keep all data processing local. Do not add analytics, cloud storage, remote APIs, or a server dependency.
-3. Prefer small, testable pure functions for statistics, filtering, grouping, and graph transformations.
-4. Never evaluate arbitrary JavaScript entered as a formula. Formula support must use a restricted parser and an explicit function allowlist.
-5. Every statistical choice must be documented and tested against independently verified reference values. Sample standard deviation uses `n - 1`; confidence intervals use an appropriate Student's t critical value for small samples.
-6. Preserve existing drag/drop behavior, assignments, import support, and history unless a change explicitly improves them.
-7. Keep controls understandable to a non-programmer. Use engineering language, useful defaults, inline validation, and actionable error messages.
-8. Test with missing values, unequal group sizes, one-observation groups, mixed column types, and excluded rows—not only ideal datasets.
-9. Optimize only after measuring, but do not introduce designs that require loading copies of the entire dataset for every mouse movement.
-10. Complete and verify one coherent vertical slice at a time.
-
-## Phase 2 completion — Data quality and formulas
-
-Status: complete (September 2026). Import diagnostics, missingness summaries, Excel paste, stable-ID calculated columns, value labels, persistent filters, dataset undo/redo, and representative fixtures are implemented and tested.
-
-Finish the remaining data-table capabilities before expanding the plot engine.
-
-Deliverables:
-
-- Paste rectangular tabular data copied from Excel
-- Import warnings for duplicate headings, empty headings, mixed types, invalid dates, and lossy coercions
-- A visible missing-value summary per column
-- Basic calculated columns using a restricted expression engine
-- Formula references by stable column ID while displaying friendly column names
-- Clear formula errors with no partial dataset mutation
-- Optional value labels such as `1 = Prototype A`
-- Explicit row filtering stored in application state rather than only AG Grid's transient UI state
-- Representative fixtures for raw replicates, precomputed summaries, missing observations, and unequal sample sizes
-
-Minimum formula functions: arithmetic, parentheses, `abs`, `sqrt`, `log`, `exp`, `min`, `max`, and a conditional function. Division by zero and invalid-domain results must become missing values with warnings rather than crash the app.
-
-Acceptance criteria:
-
-- A user can import a real engineering workbook, see all import warnings, correct types, add a calculated column, filter/exclude rows, and graph the result without editing the source file.
-- Undo restores the entire dataset after a column edit, formula creation, or bulk exclusion.
-- Import and formula tests cover blank cells, duplicate headings, mixed types, and invalid formulas.
-
-## Phase 3 completion — Full Graph Builder interaction
-
-Status: complete (September 2026). Ordered multi-variable axes, layered marks/summaries/fits, per-layer overrides, Shape/Frequency/Page roles, suggestions, compatibility feedback, and atomic interaction history are implemented and tested.
-
-Extend the existing role system instead of creating graph-specific configuration dialogs.
-
-Deliverables:
-
-- Multiple variables on X and Y
-- Reordering multiple assignments within a role
-- A layer model allowing points, lines, bars, summaries, and fits on the same graph
-- Per-layer variable and formatting settings
-- Swap X/Y action
-- Shape role and Frequency role for nonnegative whole-number observation counts
-- Page role for stepping through subsets
-- Type-aware graph suggestions that remain user-overridable
-- Clear drag previews and compatibility messages
-- Atomic undo/redo for every drag, reorder, replacement, and layer operation
-
-Define compatibility rules in one tested module. Avoid scattering special cases across components.
-
-Acceptance criteria:
-
-- A user can build a grouped engineering graph with multiple responses and two layers entirely by dragging.
-- Invalid drops either replace the conflicting assignment predictably or show a concise explanation.
-- Assignments survive element changes without silently losing information.
-
-## Phase 4 — Plot types and layer engine
-
-Status: complete (September 2026). Histogram, box-plot, aggregated grouped/stacked bar, area/stacked-area, multi-layer, and reference-line/region paths are implemented with transformation tests and stacking validation. Multiple assigned X/Y variables can now be displayed together or as automatically arranged subplots; categorical bars, points, and box plots can collate multiple Y measures beside each other within each X category.
-
-Implement plotting paths in this order:
-
-1. Histograms
-2. Box plots
-3. Grouped and stacked bars
-4. Area and stacked-area plots
-5. Multiple overlaid layers
-6. Reference lines and shaded specification/acceptance regions
-
-Refactor `GraphCanvas` as the layer count grows. Use separate transformation functions and renderer adapters rather than one increasingly large component.
-
-Key behavior:
-
-- Histograms need configurable bin count or width.
-- Box plots must identify outliers consistently and optionally display raw observations.
-- Bar modes must distinguish raw records from aggregated summaries.
-- Stacking is valid only for compatible values; warn instead of producing misleading output.
-- Layers share role assignments by default but may override them deliberately.
-
-Acceptance criteria:
-
-- All plot types respect exclusions, filters, grouping, facets, units, and missing values consistently.
-- Switching plot types does not mutate source data.
-- Each plot type has transformation tests and at least one interaction test.
-
-## Phase 5 — Statistical transformation engine
-
-Status: complete (September 2026). Summary lines and bars support the descriptive measures below, raw and supplied mean/error inputs, uncertainty warnings, and per-series percentage/control scaling. Fits can show the equation, sample size, and R-squared; a separate smoothed trend layer uses a configurable centered moving average.
-
-This is the highest-risk phase. Build statistics as a standalone tested module before wiring controls into the UI.
-
-Deliverables:
-
-- Count/sample size, sum, mean, median, min, max, quantiles, sample SD, and SE
-- SD, SE, confidence-interval, and range error bars
-- User-selectable confidence level
-- Individual observations over summary layers
-- Precomputed mean/error input mode without fabricating raw replicates
-- Unequal sample-size support
-- Warnings for missing uncertainty values and groups with fewer than two observations
-- Percentage-of-total and normalization-to-control transformations
-- Linear regression with equation, sample size, and R-squared
-- Smoothed trend line with clearly documented method and parameters
-
-Statistical rules:
-
-- Excluded and filtered rows never enter calculations.
-- Missing response values are omitted and the effective `n` is reported.
-- Do not silently substitute zero for missing measurements or errors.
-- Confidence intervals must state the definition used.
-- Precomputed and raw-data modes must remain distinguishable in the data model and UI.
-
-Acceptance criteria:
-
-- Results match JMP or another independently verified reference dataset within documented floating-point tolerance. The test suite compares the mean and sample SD of NIST StRD NumAcc1 against its certified values exactly; other measures use hand-calculable fixtures and floating-point assertions.
-- Tests include hand-calculable samples, missing values, `n = 1`, unequal groups, and precomputed summaries.
-- A user can create mean ± SD and mean ± 95% CI graphs and optionally overlay replicates.
-
-## Phase 6 — Filtering and linked exploration
-
-Status: complete (September 2026). Searchable categorical checklists, numeric/date ranges, missing-value filters, graph/table row selection, box/lasso selection, bulk include/exclude, series highlighting, Page-role stepping, and shared/independent facet scales are implemented. Filters are shared by the graph and table; excluded rows remain visible in the table with their excluded state so they can be restored. The graph and its summaries use only non-excluded rows matching the filters and current Page value.
-
-Functional interaction testing passed. The 5,000-row / 50,000-cell maximum remains usable but some table, selection, exclusion, and filtering actions take multiple seconds; improving that uncommon maximum-size case is a future optimization rather than a Phase 6 blocker.
-
-Deliverables:
-
-- Persistent categorical, numeric-range, date, and missing-value filters
-- Filter panel with searchable categorical levels
-- Immediate recomputation of every layer and statistic
-- Click a point/bar/box to identify source rows
-- Linked selection between graph and data table
-- Box/lasso selection and bulk include/exclude actions
-- Highlight a group without filtering other groups
-- Page-role controls for stepping through subsets
-- Shared or independent facet scales
-
-Acceptance criteria:
-
-- Graph, table, statistics, and displayed sample sizes always reflect the same active-row set.
-- Selections remain responsive at the maximum target dataset size.
-- The UI distinguishes selection, filtering, hiding, and exclusion.
-
-## Phase 7 — Axes and appearance
-
-Status: complete (September 2026). Axis bounds, scales, reversal, zero inclusion, ticks, date handling, category order, figure sizing, themes, palettes, mark styling, legend placement/names, and saved appearance are implemented. Reference lines and acceptance regions can also be imported from tagged rows or a dedicated workbook sheet; annotation rows are excluded from measurements. Interactive legend reordering, per-series recoloring, and visibility were implemented earlier.
-
-Deliverables:
-
-- Automatic/manual axis bounds, linear/log scale, reversed axes, and force-zero option
-- Configurable tick intervals and date/time axes
-- Category ordering by data order, alphabetic order, summary statistic, or manual order
-- Titles, units, fonts, graph dimensions, and aspect ratio
-- Marker shape, size, transparency, and jitter
-- Line color, width, and style
-- Bar width/spacing and error-bar cap/style controls
-- Custom and colorblind-accessible palettes
-- Legend placement, ordering, renamed entries, and item visibility
-- Multiple reference lines and shaded benchmark/specification regions
-- Reusable visual themes
-
-Acceptance criteria:
-
-- A standard engineering figure can be prepared for a report without post-processing in PowerPoint.
-- Log scales reject zero/negative values with a useful message.
-- Visual settings serialize without Plotly-specific fields leaking into the saved format.
-
-## Phase 8 — Projects and export
-
-Status: complete (September 2026). Versioned project files can embed the complete edited dataset or reconnect an imported source; local autosave offers recovery on return. Projects hold multiple named graphs, templates reuse graph settings with matching columns, and exports include PNG, SVG, clipboard PNG where supported, and plotted-data CSV. Embedded mode is the exact-reproduction choice; linked mode intentionally reloads the latest source, restores column settings and formulas, but does not retain individual cell edits or excluded rows.
-
-Deliverables:
-
-- Versioned `.graphbuilder.json` project format
-- Schema validation and migrations for older project versions
-- Embedded-data and linked-file modes, with a clear offline explanation
-- Local autosave and recovery
-- Reopen, duplicate, and rename graphs
-- Graph templates reusable with compatible datasets
-- PNG and SVG export with selected dimensions and resolution
-- Copy graph to Windows clipboard if practical in the browser; otherwise implement during desktop packaging
-- Export summarized plot data
-
-Implementation note: Browser clipboard image support varies; the app reports when it is unavailable and offers PNG download. Local autosave uses browser storage rather than cloud sync. Version-0 flat project files migrate to version 1 on open; invalid files leave the current project untouched.
-
-Acceptance criteria:
-
-- Saving, closing, and reopening reproduces the dataset, formulas, filters, graph specification, and appearance.
-- SVG remains sharp and usable in PowerPoint or Illustrator.
-- Corrupt or incompatible projects show recovery guidance and never destroy the current session.
-
-## Phase 9 — Validation and hardening
-
-Status: complete (September 2026). Automated checks, independent SciPy/NumPy calculations, R graph comparison, and the user's keyboard, Windows Narrator, and three-fix manual retest pass. See the [validation record](docs/phase-9-validation.md) and [manual review sign-off](docs/phase-9-manual-checks.md#sign-off--september-29-2026).
-
-Deliverables:
-
-- End-to-end tests for import → edit → build → filter → save → reopen → export
-- Reference tests for every statistic
-- Performance measurements at 500 rows and at the 5,000-row/50,000-cell maximum
-- Import fuzz/edge-case tests and project-schema tests
-- Keyboard navigation, focus states, labels, contrast, and screen-reader review
-- Friendly error boundary and recovery paths
-- Dependency audit and production build-size review
-- Independent numerical comparison with free SciPy/NumPy and visual comparison with a reference graphing tool using representative datasets
-- Plain-language user guide with screenshots
-
-Bundle-size follow-up: Replacing the complete Plotly bundle with its cartesian bundle reduced production JavaScript from 5.98 MB minified / 1.81 MB compressed to 3.35 MB / 1.04 MB compressed. Browser tests cover every graph element, point selection, zoom, and PNG/SVG downloads. Then consider loading the data table and Excel reader only when opened or needed. Measure initial download and startup time as well as total asset size; loading code on demand can improve the initial load without reducing what a user downloads after using every feature.
-
-Acceptance criteria:
-
-- No known data-loss paths or incorrect silent statistical results.
-- Typical interactions feel immediate; long imports/calculations show progress without freezing the interface.
-- `npm test`, `npm run lint`, `npm run build`, and the end-to-end suite all pass from a clean checkout.
-
-## Phase 10 — Windows desktop packaging
-
-Start only after the browser application and project format are stable.
-
-Status: in progress (October 2026). Phase 9's required checks are signed off. The Tauri wrapper, local file dialogs, recent-project list, linked-source path handling, `.graphbuilder` file association, and signed updater code are implemented. The user verified uninstall and completed the published 0.1.2 → 0.1.3 signed-update test. Remaining Phase 10 work is final Windows validation of file association and offline operation on a clean machine, plus deciding whether the optional Windows code-signing certificate is needed.
-
-Deliverables:
-
-- Tauri wrapper using the existing frontend
-- Native open/save dialogs
-- Silent reopening by an exact Windows source path so updated data can load without a browser permission prompt
-- Windows installer and uninstall flow
-- File association for new `.graphbuilder` project files; older `.graphbuilder.json` projects remain openable from the app
-- Recent-project list
-- Fully local application assets: starting the installed app, importing local data, building graphs, saving, and exporting must work with no internet connection
-- Keep the installer small with Tauri's default `downloadBootstrapper` WebView2 mode. Installation may require internet if the machine lacks WebView2; after successful installation, app startup and graph work must not require internet.
-- Optional update check when a connection is available, using Tauri's signed updater artifacts and a published release endpoint; a failed or timed-out check must never block launch or graphing
-- If a newer version exists, show **Update Available** with **Update** and **Continue with current version** choices; never download, install, or restart without the user's choice
-- Generate a Tauri updater signing key pair during packaging setup. Keep the private key out of Git, back it up securely, and give the release workflow access through GitHub Actions secrets; include the public key in the app so it can verify updates. Test a signed update before enabling the prompt.
-- Decide separately whether to buy a Windows code-signing certificate for the installer. This is distinct from the free Tauri update signature; an unsigned installer can run but may show a Windows SmartScreen warning.
-
-Do not introduce Electron. Tauri is preferred for a smaller Windows application, but validate all prerequisites and WebView behavior before committing to installer details. Keep update checks separate from the core application and do not make an online service a dependency for ordinary use. Installing an update on Windows exits the app, so warn about unsaved work and save or cancel before starting installation.
-
-Acceptance criteria:
-
-- A clean Windows machine can install with internet if WebView2 needs to be downloaded. Once installed, it can run, import a workbook, build a graph, save/reopen a project, and export without Node.js, internet access, or a development server.
-- Offline launch and the full core workflow are tested with networking disabled. An unavailable update endpoint causes no startup error or lost work.
-- With a newer published release available, the update check offers the newer version; the user can leave the current version running or install only after saving a project copy. The published 0.1.2 → 0.1.3 update was verified. A final check of the no-update/decline path remains.
-
-macOS and Linux packages are optional future work. Build and publish them only after the same core workflow and installer behavior can be tested on real machines for each platform.
-
-## Phase 11 — Public website and downloads
-
-An early browser preview is being published before Windows packaging so friends can test it. It uses a compact landing page at `https://timothylasater.com/graph-builder/` and the browser app at `https://timothylasater.com/graph-builder/app/`. After the Windows desktop package is ready, expand the landing page with verified engineering specifications and a **Download Desktop App** button. Keep the portfolio home page in its own repository and add a link to the landing page there.
-
-GitHub Pages can host this project repository beneath the custom domain of the account's user site. Its repository name supplies the `/graph-builder/` path. Verify the actual Pages URL and domain settings when publishing.
-
-The Pages build has two real HTML entry points: `index.html` for the landing page and `app/index.html` for the application. This lets GitHub Pages serve a direct visit or refresh of `/graph-builder/app/` without a single-page-router 404 workaround. Vite's web asset base is `/graph-builder/`; the ordinary build still targets the application for future Tauri packaging. Verify scripts, styles, imported files, and downloads at both URLs and confirm packaged desktop assets work offline later.
-
-Use a GitHub Actions Pages workflow to build and deploy the static site after changes reach `main`. Run the separate desktop release workflow manually from `main`; it builds the Windows package, signs updater artifacts, creates the version tag, and uploads them to a draft GitHub Release. Start the download button at the latest published release page; a direct Windows installer link can follow once asset names and fallback behavior are tested. Draft releases are invisible to ordinary visitors. Add macOS or Linux download choices only after those releases have been tested and published. Verify the browser remains local-data-only; loading the app shell from the website does require internet access on first visit unless offline caching is added and tested.
-
-Revise read me and other project documentation to be publicly presentable. Read me should be aimed at a developer audience, while the user guide should be accessible to lay users and perhaps those with a bit of statistical or scientific training. The user guide should also include full instructions for using every feature, indexed with a table of contents, and complete guide to keyboard shortcuts, and keyboard only usage of the app. The user guide should be an integrated part of the desktop application, and there should also be a link inside the desktop app to the main graph builder website, as well as the GitHub repository.
-
-Roadmap may be retained for historical purposes, but important information for developers should be migrated to the read me, and important information for end users should be in the user guide. The roadmap should also be updated to a professional, publishable style. The built-in data example should be changed to be something other than nebulizer data, so as not to give me impression that this data comes from my work. Should just be generic dummy data.
-
-Acceptance criteria:
-
-- Both requested URLs load directly and after refresh on the configured custom domain.
-- Landing-page feature and specification claims match measured and tested behavior.
-- The browser app, Windows package, and release links work from a clean device; user datasets remain local.
-
-## Suggested next task
-
-Continue Phase 10 by testing the installed app's file association and offline core workflow on a clean Windows machine, then perform the final no-update/decline check. The published signed-update behavior, installer uninstall, and core import/save/reopen/export workflow have been verified. Phase 9's automated, independent numerical, visual, and human accessibility checks are complete. The [Phase 9 validation record](docs/phase-9-validation.md) documents the results and remaining optional coverage.
-
-## Definition of done for every task
-
-- Work on `main` by default. Use a side branch only for a specific reason, and merge it back when practical.
-- The requested workflow works visibly in the running app.
-- Existing workflows still work.
-- State changes are undoable when appropriate.
-- New calculation or transformation logic has unit tests.
-- User-facing failure modes have clear messages.
-- `npm test`, `npm run lint`, and `npm run build` pass.
-- README and this roadmap are updated when capabilities or sequencing change.
-- For major new features, the handoff includes brief steps a non-developer can use to test the feature and what they should see.
+Keep the dataset and saved graph specification independent from Plotly's rendering objects. Keep core graphing local and functional without a network service. Evaluate new statistical behavior with small unit tests and representative files. Before handing off code work, run the relevant tests and builds, commit the requested changes, and push `main`, following [AGENTS.md](AGENTS.md). Keep user-facing guidance in the app concise and update the full guide when controls change.

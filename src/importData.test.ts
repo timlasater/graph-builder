@@ -8,7 +8,7 @@ describe('tabular data import', () => {
     expect(inferDataType(['1.2', '3.4', null])).toBe('number')
     expect(inferDataType(['true', 'false'])).toBe('boolean')
     expect(inferDataType(['2025-01-02', '2025-02-03'])).toBe('date')
-    expect(inferDataType(['Prototype A', 'Prototype B'])).toBe('text')
+    expect(inferDataType(['Group A', 'Group B'])).toBe('text')
   })
 
   it('creates unique headers and preserves missing values', () => {

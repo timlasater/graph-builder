@@ -11,16 +11,22 @@
       * { box-sizing: border-box; }
       body { margin: 0; }
       a:focus-visible { outline: 3px solid #0284c7; outline-offset: 3px; }
-      .site-header { padding: 42px 20px 28px; text-align: center; }
+      .site-header { padding: 20px 16px 12px; text-align: center; }
       .site-header a { color: inherit; text-decoration: none; }
       .site-header a:hover { color: #047857; }
-      .site-header h1 { margin: 0; font-size: 32px; line-height: 1.3; }
-      .site-header p { margin: 18px 0 0; color: #6b7280; }
-      .site-nav { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 13px 16px; border-bottom: 2px solid #059669; background: #fff; box-shadow: 0 4px 10px #0000001a; }
+      .site-header h1 { margin: 0 0 4px; font-size: clamp(24px, 2.5vw, 30px); line-height: 1.2; }
+      .site-header p { margin: 3px 0; color: #6b7280; }
+      .site-header .contact-info { font-size: 14px; }
+      .site-header .contact-info a { color: #059669; }
+      .site-header .social-link { display: inline-flex; align-items: center; vertical-align: middle; padding: 3px; margin: 0 3px; border-radius: 4px; }
+      .site-header .social-link svg { width: 18px; height: 18px; fill: currentColor; }
+      .site-header .social-link:hover { background: #e5f4ed; }
+      .site-header .resume-link { position: fixed; right: 20px; bottom: 20px; z-index: 1001; padding: 10px 20px; border-radius: 30px; background: #059669; box-shadow: 0 4px 10px #00000026; color: #fff; font-size: 14px; font-weight: 700; }
+      .site-header .resume-link:hover { color: #fff; background: #047857; }
+      .site-nav { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 11px 16px; border-bottom: 2px solid #059669; background: #fff; box-shadow: 0 4px 10px #0000001a; position: sticky; top: 0; z-index: 1000; }
       .site-nav a { padding: 5px 10px; border-radius: 4px; color: #1f2937; font-weight: 700; text-decoration: none; }
       .site-nav a:hover, .site-nav a:focus-visible { color: #047857; background: #f4f7f5; }
-      .site-nav a[aria-current="page"] { color: #047857; }
-      .separator { color: #6b7280; }
+      .site-nav a[aria-current="page"] { color: #047857; background: #f4f7f5; }
       .hero { display: grid; place-items: start center; min-height: calc(100vh + 240px); min-height: calc(100svh + 240px); padding: clamp(48px, 7vh, 84px) 24px 48px; background-color: #10282e; background-image: url('/graph-builder/workspace.png'); background-position: center; background-size: contain; background-repeat: no-repeat; background-attachment: fixed; text-align: center; }
       .hero-inner { max-width: 900px; padding: 22px 30px 28px; border-radius: 12px; background: rgb(2 20 24 / 72%); box-shadow: 0 8px 32px #0004; }
       .hero .kicker { margin: 0 0 12px; color: #d1fae5; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
@@ -43,16 +49,19 @@
       footer { padding: 30px 20px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 14px; }
       footer a { color: #047857; }
       @media (max-width: 600px) {
-        .site-header { padding: 28px 16px 22px; }
+        .site-header { padding: 20px 16px 12px; }
         .site-header h1 { font-size: 27px; }
-        .site-header p { margin-top: 10px; font-size: 14px; }
+        .site-header p { font-size: 14px; }
         .site-nav { gap: 0; }
         .site-nav a { padding: 5px 7px; font-size: 13px; }
-        .separator { font-size: 12px; }
         .hero { display: block; min-height: 480px; padding: 240px 20px 36px; background-position: center top; background-size: 100% auto; background-attachment: scroll; }
         .hero-inner { padding: 18px 16px 22px; }
         .main-content { margin-top: 30px; padding: 0 16px; }
         .card { padding: 24px 20px; }
+      }
+      @media (max-width: 380px) {
+        .site-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .site-nav a { text-align: center; }
       }
       @media (prefers-reduced-motion: reduce) {
         .hero { background-attachment: scroll; }
@@ -62,12 +71,14 @@
   <body>
     <header class="site-header">
       <h1><a href="/">Timothy Lasater</a></h1>
-      <p>Biomedical Engineering @ UC Irvine | Medical Device R&amp;D</p>
+      <p>Biomedical Engineer | Medical Device R&amp;D</p>
+      <p class="contact-info"><a href="mailto:timothy.a.lasater@gmail.com">timothy.a.lasater@gmail.com</a> | (949) 291-3592 | <a class="social-link" href="https://linkedin.com/in/timothy-lasater" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile" title="LinkedIn profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96c0 .84.69 1.52 1.55 1.52h16.9c.86 0 1.55-.68 1.55-1.52V3.52c0-.84-.69-1.52-1.55-1.52ZM7.93 18.75H4.97V9.2h2.96v9.55ZM6.45 7.9a1.72 1.72 0 1 1 0-3.44 1.72 1.72 0 0 1 0 3.44Zm12.3 10.85h-2.96V14.1c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.73H9.49V9.2h2.84v1.3h.04c.39-.75 1.36-1.55 2.8-1.55 3 0 3.58 1.97 3.58 4.53v5.27Z"/></svg></a> <a class="social-link" href="https://github.com/timlasater" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile" title="GitHub profile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.07c-3.09.67-3.74-1.31-3.74-1.31-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.67.08-.67 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.53 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.08 1.14a10.7 10.7 0 0 1 5.6 0c2.14-1.44 3.08-1.14 3.08-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.3-2.6 5.25-5.08 5.52.4.35.75 1.03.75 2.08v3.08c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z"/></svg></a></p>
+      <a class="resume-link" href="/assets/Timothy_Lasater_Resume.pdf" download>Download Resume</a>
     </header>
     <nav class="site-nav" aria-label="Website">
-      <a href="/">Home</a><span class="separator" aria-hidden="true">|</span>
-      <a href="/portfolio.html">Portfolio</a><span class="separator" aria-hidden="true">|</span>
-      <a href="/resume.html">Resume</a><span class="separator" aria-hidden="true">|</span>
+      <a href="/">Home</a>
+      <a href="/portfolio.html">Portfolio</a>
+      <a href="/resume.html">Resume</a>
       <a href="/graph-builder/" aria-current="page">Graph Builder</a>
     </nav>
     <section class="hero" aria-labelledby="hero-title">
@@ -79,7 +90,7 @@
     <main class="main-content">
       <section class="card" aria-labelledby="about-heading">
         <h3 id="about-heading">Explore Graph Builder</h3>
-        <p>Import a spreadsheet or CSV, build a graph, and export the result. This browser preview is ready for friends to try while the Windows app is being prepared.</p>
+        <p>Import a spreadsheet or CSV, build a graph, and export the result. The browser app is available now; the Windows installer is in final release validation.</p>
         <div class="actions">
           <a class="button" href="/graph-builder/app/">Launch Graph Builder</a>
           <a class="button secondary" href="https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md">Read the user guide</a>

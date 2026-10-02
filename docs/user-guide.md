@@ -1,47 +1,175 @@
-# Graph Builder: a quick guide
+# Graph Builder user guide
 
-Graph Builder keeps data on your computer, whether you use the browser preview or the Windows app. This guide is bundled with the app and works offline. The built-in example is safe to explore: use **Reset example** to return to it. If you have work you want to keep, save an embedded project before resetting.
+Graph Builder makes graphs from a table of measurements. It runs as a Windows app or in a desktop browser. Imported data stays on your computer. The built-in example is **synthetic practice data**, made for learning the controls and unrelated to a research study. Save an embedded project before importing new data or choosing **Reset example** if you want to keep your work.
 
-![Graph Builder workspace using only the built-in example data](screenshots/workspace.png)
+## Contents
 
-## Start with data
+- [First graph](#first-graph)
+- [Import data](#import-data)
+- [Inspect and edit the data table](#inspect-and-edit-the-data-table)
+- [Variables and graph roles](#variables-and-graph-roles)
+- [Layers and statistical summaries](#layers-and-statistical-summaries)
+- [Filters and linked selection](#filters-and-linked-selection)
+- [Graph layout and appearance](#graph-layout-and-appearance)
+- [Projects templates and exports](#projects-templates-and-exports)
+- [Annotations in imported files](#annotations-in-imported-files)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Keyboard only workflow](#keyboard-only-workflow)
+- [Troubleshooting and data privacy](#troubleshooting-and-data-privacy)
 
-Click **Import data** (or drag-and-drop over the graph area), choose a CSV, TSV, or Excel file, and select a worksheet if prompted. You can also drop a file anywhere on the app. Confirm before the new data replaces the current project. The **Variables** panel shows the imported columns; **View data table** shows the actual rows and any import warnings. Fix malformed CSV quoting or separators in the source file if an import error appears. An import can be undone with **Undo** before the session is closed.
+## First graph
 
-The import check keeps annotation rows out of the measurements. For reference lines or acceptance regions, add tagged `GB Type` and `GB Axis` columns to a data sheet, or use a separate Excel worksheet named `Graph Annotations`.
+1. Start with the synthetic example. Its graph already shows **Measured Result** against **Input Setting**, colored by **Sample Group**.
+2. In **Variables**, drag a column to an X or Y box. To move a column already assigned, drag its colored label to another role, or back to **Variables**. Use the × beside a label to remove it.
+3. Choose a form such as **Points**, **Bars**, or **Box plot** in **Add layer**. Click a tool to add it, or drag it onto the graph. Select a layer in **Properties → Layers** to adjust it.
+4. Use **Projects & export** to save a project or export an image. **Save PNG** in the top bar saves the open graph quickly.
 
-## Build and refine a graph
+![Graph Builder showing the built-in synthetic measurements](screenshots/workspace.png)
 
-Drag a column from **Variables** onto **X** or **Y**. To work entirely with the keyboard, select a variable, then in **Properties → Selected column** choose **Assign selected column to** and press **Assign**. Add another visual form using the **Add layer** toolbar. Click a layer in **Properties → Layers** to change its settings.
+## Import data
 
-Drag a column onto **Filter**, or select it and click **Filter selected column**, to limit the rows shown in the graph and table. A filter does not delete rows. Use **View data table** to edit a cell or exclude a row. For replicate means, choose **Mean line**; its uncertainty choices include sample standard deviation, standard error, confidence interval, and range. **Bars** has the same choices when its Bar summary is **Mean**. Error bars are unavailable for sums, counts, and stacked bars. A Y-only box plot needs no X column.
+Choose **Import data**, or drop a file onto the app. CSV, TSV, TXT, XLSX, and XLS files are supported. For Excel, choose the worksheet containing measurements. Confirm the replacement of the current project. Import replaces the active dataset and graphs; **Undo** can reverse it while this session remains open.
 
-For **Mean line** or **Bars**, use **Input data** in Properties to select raw observations or precomputed means and errors. With raw observations, choose mean, count, sum, median, minimum, maximum, quantile, sample SD, or SE. A quantile percentage uses linear interpolation between neighboring ordered observations. Frequency weights count as repeated observations. Raw SD divides by `n − 1`; SE is SD divided by the square root of `n`. Raw confidence intervals are two-sided Student's t intervals around the mean at the selected confidence level. Error bars apply to means; groups with fewer than two observations have no calculated uncertainty and show a warning.
+Use a header row with distinct column names and one observation per row. Empty cells become missing values. The app infers numbers, text, dates, and true/false values; review the result in **View data table**. CSV quoting and separators must be valid. If a file has multiple worksheets, only the selected data worksheet is graphed; an optional `Graph Annotations` worksheet supplies reference marks.
 
-For precomputed input, put one category in each row and assign its supplied mean to Y. Choose columns for its supplied error and optional sample size. The error column is the SD, SE, or confidence-interval half-width you select; a range instead uses supplied lower and upper bounds. Confidence level labels a supplied interval without recalculating it. No raw observations are inferred. Missing or invalid supplied values show a warning. You can also show each summary as a percentage of its visible series total or as a percentage of a selected control X category; error widths use the same fixed multiplier. These scales require a positive total or control value.
+Search **Variables** by name. The symbol beside each variable indicates continuous (numeric scale), nominal (unordered groups), or ordinal (ordered groups). Select a variable to edit its display name, unit, data type, modeling type, and value labels in **Properties → Selected column**. Enter value labels one per line as `raw value = display label`. Changing a data or modeling type can change which plot combinations are valid.
 
-**Fit** can show its equation, sample size, and R². **Smooth trend** draws a centered moving average: it first averages repeated numeric X values (using Frequency when assigned), then averages each point with its neighbors across an odd number of distinct X values. At the ends, it uses available neighbors. Set the window in Properties; a window of three is the default.
+## Inspect and edit the data table
 
-If you put more than one variable on X or Y, use **Properties → Graph → X variables / Y variables** to show them together or in subplots. Choose horizontal or vertical panels, or set the panels per row. With one categorical X and Bars, Points, or Box plot layers, **Collate by category** places the Y measures side by side for each category, such as Emitted Dose and Captured Dose for each Device.
+Choose **View data table** in the Variables panel. The table shows the dataset name, row and column counts, and any active filters. Use **Quality** to inspect missing-value counts and import warnings. Click a column heading to sort. The page-size selector and page controls let you move through a large table.
 
-Use **Properties → Graph → + Panel** to compare different X or Y variables side by side. Each panel has its own variable and axis-title controls. Double-click a displayed graph title, subtitle, panel title, or axis title to edit it in place. Press Enter to save or Escape to cancel.
+Double-click an ordinary cell to edit it. Calculated cells are read-only because their value comes from a formula. Toggle the **Excluded** cell to omit one row from graph calculations without deleting it. Click a row to select it; Ctrl-click adds or removes a row, and Shift-click selects a range. Use **Exclude selected**, **Include selected**, **Exclude visible rows**, or **Clear selection** in the toolbar. Selection also highlights the matching graph observation when the plot supports linked selection. Clicking a graph point can select its source row; Ctrl-click or Shift-click adds to the selection.
 
-## Save and reopen
+The **Filters** menu in the table offers equals, does not equal, contains, comparison, missing/non-missing, checklist, numeric range, and date range rules. Multiple rules are applied together. Under **Calculated column**, enter a new name and a formula, then choose **Add column**. Reference a column as `[column name]` or `[column ID]`; arithmetic and `abs`, `sqrt`, `log`, `exp`, `min`, `max`, and `if` are supported. For example, `[Measured Result] / [Input Setting]` divides two example columns. Under **Paste Excel data**, paste tab-separated rows with one value for each non-calculated column, then choose **Append rows**. Formulas recalculate for appended rows.
 
-Open **Projects & export**. A project can hold several graphs sharing one dataset. Choose **Embedded — include data** and **Save project…** in the Windows app, or **Download project** in a browser, for a reliable local backup containing edits, formulas, filters, and graph appearance. **Linked — reconnect source** saves a smaller file but does not preserve individual cell edits or excluded rows. In the Windows app, it tries to reopen the exact source path when the project is opened; if that fails, choose the source file. In a browser, choose the source file when reopening. The app also makes a local recovery copy, but storage can be cleared; keep a saved embedded project for important work.
+## Variables and graph roles
 
-![Projects and export dialog using only the built-in example data](screenshots/projects.png)
+Drag from **Variables** into a role box, or move a label between boxes. X is the horizontal axis; Y is the vertical axis. Multiple X or Y variables can share a plot or form separate panels. Other roles are:
 
-To reopen, choose **Open project…**. The app checks the file before replacing the current project and asks for confirmation. Invalid files leave the current project untouched. The **Delete** button beside a graph asks for confirmation; **Undo** can restore it before closing the project.
+| Role | Effect |
+| --- | --- |
+| Color | Separate observations into colored series. |
+| Group X / Group Y | Divide the plot into panels across columns or rows. |
+| Wrap | Make a wrapped grid of panels by group. |
+| Overlay | Add a series distinction on the same axes. |
+| Shape | Vary point symbols by category. |
+| Size | Scale point size from a numeric variable. |
+| Frequency | Treat a positive count as repeated observations in supported summaries. |
+| Page | Show one category at a time; use the selector above the graph to change the page. |
+| Filter | Keep selected rows visible in both graph and table. |
 
-If you saved graphs through the older browser-only feature, **Projects & export** shows **Previous saved graphs** when those records are present. Download each as a template, then open the original dataset and choose **Open template…**. The old records stay in browser storage until you clear it; a template contains graph settings and filters, not data rows.
+Some roles cannot be combined. Graph Builder explains a conflict and may move an earlier assignment. **Swap X/Y** exchanges the two axes. **Suggest** chooses a suitable plot for the current variables; click it to apply the suggestion. **Undo** and **Redo** reverse or restore recent changes. **Reset example** returns to the original synthetic dataset and clears the current project's undo history.
 
-## Export results
+## Layers and statistical summaries
 
-Click **Save PNG** at the top for a quick image. In **Projects & export**, choose dimensions and save or download PNG or SVG; SVG stays sharp when enlarged. **Export plotted data CSV** saves the values currently represented in the graph, not the whole source table.
+Each layer is one visual form drawn from the assigned variables. Use the **Add layer** toolbar, then open **Properties → Layers** to select or remove layers and change their settings. The **Element** menu changes the active layer's form. A layer can override shared X, Y, or Color assignments. Set its mark color, marker size, and line width below the other settings.
 
-## If something goes wrong
+| Layer | What it shows | Main controls |
+| --- | --- | --- |
+| Points | Individual observations | Marker size, color, shape/size roles |
+| Line | Values connected across X | Line width and color |
+| Bars | Summarized or supplied values by category | Summary, error bars, stacking |
+| Histogram | Distribution of numeric values | Number of bins |
+| Box plot | Median, quartiles, whiskers, and optional points | Show outliers, all points, or none |
+| Area | Values filled below a line | Compatible series may be stacked |
+| Mean line | A summary at each X value | Summary measure, error bars, observations |
+| Fit | A fitted straight line | Equation, sample size, R², fixed intercept |
+| Smooth trend | A centered moving average | Odd-numbered window size |
 
-An import error means the file was not substituted for the current dataset. A display failure shows a **Reload Graph Builder** button and guidance for reopening your last downloaded project. If an operation seems to have replaced data unexpectedly, try **Undo** immediately. For persistent problems, keep the original source file and your last embedded project file, and report the action that caused the error.
+For **Bars** or **Mean line**, choose **Raw observations** when each row is a measurement. Available summaries include mean, count, sum, median, minimum, maximum, quantile, sample standard deviation (SD), and standard error (SE). A quantile is a requested percentile. Frequency weights count repeated observations. Raw SD uses `n − 1`; SE is SD divided by the square root of `n`. Confidence intervals use a two-sided Student's t calculation around a mean. A group with only one observation has no calculated uncertainty; the app shows a warning. Error bars apply to means, and stacked bars cannot have error bars.
 
-Both screenshots show only the built-in example; no private study data is pictured.
+Choose **Precomputed means and errors** when each row already supplies a mean for an X category. Assign the supplied mean to Y, then choose its error column and optional sample-size column. Select whether the error is SD, SE, or a confidence-interval half-width. For a range, choose separate lower and upper bound columns. The app uses supplied values as entered; it does not infer raw observations or recalculate supplied confidence intervals. **Value scale** can use original values, percentage of a visible series total, or percentage of a chosen control X category. Error widths scale by the same factor; a total or control value must be positive.
+
+**Fit** can display an equation, sample size, and R², a measure of how closely a straight line follows the points. A fixed y-intercept forces the line through the entered y value. **Smooth trend** first averages repeated numeric X values, then uses the selected odd-sized window of neighboring distinct X positions. At plot edges, it uses the available neighbors. A box plot can use Y alone; clear X to show all Y observations in one box.
+
+## Filters and linked selection
+
+Drag a variable to **Filter**, or select it and choose **Filter selected column** under **Selected column**. For categories, search the values and tick those to keep. For numeric or date columns, choose bounds, missing values, or non-missing values. **Apply filter** updates graph and table; **Clear filter** removes that rule. Click the filled Filter box to review, edit, remove, or clear all active filters. Filters hide rows from the current view; they do not delete them. The data table's Filters menu offers additional rule types.
+
+Clicking a plotted observation can highlight its source row in the data table when that plot has a direct row link. Some summaries combine rows and therefore cannot map to a single source row. Exclusion changes calculations; selection only highlights.
+
+## Graph layout and appearance
+
+Open **Properties → Graph** to edit title and subtitle, choose whether multiple X or Y variables appear together or in **Subplots**, set horizontal/vertical/grid arrangement, and choose shared or independent panel scales. If both axes use subplots, each X/Y pair forms a panel. With one categorical X and compatible Bars, Points, or Box plot layers, **Collate by category** places several Y measures side by side for each category.
+
+Choose **+ Panel** under Custom panels to build panels with different X and Y choices. Each panel can have its own title and axis titles. Leave a panel's X empty for a Y-only box plot. Group X, Group Y, Wrap, and layer X/Y overrides pause while custom panels or axis subplots are shown; removing those panels restores the earlier assignments. Double-click a displayed graph title, subtitle, panel title, or axis title to edit it directly; Enter saves, Escape cancels.
+
+Use **Properties → Graph** for graph grid controls, **Figure size and theme** for width, height, aspect ratio, theme, and font, **Axes and categories** for scale, limits, titles, and category order, and **Marks and colors** for symbols, opacity, line style, bars, error bars, palettes, and legend placement. The legend can hide/show a series with a click. Double-click a legend name to rename it; drag names to reorder them. Each legend entry has a color control. Click a data point to locate its source row when possible.
+
+In **Figure size and theme**, choose Light, Print ready, or Dark. Enter width and height in pixels to use a fixed canvas, or leave them blank to fit the workspace. An aspect ratio sets width relative to height. Choose Segoe UI, Arial, or Georgia and set the graph font size. These choices are saved with the graph and used in exports.
+
+In **Axes and categories**, give each axis a title or leave it blank to use the column name and unit. Choose a linear/date or logarithmic scale; log scales require positive values. Set a tick interval, minimum, or maximum when the automatic choice is unsuitable. **Reverse direction** flips an axis and **Include zero** keeps zero in its range. Category order can follow the data, alphabetical order, highest mean response first, or a manual order. For manual order, use the up/down buttons beside each category.
+
+In **Marks and colors**, set the default marker shape, opacity, box-point jitter, and line style. Adjust bar gap and width, error-bar cap width and line thickness, and choose whether errors match the series color or use a custom color. Select a Standard, colorblind-accessible, or monochrome palette. To use a custom palette, enter comma-separated six-digit hex colors such as `#0f6c75, #ef8354` and move out of the field to apply them. Place the legend above, below, or to the right of the graph, or hide it. Per-layer mark color and size settings can override these defaults.
+
+The handles on the right and bottom edges of the graph change its width or height; the corner changes both. **Fit canvas** returns it to the available space. Drag the vertical dividers to resize Variables and Properties; the top buttons can hide either sidebar. Panels scroll independently.
+
+For a target value or acceptable interval, use **Properties → Graph → Reference lines / Acceptance regions**. Choose X or Y and enter numeric coordinates, an optional label, and a color. These marks describe the graph and do not count as observations.
+
+## Projects templates and exports
+
+Open **Projects & export**. One project contains one dataset and one or more named graphs. Choose **New graph**, **Duplicate open graph**, or another graph name to switch graphs; **Rename** changes a graph name, and **Delete** asks for confirmation. The final graph cannot be deleted. Undo can restore a deletion while the project remains open.
+
+Give the project a name and choose a save mode:
+
+- **Embedded — include data** saves a `.graphbuilder` file with data rows, edits, formulas, annotations, graphs, and filters. Use this for a reproducible backup or to move between computers.
+- **Linked — reconnect source** saves graph and column settings without source rows. It requires the original compatible CSV or Excel file when reopened. Individual cell edits and excluded rows are not retained. The Windows app first tries the recorded path; a browser asks you to choose the source again. The built-in example cannot be saved as linked data.
+
+Choose **Open project…** to reopen a `.graphbuilder` file. Older `.graphbuilder.json` files can also be opened. An invalid project leaves the current work untouched. The app makes a local recovery copy and may offer it on the next launch. Browser storage can be cleared, so keep an embedded project file for important work. Older browser-only saved graphs can be downloaded as templates from **Previous saved graphs** when available.
+
+![Projects and export with synthetic example data](screenshots/projects.png)
+
+**Download template** saves only the open graph's settings and filters; it contains no data. After importing a compatible dataset, choose **Open template…** to create a graph using that design. Matching column IDs and types matter.
+
+The Windows app lists recent projects in **Projects & export**. Reopen one from the list, or use **Open project…** to browse for a file. **Check for updates** looks for a signed release when online and offers a choice before installing. Save an embedded project first; installing an update closes the app. You can keep using the current version. The browser version has no desktop updater.
+
+Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. The top-bar **Save PNG** uses the current graph size at 2× resolution.
+
+## Annotations in imported files
+
+Imported annotation rows create reference lines and acceptance regions without adding measurements. Coordinates must be numeric. Header names and type/axis values are case-insensitive.
+
+For CSV or a normal Excel data worksheet, include `GB Type` and `GB Axis`; optional columns are `GB Value`, `GB Minimum`, `GB Maximum`, `GB Label`, and `GB Color`. Leave `GB Type` blank or use `data` for a measurement. Use `reference-line` with an X or Y axis and `GB Value` for a line; use `acceptance-region` with `GB Minimum` and `GB Maximum` for a shaded interval. Color is an optional six-digit hex value such as `#c2413b`. See [annotated-study.csv](https://github.com/timlasater/graph-builder/blob/main/examples/annotated-study.csv).
+
+| Setting | Result | GB Type | GB Axis | GB Value | GB Minimum | GB Maximum | GB Label |
+| ---: | ---: | --- | --- | ---: | ---: | ---: | --- |
+| 20 | 51 | data | | | | | |
+| | | reference-line | Y | 50 | | | Target |
+| | | acceptance-region | Y | | 45 | 55 | Example range |
+
+Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, with headers `Type`, `Axis`, `Value`, `Minimum`, `Maximum`, `Label`, `Color`, and optionally `Target Sheet`. Set `Target Sheet` to the exact data worksheet name to limit an annotation to that sheet; leave it blank to apply it to every data sheet. Tagged rows and a separate annotation sheet may be combined. Invalid rows appear as warnings in **View data table → Quality** and are never counted as measurements.
+
+## Keyboard shortcuts
+
+| Keys | Action |
+| --- | --- |
+| Tab / Shift+Tab | Move to the next / previous control. |
+| Enter or Space | Activate a focused button, checkbox, or section heading. |
+| Arrow keys | Change a focused menu, radio choice, or number control using the browser's normal behavior. |
+| Escape | Close the user guide, data table, or filter dialog; cancel an in-place title or legend edit. |
+| Enter | Save an in-place title or legend edit; apply a filter while editing its dialog. |
+| F2 | Rename a focused legend series. |
+| Left / Right Arrow | Reorder a focused legend series. |
+| Arrow keys on a resize handle | Resize the graph or a sidebar in small steps. |
+| Ctrl+click / Shift+click | Add or range-select data-table rows with a pointer. |
+
+**Undo** and **Redo** are top-bar buttons. The app does not assign a global Ctrl+Z/Ctrl+Y shortcut; use those buttons to reverse graph actions. Browser shortcuts, such as Ctrl+S, belong to the browser and do not save a Graph Builder project.
+
+## Keyboard only workflow
+
+1. Press **Tab** until a variable in **Variables** is focused. Press **Enter** or **Space** to select it. If needed, use the **Search variables** field first.
+2. Tab to **Properties → Selected column**. Expand it with Enter or Space if collapsed. In **Assign selected column to**, choose a role with arrow keys, then Tab to **Assign** and press Enter. Repeat for each variable. This replaces dragging for all assignment roles.
+3. To remove an assignment, Tab to its × button and press Enter. To filter, select a variable, Tab to **Filter selected column**, and press Enter; move through the dialog with Tab and Space, then activate **Apply filter**.
+4. Tab to an **Add layer** button and press Enter. In **Properties → Layers**, select a layer, then use its labeled controls. Use the top **Undo**, **Redo**, and **Projects & export** buttons as needed.
+   To change graph titles or axes without double-clicking the picture, use the text fields in **Graph** and **Axes and categories**. To hide a series, focus its legend button and press Enter or Space. Press F2 to rename that series, or Left/Right Arrow to reorder it.
+5. For the data table, Tab to **View data table**, press Enter, then Tab through toolbar actions and use AG Grid's normal cell keyboard navigation. Press Escape to close. Use the table's **Excluded** column or toolbar buttons to change row inclusion.
+6. Resize the graph with its labeled width, height, and corner handles using arrow keys. Resize sidebars with their labeled divider controls using Left/Right Arrow. Legend labels use Left/Right Arrow for ordering and F2 for renaming.
+7. Tab to **Projects & export** to save or export. In a desktop file dialog, use Windows keyboard navigation; in a browser, use the browser's file chooser or download controls. After a dialog closes, focus returns to the app.
+
+Native drag-and-drop has no general keyboard equivalent, so the selected-column assignment controls are the intended keyboard route. The graph preview has a text summary for screen readers. If a keyboard route fails for a particular feature, report it through **Report a problem** with the control name and steps.
+
+## Troubleshooting and data privacy
+
+If import fails, the current dataset remains in place. Check the source file's headers, separators, quoting, and worksheet selection. If a linked project cannot reconnect, choose the original source file or save an embedded copy from a working session. If you replace data unexpectedly, use **Undo** before closing the app. A display failure offers **Reload Graph Builder**; reopen your last embedded project afterward if needed.
+
+The browser app needs a connection to load its code, but row data and local recovery stay on your device. The installed Windows app can run its core graphing workflow offline. Update checks require a connection and can be declined. Exported files go only where you choose. When reporting an issue, provide a small synthetic dataset rather than private research data.

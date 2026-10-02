@@ -35,6 +35,11 @@ const graphElements: { id: GraphElement; label: string; icon: string }[] = [
   { id: 'smooth', label: 'Smooth trend', icon: '〰' },
 ]
 const UserGuide = lazy(() => import('./components/UserGuide'))
+const repositoryUrl = 'https://github.com/timlasater/graph-builder'
+
+function GithubIcon() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.07c-3.09.67-3.74-1.31-3.74-1.31-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.67.08-.67 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.53 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.08 1.14a10.7 10.7 0 0 1 5.6 0c2.14-1.44 3.08-1.14 3.08-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.3-2.6 5.25-5.08 5.52.4.35.75 1.03.75 2.08v3.08c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z"/></svg>
+}
 
 function VariablesDropPanel({ children }: { children: ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({ id: 'variables-panel' })
@@ -127,6 +132,11 @@ function App() {
     try { await openUrl('https://github.com/timlasater/graph-builder/issues') }
     catch (error) { setLinkError(error instanceof Error ? error.message : 'The problem-report page could not be opened.') }
   }
+  const openRepository = async () => {
+    setLinkError(undefined)
+    try { await openUrl(repositoryUrl) }
+    catch (error) { setLinkError(error instanceof Error ? error.message : 'The GitHub repository could not be opened.') }
+  }
 
   const savePng = async () => {
     setSavingPng(true); setPngError(undefined)
@@ -202,7 +212,6 @@ function App() {
         <header className="topbar">
           <div className="brand"><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span><button className="brand-setup" onClick={() => setShowUserGuide(true)}>User guide</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Save the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button>{!desktop && <span className="document-name" title={documentTitle}><span className="status-dot" /><span className="document-name-text">{documentTitle}</span></span>}</div>
           <div className="toolbar-actions">
-            {desktop ? <button className="header-link" onClick={() => void reportProblem()}>Report a problem</button> : <nav className="site-links" aria-label="Website links"><a href="https://timothylasater.com/graph-builder/" target="_blank" rel="noopener noreferrer">Graph Builder page</a><a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">Website home</a></nav>}
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>
             <ImportDataButton onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
@@ -257,6 +266,11 @@ function App() {
                 <DropZone role="weight" label="Frequency" columns={singleton(spec.weight)} onClear={(id) => moveAssignment(id, undefined, 'weight')} />
               </div>
             </div>
+            <nav className="site-links" aria-label="External links">
+              {desktop ? <button className="github-link" type="button" aria-label="GitHub repository" title="GitHub repository" onClick={() => void openRepository()}><GithubIcon /></button> : <a className="github-link" href={repositoryUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><GithubIcon /></a>}
+              {desktop ? <button type="button" onClick={() => void reportProblem()}>Report a problem</button> : <a href={`${repositoryUrl}/issues`} target="_blank" rel="noopener noreferrer">Report a problem</a>}
+              {!desktop && <a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">timothylasater.com</a>}
+            </nav>
           </section>
 
           {panelVisibility.properties && <button className="panel-resize-divider properties-divider" aria-label="Resize Properties panel" title="Drag to resize Properties; use arrow keys for fine adjustment" style={{ right: panelWidths.properties - 4 }} onPointerDown={(event) => startPanelResize('properties', event)} onKeyDown={(event) => resizePanelByKey('properties', event)} />}
@@ -271,7 +285,7 @@ function App() {
                 <label>Modeling type<select value={selected.modelingType} onChange={(event) => updateColumn(selected.id, { modelingType: event.target.value as typeof selected.modelingType })}><option value="continuous">Continuous</option><option value="ordinal">Ordinal</option><option value="nominal">Nominal</option></select></label>
               </div>
               <label>Unit<input value={selected.unit ?? ''} placeholder="Optional" onChange={(event) => updateColumn(selected.id, { unit: event.target.value })} /></label>
-              <label>Value labels<textarea rows={3} value={Object.entries(selected.valueLabels ?? {}).map(([value, label]) => `${value} = ${label}`).join('\n')} placeholder={'1 = Prototype A\n2 = Prototype B'} onChange={(event) => setValueLabels(selected.id, Object.fromEntries(event.target.value.split(/\r?\n/).map((line) => line.split('=').map((part) => part.trim())).filter((parts) => parts.length >= 2 && parts[0]).map(([value, ...label]) => [value, label.join('=')])))} /></label>
+              <label>Value labels<textarea rows={3} value={Object.entries(selected.valueLabels ?? {}).map(([value, label]) => `${value} = ${label}`).join('\n')} placeholder={'1 = Group A\n2 = Group B'} onChange={(event) => setValueLabels(selected.id, Object.fromEntries(event.target.value.split(/\r?\n/).map((line) => line.split('=').map((part) => part.trim())).filter((parts) => parts.length >= 2 && parts[0]).map(([value, ...label]) => [value, label.join('=')])))} /></label>
             </CollapsibleSection>}
             <CollapsibleSection title="Layers">
               <div className="layer-list">{spec.layers.map((layer, index) => <div key={layer.id} className={layer.id === activeLayer?.id ? 'active' : ''}><button className="layer-select" onClick={() => setActiveLayer(layer.id)}><span>{index + 1}</span>{layer.name}</button><button className="layer-remove" onClick={() => removeLayer(layer.id)} aria-label={`Remove ${layer.name} layer`}>×</button></div>)}</div>

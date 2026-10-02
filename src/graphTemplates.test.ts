@@ -8,7 +8,7 @@ describe('graph templates', () => {
     const template = makeTemplate('Dose template', sampleDataset, useBuilderStore.getState().spec, [])
     expect(parseTemplate(JSON.stringify(template))).toEqual(template)
     expect(templateFitsDataset(template, sampleDataset)).toBe(true)
-    expect(JSON.stringify(template)).not.toContain('Prototype A')
+    expect(JSON.stringify(template)).not.toContain('Group A')
     expect(templateFitsDataset(template, { ...sampleDataset, columns: sampleDataset.columns.slice(1) })).toBe(false)
   })
 

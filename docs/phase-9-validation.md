@@ -10,8 +10,8 @@ Phase 9 is complete as of 2026-09-29. Automated checks, independent statistical 
 - `npm run lint` and `npm run build`: required source and production checks.
 - Clean-checkout check on 2026-09-29: a fresh local clone completed `npm ci`, `npm test`, `npm run lint`, `npm run build`, and `npm run test:e2e`. The browser suite passed when rerun without the resource load of the parallel unit/build commands.
 - `npm audit --audit-level=moderate`: 0 reported advisories for the updated lockfile on 2026-09-29. A future audit may differ.
-- The user ran the optional real-data check on 2026-09-29: all 126 tests passed, including the 511-row, 13-column nebulizer CSV check. The source file is read only and never copied into the repository. Repeat with `GB_NEBULIZER_CSV` set to its local path and `npm test -- src/nebulizer.test.ts` if needed.
-- Final Phase 9 sign-off run on 2026-09-29: 131 unit tests passed (the optional real-data test was skipped because its CSV path was not set), all 7 browser tests passed, and lint and production build passed.
+- An additional local import check on a private 511-row, 13-column CSV passed on 2026-09-29. The source file was read locally and never copied into the repository. The public automated suite uses synthetic fixtures.
+- Final Phase 9 sign-off run on 2026-09-29: 131 unit tests passed, all 7 browser tests passed, and lint and production build passed.
 
 ## Free independent statistics comparison
 
@@ -27,7 +27,7 @@ On 2026-09-29, R 4.6.1 ran the [base-R reference script](../scripts/r_visual_ref
 
 The comparison found matching valid point counts and positions; group means and 95% confidence-interval widths; line groups; linear-interpolation quartiles; five histogram counts; fitted line values; and the five smoothed values. I inspected the two programs' images for all seven graph types: the plotted positions, group order, error-bar extents, outlier, histogram bins, and line shapes agreed. R's default box edges use hinges, while Graph Builder's exported quartiles use linear interpolation; that is an expected method difference. To regenerate the screenshots in PowerShell, run `$env:GB_CAPTURE_R_REFERENCE = '1'; npm run test:e2e` first, then `& 'C:\Program Files\R\R-4.6.1\bin\Rscript.exe' scripts/r_visual_reference.R` from the project folder. The browser runner clears `test-results` when it starts, so run R last.
 
-This checks graph presentation on a small public dataset. The user subsequently confirmed that the visual comparisons with R pass. The full nebulizer CSV was not available for an additional R run; testing it later would broaden coverage but is not required for Phase 9 sign-off.
+This checks graph presentation on a small public dataset. The user subsequently confirmed that the visual comparisons with R pass. A separate comparison of the private CSV was not part of Phase 9 sign-off.
 
 ## Performance sample
 

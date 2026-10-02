@@ -6,7 +6,7 @@ let exitCode = 1
 try {
   await server.listen()
   exitCode = await new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, ['./node_modules/@playwright/test/cli.js', 'test'], { stdio: 'inherit', env: process.env })
+    const child = spawn(process.execPath, ['./node_modules/@playwright/test/cli.js', 'test', ...process.argv.slice(2)], { stdio: 'inherit', env: process.env })
     child.once('error', reject)
     child.once('exit', (code) => resolve(code ?? 1))
   })

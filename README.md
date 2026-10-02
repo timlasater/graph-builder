@@ -1,154 +1,67 @@
 # Graph Builder
 
-An offline-first, Windows-focused scientific graph builder inspired by JMP Graph Builder's variable-to-role workflow.
+Graph Builder is a local-first scientific graphing application for Windows and modern desktop browsers. It lets users import tabular data, map columns to graph roles, combine plot layers, inspect and filter observations, and export figures or reusable projects. The bundled dataset is synthetic demonstration data; it is not research data.
 
-## Current milestone
+- [Try the browser app](https://timothylasater.com/graph-builder/app/)
+- [Read the complete user guide](docs/user-guide.md)
+- [Report an issue](https://github.com/timlasater/graph-builder/issues)
 
-- Three-panel desktop-style interface
-- Typed example engineering dataset
-- Drag variables onto X, Y, Color, Group X, Group Y, Wrap, Overlay, and Size roles
-- Multiple ordered assignments on X and Y, with drag reordering and Swap X/Y
-- Shape, Frequency, and Page roles with subset stepping
-- Layered points, lines, histograms, box plots, grouped/stacked bars, area/stacked-area plots, statistical summary lines, linear fits, and smoothed trends
-- Fit lines can optionally show the equation, effective sample size, and R², and can be constrained to a chosen y-intercept
-- Per-layer variable overrides, colors, marker sizes, and line widths
-- Type-aware graph suggestions and centralized compatibility feedback
-- Mean-line error bars for sample SD, standard error, selectable two-sided Student's t confidence intervals, and range
-- The same error-bar choices for mean bars (not sums, counts, or stacked bars)
-- Optional source-observation overlays on mean layers
-- Count, sum, median, minimum, maximum, quantile, sample SD, and SE summaries for raw observations
-- Precomputed mean/error input, percentage-of-total and control normalization, and visible warnings for incomplete uncertainty
-- Grouped panels, wrapped facet grids, and custom panels with different X/Y variables
-- Box plots with a Y variable alone, without an X assignment
-- Overlay traces and numeric marker-size mapping
-- Move assigned variables directly between roles or drag them back to the Variables panel
-- Automatic replacement of incompatible Wrap and Group X/Y assignments (version 1 limitation)
-- Local CSV, TSV, XLSX, and XLS import
-- Excel worksheet selection
-- Reference lines and acceptance regions imported from tagged data rows or a Graph Annotations worksheet
-- Automatic numeric, text, Boolean, and date/time inference
-- Editable, sortable, filterable, paginated data table with row exclusion
-- Column renaming and manual data/modeling-type controls
-- Import-quality warnings and per-column missing-value summaries
-- Rectangular tab-separated paste from Excel
-- Drag-to-filter drop target with categorical checklists and numeric bounds, shared by the data table and graph
-- Restricted calculated columns with atomic errors and domain warnings
-- Optional value labels such as `1 = Prototype A`
-- Interactive points, lines, and bar charts
-- Hover tooltips and Plotly zoom controls
-- Editable title, subtitle, grid lines, and marker size
-- Manual/automatic axis bounds, linear or logarithmic numeric scales, reverse direction, zero inclusion, tick intervals, and date axes
-- Category ordering by data order, name, response mean, or manual move controls
-- Reusable light, dark, and print themes; font, figure dimensions, aspect ratio, marker, line, bar, and uncertainty styling
-- Standard, colorblind-accessible, monochrome, and custom palettes; legend placement and double-click entry renaming
-- Reference lines and shaded specification/acceptance regions across facets
-- Draggable legend ordering with matching categorical bar order, per-series colors, and click-to-hide visibility
-- Searchable categorical filters, numeric and date ranges, and missing/non-missing filters shared by the graph and table
-- Linked graph/table row selection, including box/lasso selection and bulk include/exclude actions
-- Group highlighting, Page-role subset stepping, and shared or independent facet scales
-- Versioned projects with multiple named graphs, embedded or linked data, local autosave/recovery, and reusable templates
-- PNG and SVG image export, browser clipboard copy where supported, and plotted-data CSV export
-- Resizable graph canvas, independently scrolling sidebars, draggable sidebar splitters, and Variables/Properties show-hide controls
-- Collapsible Properties sections and an Opacity control with a clear solid-to-transparent scale
-- Undo and redo for graph and complete dataset changes
+## Architecture
 
-## Run locally
+The UI is React and TypeScript, built with Vite and packaged for Windows with Tauri 2. Zustand stores the dataset, graph specification, filters, project state, and undo history. Plotly renders graphs from a renderer-independent specification. AG Grid provides the editable data table. Papa Parse and SheetJS handle text and spreadsheet imports; dnd-kit handles variable and layer dragging.
 
-Open PowerShell in this directory and run:
+The app processes datasets in the browser or desktop WebView. It does not send imported rows to a service. The browser app itself must be downloaded from the website before it can run. The desktop app bundles its assets and can graph data offline after installation. Update checks are optional and do not block startup.
+
+Key source locations:
+
+| Path | Responsibility |
+| --- | --- |
+| `src/store.ts`, `src/types.ts` | Dataset and graph state; undo and redo |
+| `src/importData.ts`, `src/importAnnotations.ts` | CSV/TSV/Excel parsing and annotations |
+| `src/plotTransforms.ts`, `src/statistics.ts`, `src/statisticalSeries.ts` | Plot preparation and statistical calculations |
+| `src/components/GraphCanvas.tsx` | Interactive graph and legend |
+| `src/components/DataTableModal.tsx` | Data inspection and editing |
+| `src/projects.ts`, `src/graphTemplates.ts`, `src/graphExport.ts` | Persistence, templates, and exports |
+| `src/desktopFiles.ts`, `src-tauri/` | Desktop file dialogs, shell, and updater |
+| `docs/user-guide.md` | User-facing instructions bundled into the app |
+| `site/index.html`, `scripts/prepare-pages.mjs` | Public landing page and Pages output |
+
+Graph specifications are saved separately from Plotly's layout objects so saved projects remain independent of the renderer. Project files are JSON. An embedded `.graphbuilder` project contains the dataset and graph settings; a linked project stores a source-file reference and needs that file when reopened. See the guide for the difference.
+
+## Develop locally
+
+Prerequisites: Node.js compatible with Vite 8, npm, and a desktop browser for end-to-end tests. Windows desktop development also needs the Rust MSVC toolchain, Microsoft C++ Build Tools, and WebView2. The [desktop release guide](docs/desktop-release.md) describes signing and packaging.
 
 ```powershell
+npm ci
 npm run dev
 ```
 
-Open the local address printed in the terminal, normally `http://localhost:5173`. The application does not upload dataset contents or require a server.
+Open the local address printed by Vite. To start the Windows shell, run `npm run desktop:dev`; to build the installer locally, run `npm run desktop:build` after installing the Windows prerequisites.
 
-## Windows desktop work in progress
-
-Phase 10 now has a Tauri wrapper around the existing app. In a desktop build, import, project, template, and export actions use Windows file dialogs. Linked projects save the exact local source path and try to reload that file when reopened; if it has moved or its columns changed, the app asks for a source file. Recent projects appear in **Projects & export**. The project and graph name appear in the desktop window title; the browser keeps them in its compact header. **User guide** opens a bundled, offline copy of the guide. **Report a problem** opens the GitHub Issues page in the desktop app's default browser. Browser behavior remains available.
-
-To build or run the desktop app locally, install [Rust with rustup](https://rustup.rs/) using the Windows MSVC toolchain and [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) with **Desktop development with C++**. WebView2 is also required; it is usually already installed on current Windows systems. Then run `npm install` and `npm run desktop:dev` for a development window, or `npm run desktop:build` for an NSIS installer. The installer is configured to download WebView2 during installation if needed. Follow the [Windows manual checks](docs/phase-10-manual-checks.md) for install, offline use, file association, updates, and uninstall. The installer registers `.graphbuilder` projects for double-click opening. **Projects & export → Check for updates** checks for signed releases without blocking ordinary offline use. Release setup is in [desktop-release.md](docs/desktop-release.md); the published 0.1.2 → 0.1.3 update test passed, with final clean-machine file-association and offline checks remaining.
-
-## Make custom panels or a Y-only box plot
-
-When you assign multiple X or Y variables, open **Properties → Graph** and choose **Display together** or **Subplots** for that axis. Subplots can run horizontally or vertically; for three or more, set how many appear in each row. If both axes use subplots, each X/Y pair gets a panel. For one categorical X and Bars, Points, or Box plot layers, choose **Collate by category** under Y variables to place the different Y measures next to each other for each category (for example, Emitted Dose and Captured Dose for each Device). Axis subplots pause Group X, Group Y, Wrap, and layer X/Y overrides while shown.
-
-For panels with different combinations or titles, click **+ Panel** in **Properties → Graph**. Choose the X and Y variable in each custom panel; panels with different variables use independent axes. Every graph layer appears in each panel when it has the needed variables. While custom panels are present, Group X, Group Y, Wrap, layer X/Y overrides, and the shared facet-scale setting are paused. Remove all custom panels to return to the usual axis graph.
-
-For a single box plot of all values in one variable, choose **Box plot** in the layer settings, put the numeric variable on Y, and clear X. The chart groups the values under **All observations**. In a custom panel, choose **None** for Panel X and a numeric Panel Y to do the same there.
-
-Double-click the chart title, subtitle, a custom subplot title, or a visible X/Y axis title directly on the graph to edit it; press Enter or click away to save, or Escape to cancel. Axis titles also remain editable in **Properties → Axes and categories**. Custom subplots can have their own axis titles in **Properties → Graph → Custom panels**; if left blank they use the graph-wide axis title or column name. These titles appear in PNG/SVG exports and saved projects.
-
-## Save projects and export graphs
-
-Open **Projects & export** in the top bar. A project contains one dataset and one or more named graphs. Each graph has its own roles, layers, filters, and appearance; all graphs in the project share the dataset. A graph's name starts as its chart title and follows title edits until you give it a separate name with **Rename**. Use **New graph**, **Duplicate open graph**, or click another graph's name to reopen it. To remove a graph, click **Delete** beside its name and confirm; the final graph cannot be deleted. **Undo** can restore a deleted graph before the project is closed.
-
-Enter a project name and choose how to save its data:
-
-- **Embedded — include data** (recommended): saves a `.graphbuilder` file containing the current data, cell edits, calculated columns and formulas, annotations, graphs, and filters. Use this when you need to reproduce the exact project later or move it to another computer.
-- **Linked — reconnect source**: downloads a smaller project file containing graph settings, column settings and formulas, and a description of the imported CSV/Excel source, but not its rows. Opening it asks you to choose the source file again and uses that file's latest data, then recalculates formulas. The original worksheet and source columns must still match. Individual cell edits and excluded rows are **not** stored in this mode; use embedded mode if those matter. A linked project cannot be made from the built-in example until you import a file.
-
-Click **Open project…** and select the `.graphbuilder` file to reopen it. Earlier `.graphbuilder.json` files also remain openable through this button. Invalid files and unsupported future versions show an error without changing the graph you have open. Older version-0 project files are upgraded when opened. Project files contain ordinary local JSON data; no data is uploaded.
-
-The app also autosaves an **embedded recovery copy** in this browser's local storage, usually shortly after a change. On a later visit it offers to restore that work. Browser storage may be cleared by browser cleanup or private browsing, so download an embedded project as your reliable backup. The autosave is local and is not a cloud sync.
-
-For a graph design reusable with another compatible dataset, choose **Download template**. A `.graphbuilder-template.json` contains only the open graph's settings and filters, not data. After importing a dataset with the same column IDs, data types, and modeling types, choose **Open template…**; it creates a new graph using that dataset.
-
-Under **Export open graph**, set width and height in pixels. **Download PNG** uses the selected 1×–3× resolution; **Download SVG** creates scalable vector artwork suitable for PowerPoint or Illustrator. Both exports include a printable legend. For a one-click download of the open graph at its current size and 2× resolution, use **Save PNG** in the top bar next to **Projects & export**. **Copy PNG** places the image on the clipboard where the browser allows it; if your browser blocks that, use Download PNG. **Export plotted data CSV** saves the visible plot's trace values and uncertainty values, with box-plot mean and quartiles. It exports graph results, not a replacement for the full dataset in an embedded project.
-
-## Add graph annotations to imported data
-
-Annotations are reference lines (one target value) or acceptance regions (a shaded interval). Their coordinates must be numeric. Use `X` or `Y` for the axis. Annotation rows do not become measurements, so they cannot change averages, sample sizes, or plotted points. You can edit imported annotations afterward in Properties → Graph.
-
-### Option 1: tagged rows in a CSV or data worksheet
-
-Add reserved columns to your usual data table. `GB Type` and `GB Axis` are required when using this format; the other `GB` columns provide values and formatting. These reserved columns are removed from the imported Variables list.
-
-| Pressure | Dose | GB Type | GB Axis | GB Value | GB Minimum | GB Maximum | GB Label | GB Color |
-| ---: | ---: | --- | --- | ---: | ---: | ---: | --- | --- |
-| 20 | 50 | | | | | | | |
-| 30 | 55 | data | | | | | | |
-| | | reference-line | Y | 52 | | | Target dose | #c2413b |
-| | | acceptance-region | Y | | 48 | 60 | Acceptable range | #d9a441 |
-
-Leave `GB Type` blank or write `data` for an ordinary measurement row. Use exactly `reference-line` or `acceptance-region` for an annotation row. A reference line needs `GB Value`; an acceptance region needs `GB Minimum` and `GB Maximum`, with minimum below maximum. `GB Label` and `GB Color` are optional. A color, when provided, must be a six-digit hex code such as `#c2413b`. Header names and the type/axis values are case-insensitive.
-
-Try the ready-to-import [annotated-study.csv](examples/annotated-study.csv) example.
-
-### Option 2: a separate Excel worksheet
-
-Add a worksheet named `Graph Annotations` to an `.xlsx` or `.xls` workbook. It is not offered as a data sheet in the worksheet picker. Use these headers without the `GB` prefix:
-
-| Type | Axis | Value | Minimum | Maximum | Label | Color | Target Sheet |
-| --- | --- | ---: | ---: | ---: | --- | --- | --- |
-| reference-line | Y | 52 | | | Target dose | #c2413b | Results |
-| acceptance-region | Y | | 48 | 60 | Acceptable range | #d9a441 | Results |
-
-`Target Sheet` is optional. Enter the exact name of a data worksheet to apply an annotation only there; leave it blank to apply the annotation to every data worksheet in the workbook. Matching ignores letter case. You can also combine this worksheet with tagged rows in a data sheet; both sets of annotations are imported.
-
-Invalid annotation rows are skipped and shown as import warnings in the data table's quality summary. Rows tagged as annotations are never silently counted as data, even when their annotation is invalid. A target sheet name that does not exist also produces a warning. Saving a project preserves the resulting lines and regions; reopening a linked project and reconnecting its source can load changed workbook data.
-
-## Quality checks
-
-For a plain-language walkthrough, see the [user guide](docs/user-guide.md). The [phase 9 validation record](docs/phase-9-validation.md) lists test coverage, performance measurements, and remaining manual checks.
-The browser test uses an installed Chrome browser; install Chrome before running `npm run test:e2e` on a new Windows checkout.
+## Verify changes
 
 ```powershell
 npm test
-npm run test:workflow
-npm run test:perf
-npm run test:e2e
 npm run lint
 npm run build
+npm run test:e2e
+npm run build:pages
+npm run test:pages
 ```
 
-## Browser preview
+`npm test` runs the source unit and workflow tests. `test:e2e` exercises browser workflows with Playwright; install its browser if prompted. `build` checks TypeScript and creates desktop-ready web assets. `build:pages` creates the landing page and the browser app under `/graph-builder/app/`; `test:pages` checks both entry points and asset paths. The Pages workflow publishes from `main`. The desktop release workflow builds a signed Windows release when run manually. See [phase 9 validation](docs/phase-9-validation.md) and [phase 10 checks](docs/phase-10-manual-checks.md) for historical validation details.
 
-The browser preview is published at `https://timothylasater.com/graph-builder/`, with **Launch Graph Builder** opening `https://timothylasater.com/graph-builder/app/`. It needs an internet connection to load, but imported data stays in the browser. Download an embedded project file to keep a reliable backup; browser recovery storage can be cleared. The Windows download will be added after the desktop package has been built and tested.
+## Data formats and limits
 
-GitHub Pages publishes the preview from `main` using [.github/workflows/pages.yml](.github/workflows/pages.yml). The separate `npm run build:pages` command builds the app for the `/graph-builder/` path and adds a small landing page and a real `app/index.html` for direct visits and refreshes. Run `npm run test:pages` after that build to check both addresses and their assets locally. The ordinary `npm run build` still produces the app alone for future desktop packaging. See [roadmap.md](roadmap.md) for the release sequence and checks.
+Imports accept CSV, TSV, TXT, XLSX, and XLS, with a worksheet selector when needed. Dates, numbers, text, and Boolean columns are inferred, then can be corrected in the UI. Typical workbooks have 100–500 rows and 1,000–10,000 populated cells; validation also covered a 5,000-row, 50,000-cell browser workflow. Performance depends on the machine and graph complexity.
 
-The Windows app verifies updates using a free Tauri signing key pair. The public key is in the app; the private key stays outside Git and must be stored as a GitHub Actions secret before the [desktop release workflow](docs/desktop-release.md) can build a signed release. A Windows code-signing certificate for downloaded installers is separate and optional; without one, Windows may show a SmartScreen warning.
+Annotations can be supplied as tagged rows in a data table or in a `Graph Annotations` Excel worksheet. The exact columns and examples are documented in the [user guide](docs/user-guide.md#annotations-in-imported-files). Example files are in `examples/` and `test-data/`.
 
-Phases 2–9 are complete; Phase 10 desktop packaging is in final validation. Phase 9 passed automated validation, independent SciPy/NumPy calculations, an R graph comparison, and the user's keyboard, Windows Narrator, and fix retests. JMP is not required. See the [validation record](docs/phase-9-validation.md) and [manual review sign-off](docs/phase-9-manual-checks.md#sign-off--september-29-2026), including the measured 5,000-row / 50,000-cell browser workflow. The published 0.1.2 → 0.1.3 signed update passed; final clean-machine file-association and offline checks remain.
+## Project status
 
-See [roadmap.md](roadmap.md) for the phased development plan and agent handoff guidance. Development stays on `main` by default; a side branch is used only when the work needs isolation or coordination, then merged back when practical. Major feature handoffs include short steps for checking the result in the app.
+Browser graphing and the Windows desktop application are implemented. A signed 0.1.2 → 0.1.3 desktop update was tested. Final clean-machine file-association, offline, and no-update/decline checks are tracked in the [roadmap](roadmap.md). macOS and Linux releases await testing on those platforms.
+
+## Contributing
+
+Open an issue with steps to reproduce, an expected result, and the observed result. Keep private datasets out of issues; a small synthetic file is best. Before a change is merged, run the relevant commands above and update the guide when user behavior changes. The project is developed on `main` by default; see [AGENTS.md](AGENTS.md) for repository handoff policy.
