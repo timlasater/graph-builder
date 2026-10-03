@@ -4,6 +4,17 @@ Graph Builder uses Tauri's update signature to verify downloaded updates. The pu
 
 The GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` was configured for the published 0.1.2 and 0.1.3 releases. The [desktop release workflow](../.github/workflows/desktop-release.yml) uses that secret to sign releases built on GitHub. A second computer can start the workflow without copying the private key to that computer, provided its GitHub account has permission to run the workflow. If the secret is rotated or missing, restore it from the secure backup before building another update.
 
+## Build an installer locally
+
+`npm run build` builds the web files and does not use the signing key. `npm run desktop:build` creates the Windows installer and signs its update package. In PowerShell, set the path to the existing key before building:
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY = "$env:USERPROFILE\.tauri\graph-builder.key"
+npm run desktop:build
+```
+
+If Tauri asks for a password to decrypt the private key and the key was created without one, press **Enter** at the prompt. An empty response is the correct password in that case. The wording of the prompt does not mean the file is encrypted with a nonempty password. Do not generate a replacement key: installed copies of Graph Builder trust the original key's public half.
+
 ## Prepare a release
 
 1. Set the same new version in `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`.

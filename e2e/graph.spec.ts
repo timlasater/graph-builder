@@ -12,9 +12,9 @@ test('two Y variables can use independent left and right scales', async ({ page 
   await page.getByLabel('Y variables').selectOption('dual')
   await expect(page.getByLabel('Y variables')).toHaveValue('dual')
   await expect.poll(() => page.locator('.plotly-chart').evaluate((element) => {
-    const chart = element as HTMLElement & { data?: { yaxis?: string }[]; _fullLayout?: { yaxis?: { range?: number[] }; yaxis2?: { side?: string; overlaying?: string; range?: number[] } } }
-    return { axes: chart.data?.map((trace) => trace.yaxis), side: chart._fullLayout?.yaxis2?.side, overlaying: chart._fullLayout?.yaxis2?.overlaying, separateRanges: (chart._fullLayout?.yaxis?.range?.[1] ?? 0) < (chart._fullLayout?.yaxis2?.range?.[0] ?? 0) }
-  })).toEqual({ axes: ['y', 'y2'], side: 'right', overlaying: 'y', separateRanges: true })
+    const chart = element as HTMLElement & { data?: { yaxis?: string; marker?: { color?: string } }[]; _fullLayout?: { yaxis?: { range?: number[] }; yaxis2?: { side?: string; overlaying?: string; range?: number[] } } }
+    return { axes: chart.data?.map((trace) => trace.yaxis), colors: chart.data?.map((trace) => trace.marker?.color), side: chart._fullLayout?.yaxis2?.side, overlaying: chart._fullLayout?.yaxis2?.overlaying, separateRanges: (chart._fullLayout?.yaxis?.range?.[1] ?? 0) < (chart._fullLayout?.yaxis2?.range?.[0] ?? 0) }
+  })).toEqual({ axes: ['y', 'y2'], colors: ['#0f6c75', '#ef8354'], side: 'right', overlaying: 'y', separateRanges: true })
   await page.getByRole('button', { name: 'Projects & export' }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download project' }).click()

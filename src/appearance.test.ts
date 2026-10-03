@@ -38,6 +38,8 @@ describe('appearance rules', () => {
   it('uses separate color sets for two Y variables and varies groups within each set', () => {
     const left = [0, 1, 2].map((group) => pairedYColor(palettes.standard, 0, group))
     const right = [0, 1, 2].map((group) => pairedYColor(palettes.standard, 1, group))
+    expect(left).toEqual([palettes.standard[0], palettes.standard[2], palettes.standard[4]])
+    expect(right).toEqual([palettes.standard[1], palettes.standard[3], palettes.standard[5]])
     expect(new Set([...left, ...right]).size).toBe(6)
     expect(pairedYColor(['#225588', '#cc6633'], 0, 0)).not.toBe(pairedYColor(['#225588', '#cc6633'], 0, 1))
   })
