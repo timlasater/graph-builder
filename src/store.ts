@@ -3,7 +3,7 @@ import { sampleDataset } from './sampleData'
 import { coerceValue } from './importData'
 import { calculateColumn, recalculateFormulaColumns } from './formula'
 import { elementLabel, resolveAssignment, sameAssignments, suggestElement } from './compatibility'
-import type { CellValue, DataColumn, Dataset, GraphDocument, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
+import type { CellValue, DataColumn, Dataset, DatasetSource, GraphDocument, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
 
 const initialSpec: GraphSpec = {
   title: 'Measured Result by Input Setting',
@@ -62,11 +62,13 @@ interface BuilderState {
   applySuggestion: () => void
   setPageValue: (value?: CellValue) => void
   compatibilityMessage?: string
+  compatibilityMessageTransient?: boolean
   clearCompatibilityMessage: () => void
   setSelectedColumn: (columnId?: string) => void
   setSelectedRowIds: (rowIds: string[]) => void
   clearRowSelection: () => void
   setDataset: (dataset: Dataset) => void
+  setDatasetSource: (source: DatasetSource) => void
   applyGraphTemplate: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
   openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, projectPath?: string, projectMode?: 'embedded' | 'linked') => void
   setProjectPath: (path?: string) => void
@@ -88,6 +90,7 @@ interface BuilderState {
   appendRows: (matrix: unknown[][]) => void
   undo: () => void
   redo: () => void
+  resetToExample: () => void
   reset: () => void
 }
 
@@ -150,6 +153,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   filters: [],
   selectedRowIds: [],
   compatibilityMessage: undefined,
+  compatibilityMessageTransient: false,
   assign: (role, columnId) =>
     set((state) => {
       if (!columnId) {
@@ -161,7 +165,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
       if (!column) return state
       const result = resolveAssignment(state.spec, column, role, undefined, undefined, state.dataset.rows)
       if (result.accepted && role === 'page') result.spec.pageValue = state.dataset.rows[0]?.values[column.id]
-      return result.accepted ? withHistory(state, { spec: result.spec, compatibilityMessage: undefined }) : { compatibilityMessage: result.message }
+      return result.accepted ? withHistory(state, { spec: result.spec, compatibilityMessage: undefined, compatibilityMessageTransient: false }) : { compatibilityMessage: result.message, compatibilityMessageTransient: false }
     }),
   moveAssignment: (columnId, toRole, fromRole, targetIndex) =>
     set((state) => {
@@ -169,9 +173,9 @@ export const useBuilderStore = create<BuilderState>((set) => ({
       if (!column) return state
       const result = resolveAssignment(state.spec, column, toRole, fromRole, targetIndex, state.dataset.rows)
       if (result.accepted && toRole === 'page' && result.spec.pageValue === undefined) result.spec.pageValue = state.dataset.rows[0]?.values[column.id]
-      if (!result.accepted) return { compatibilityMessage: result.message }
+      if (!result.accepted) return { compatibilityMessage: result.message, compatibilityMessageTransient: false }
       if (sameAssignments(state.spec, result.spec)) return state
-      return withHistory(state, { spec: result.spec, compatibilityMessage: undefined })
+      return withHistory(state, { spec: result.spec, compatibilityMessage: undefined, compatibilityMessageTransient: false })
     }),
   updateSpec: (patch) =>
     set((state) => withHistory(state, { spec: { ...state.spec, ...patch }, ...(patch.title?.trim() && state.activeGraphName === state.spec.title ? { activeGraphName: patch.title } : {}) })),
@@ -187,7 +191,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     return withHistory(state, { spec: { ...state.spec, layers: [...state.spec.layers, layer], activeLayerId: id } })
   }),
   removeLayer: (layerId) => set((state) => {
-    if (state.spec.layers.length <= 1) return { compatibilityMessage: 'A graph needs at least one layer.' }
+    if (state.spec.layers.length <= 1) return { compatibilityMessage: 'A graph needs at least one layer.', compatibilityMessageTransient: false }
     const layers = state.spec.layers.filter((layer) => layer.id !== layerId)
     return withHistory(state, { spec: { ...state.spec, layers, activeLayerId: state.spec.activeLayerId === layerId ? layers[0].id : state.spec.activeLayerId } })
   }),
@@ -201,19 +205,20 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     const y = yIds.map((id) => state.dataset.columns.find((column) => column.id === id)).filter((column): column is DataColumn => Boolean(column))
     const rows = state.dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, state.filters) && (!state.spec.page || state.spec.pageValue === undefined || row.values[state.spec.page] === state.spec.pageValue))
     const suggestion = suggestElement(x, y, rows); const message = `${elementLabel(suggestion.element)} suggested: ${suggestion.reason}`
-    if (!activeLayer || activeLayer.element === suggestion.element) return { compatibilityMessage: `Already using ${message.toLocaleLowerCase()}` }
-    return withHistory(state, { compatibilityMessage: message, spec: { ...state.spec, layers: state.spec.layers.map((layer) => layer.id === state.spec.activeLayerId ? { ...layer, element: suggestion.element, name: layerName(suggestion.element) } : layer) } })
+    if (!activeLayer || activeLayer.element === suggestion.element) return { compatibilityMessage: `Already using ${message.toLocaleLowerCase()}`, compatibilityMessageTransient: true }
+    return withHistory(state, { compatibilityMessage: message, compatibilityMessageTransient: true, spec: { ...state.spec, layers: state.spec.layers.map((layer) => layer.id === state.spec.activeLayerId ? { ...layer, element: suggestion.element, name: layerName(suggestion.element) } : layer) } })
   }),
   setPageValue: (pageValue) => set((state) => withHistory(state, { spec: { ...state.spec, pageValue } })),
-  clearCompatibilityMessage: () => set({ compatibilityMessage: undefined }),
+  clearCompatibilityMessage: () => set({ compatibilityMessage: undefined, compatibilityMessageTransient: false }),
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
   clearRowSelection: () => set({ selectedRowIds: [] }),
   setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, projectPath: undefined, projectMode: 'embedded', savedProjectFingerprint: undefined, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
-  applyGraphTemplate: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, selectedColumn: undefined })),
+  setDatasetSource: (source) => set((state) => withHistory(state, { dataset: { ...state.dataset, source } })),
+  applyGraphTemplate: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, compatibilityMessageTransient: false, selectedColumn: undefined })),
   openProject: (projectName, dataset, graphs, activeGraphId, projectPath, projectMode = 'embedded') => set((state) => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]
-    const opened = { projectName, projectPath, projectMode, dataset: structuredClone(dataset), spec: structuredClone(active.spec), filters: structuredClone(active.filters), activeGraphId: active.id, activeGraphName: active.name, otherGraphs: structuredClone(graphs.filter((graph) => graph.id !== active.id)), selectedColumn: undefined, selectedRowIds: [], compatibilityMessage: undefined }
+    const opened = { projectName, projectPath, projectMode, dataset: structuredClone(dataset), spec: structuredClone(active.spec), filters: structuredClone(active.filters), activeGraphId: active.id, activeGraphName: active.name, otherGraphs: structuredClone(graphs.filter((graph) => graph.id !== active.id)), selectedColumn: undefined, selectedRowIds: [], compatibilityMessage: undefined, compatibilityMessageTransient: false }
     return withHistory(state, { ...opened, savedProjectFingerprint: projectFingerprint(opened) })
   }),
   setProjectPath: (projectPath) => set({ projectPath }),
@@ -290,6 +295,21 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     if (!next) return state
     return { ...next, past: [...state.past, snapshot(state)], future: state.future.slice(1) }
   }),
+  resetToExample: () => set((state) => withHistory(state, {
+    dataset: sampleDataset,
+    spec: initialSpec,
+    projectName: sampleDataset.name,
+    projectPath: undefined,
+    projectMode: 'embedded',
+    activeGraphId: 'graph-1',
+    activeGraphName: initialSpec.title,
+    otherGraphs: [],
+    filters: [],
+    selectedColumn: undefined,
+    selectedRowIds: [],
+    compatibilityMessage: undefined,
+    compatibilityMessageTransient: false,
+  })),
   reset: () => set({
     dataset: sampleDataset,
     spec: initialSpec,
@@ -306,5 +326,6 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     selectedColumn: undefined,
     selectedRowIds: [],
     compatibilityMessage: undefined,
+    compatibilityMessageTransient: false,
   }),
 }))

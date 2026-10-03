@@ -9,6 +9,7 @@ test('imports and graphs the 5,000-row / 50,000-cell maximum without losing cont
   const started = performance.now()
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'maximum.csv', mimeType: 'text/csv', buffer: Buffer.from(rows.join('\n')) })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
   await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('5000 source rows')
   await expect(page.locator('.js-plotly-plot .main-svg').first()).toBeVisible()
   console.info(`Maximum-size browser import and graph: ${(performance.now() - started).toFixed(0)} ms`)

@@ -69,6 +69,12 @@ describe('project files', () => {
     expect(embedded.data.mode === 'embedded' && embedded.data.dataset.source?.nativePath).toBeUndefined()
   })
 
+  it('remembers skipped import rows in linked projects', () => {
+    const dataset = { ...sampleDataset, source: { fileName: 'results.csv', skipRows: 2 } }
+    const linked = parseProject(projectJson(makeProject('Linked', dataset, [graph()], 'one', 'linked')))
+    expect(linked.data.mode === 'linked' && linked.data.source.skipRows).toBe(2)
+  })
+
   it('reapplies linked column settings and recalculates formulas on fresh source rows', () => {
     const columns = [...sampleDataset.columns.map((column) => column.id === 'dose' ? { ...column, name: 'Dose result' } : column), { id: 'double_dose', name: 'Double dose', dataType: 'number' as const, modelingType: 'continuous' as const, formula: '[dose] * 2' }]
     const fresh = { ...sampleDataset, rows: sampleDataset.rows.map((row) => ({ ...row, values: { ...row.values, dose: Number(row.values.dose) + 10 } })) }

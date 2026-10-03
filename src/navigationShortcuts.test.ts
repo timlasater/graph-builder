@@ -9,6 +9,16 @@ describe('navigation shortcuts', () => {
     expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }), false, true)).toBeUndefined()
     expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, shiftKey: true }), false, false)).toBeUndefined()
   })
+  it('opens the data table with Ctrl+D or Command+D outside editors and dialogs', () => {
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }), true, false)).toBe('dataTable')
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'D', metaKey: true }), false, false)).toBe('dataTable')
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }), true, true)).toBeUndefined()
+    const input = document.createElement('input')
+    let result: ReturnType<typeof navigationShortcut>
+    input.addEventListener('keydown', (event) => { result = navigationShortcut(event, true, false) })
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }))
+    expect(result).toBeUndefined()
+  })
   it('opens Projects & export with Ctrl+E only in the desktop app', () => {
     const event = new KeyboardEvent('keydown', { key: 'e', ctrlKey: true })
     expect(navigationShortcut(event, true, false)).toBe('projects')

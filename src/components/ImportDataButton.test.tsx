@@ -14,6 +14,7 @@ describe('ImportDataButton file dropping', () => {
     expect(screen.getByRole('status').textContent).toContain('Drop data or project file to open')
 
     fireEvent.drop(window, { dataTransfer })
+    fireEvent.click(await screen.findByRole('button', { name: 'Import selected data' }))
     await waitFor(() => expect(onImport).toHaveBeenCalledOnce())
     expect(onImport.mock.calls[0][0]).toMatchObject({ name: 'dropped', rows: expect.arrayContaining([expect.objectContaining({ values: expect.any(Object) })]) })
     expect(screen.queryByRole('status')).toBeNull()

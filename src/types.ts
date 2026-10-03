@@ -43,6 +43,7 @@ export interface ImportedAnnotations {
 export interface DatasetSource {
   fileName: string
   sheetName?: string
+  skipRows?: number
   handleId?: string
   nativePath?: string
   signature?: string

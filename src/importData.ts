@@ -8,6 +8,13 @@ export interface ImportedSheet {
   dataset: Dataset
 }
 
+export interface PreparedTabularFile {
+  fileName: string
+  kind: 'text' | 'workbook'
+  sheets: { name: string; matrix: unknown[][] }[]
+  annotationSheet?: { name: string; matrix: unknown[][] }
+}
+
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
 
 const normalizedHeader = (value: unknown, index: number, used: Set<string>) => {
@@ -50,10 +57,11 @@ export const coerceValue = (value: unknown, type: DataType): CellValue => {
   return String(value)
 }
 
-export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset => {
-  const annotationResult = parseAnnotationMatrix(matrix, name)
+export const datasetFromMatrix = (matrix: unknown[][], name: string, skipRows = 0): Dataset => {
+  if (!Number.isSafeInteger(skipRows) || skipRows < 0) throw new Error('The number of rows to skip must be a whole number of zero or more.')
+  const annotationResult = parseAnnotationMatrix(matrix.slice(skipRows), name)
   const nonempty = annotationResult.dataMatrix.filter((row) => row.some((value) => !isBlank(value)))
-  if (!nonempty.length) throw new Error('The selected file or worksheet is empty.')
+  if (!nonempty.length) throw new Error('No header row remains after skipping rows. Choose a smaller number.')
   const width = Math.max(...nonempty.map((row) => row.length))
   const sourceRows = nonempty.slice(1)
   const keptColumnIndexes = Array.from({ length: width }, (_, index) => index).filter((index) =>
@@ -100,17 +108,18 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string): Dataset =>
   }
 }
 
-export const importTabularFile = async (file: File): Promise<ImportedSheet[]> => {
+export const prepareTabularFile = async (file: File): Promise<PreparedTabularFile> => {
   const extension = file.name.split('.').pop()?.toLocaleLowerCase()
   const baseName = file.name.replace(/\.[^.]+$/, '')
   if (extension === 'csv' || extension === 'tsv' || extension === 'txt') {
     const text = await file.text()
-    const parsed = Papa.parse<string[]>(text, {
-      delimiter: extension === 'tsv' ? '\t' : '',
-      skipEmptyLines: 'greedy',
-    })
+    const parsed = Papa.parse<string[]>(text, { delimiter: extension === 'tsv' ? '\t' : '', skipEmptyLines: false })
+    if (extension === 'csv' && parsed.errors.length && parsed.errors.every((error) => error.code === 'UndetectableDelimiter')) {
+      const commaParsed = Papa.parse<string[]>(text, { delimiter: ',', skipEmptyLines: false })
+      if (!commaParsed.errors.length) return { fileName: file.name, kind: 'text', sheets: [{ name: baseName, matrix: commaParsed.data }] }
+    }
     if (parsed.errors.length) throw new Error(`The file has a CSV formatting error near row ${parsed.errors[0].row ?? 1}: ${parsed.errors[0].message}. Check its quotes and separators, then try again.`)
-    return [{ name: baseName, dataset: datasetFromMatrix(parsed.data, baseName) }]
+    return { fileName: file.name, kind: 'text', sheets: [{ name: baseName, matrix: parsed.data }] }
   }
 
   if (extension === 'xlsx' || extension === 'xls') {
@@ -119,20 +128,28 @@ export const importTabularFile = async (file: File): Promise<ImportedSheet[]> =>
     const annotationSheet = workbook.SheetNames.find((sheetName) => sheetName.trim().toLocaleLowerCase() === 'graph annotations')
     const dataSheetNames = workbook.SheetNames.filter((sheetName) => sheetName !== annotationSheet)
     if (!dataSheetNames.length) throw new Error('The workbook needs at least one data worksheet besides Graph Annotations.')
-    const separate = annotationSheet ? parseAnnotationMatrix(matrixFor(annotationSheet), annotationSheet, true) : undefined
-    const unmatched = separate ? unmatchedAnnotationTargets(separate.entries, dataSheetNames) : []
-    return dataSheetNames.map((sheetName) => {
-      const dataset = datasetFromMatrix(matrixFor(sheetName), `${baseName} · ${sheetName}`)
-      const extra = separate ? annotationsForSheet(separate.entries, sheetName) : undefined
-      dataset.importedAnnotations = {
-        referenceLines: [...(dataset.importedAnnotations?.referenceLines ?? []), ...(extra?.referenceLines ?? [])],
-        referenceRegions: [...(dataset.importedAnnotations?.referenceRegions ?? []), ...(extra?.referenceRegions ?? [])],
-      }
-      dataset.warnings.push(...(separate?.warnings ?? []))
-      dataset.warnings.push(...unmatched.map((target) => ({ code: 'annotation' as const, message: `Graph Annotations: Target Sheet “${target}” was not found in this workbook.` })))
-      return { name: sheetName, dataset }
-    })
+    return { fileName: file.name, kind: 'workbook', sheets: dataSheetNames.map((name) => ({ name, matrix: matrixFor(name) })), annotationSheet: annotationSheet ? { name: annotationSheet, matrix: matrixFor(annotationSheet) } : undefined }
   }
 
   throw new Error('Choose a CSV, TSV, XLSX, or XLS file.')
 }
+
+export const importPreparedFile = (prepared: PreparedTabularFile, skipRows = 0, selectedSheet?: string): ImportedSheet[] => {
+  const baseName = prepared.fileName.replace(/\.[^.]+$/, '')
+  const separate = prepared.annotationSheet ? parseAnnotationMatrix(prepared.annotationSheet.matrix, prepared.annotationSheet.name, true) : undefined
+  const unmatched = separate ? unmatchedAnnotationTargets(separate.entries, prepared.sheets.map((sheet) => sheet.name)) : []
+  return prepared.sheets.filter((sheet) => !selectedSheet || sheet.name === selectedSheet).map(({ name, matrix }) => {
+    const dataset = datasetFromMatrix(matrix, prepared.kind === 'text' ? baseName : `${baseName} · ${name}`, skipRows)
+    if (prepared.kind === 'text') return { name, dataset }
+    const extra = separate ? annotationsForSheet(separate.entries, name) : undefined
+    dataset.importedAnnotations = {
+      referenceLines: [...(dataset.importedAnnotations?.referenceLines ?? []), ...(extra?.referenceLines ?? [])],
+      referenceRegions: [...(dataset.importedAnnotations?.referenceRegions ?? []), ...(extra?.referenceRegions ?? [])],
+    }
+    dataset.warnings.push(...(separate?.warnings ?? []))
+    dataset.warnings.push(...unmatched.map((target) => ({ code: 'annotation' as const, message: `Graph Annotations: Target Sheet “${target}” was not found in this workbook.` })))
+    return { name, dataset }
+  })
+}
+
+export const importTabularFile = async (file: File, skipRows = 0): Promise<ImportedSheet[]> => importPreparedFile(await prepareTabularFile(file), skipRows)

@@ -4,6 +4,7 @@ import { chooseDesktopFile, clearRecentProjects, isDesktop, readDesktopFile, rea
 import { makeTemplate, parseTemplate, templateFitsDataset } from '../graphTemplates'
 import { readLegacyTemplates } from '../legacySetups'
 import { importTabularFile } from '../importData'
+import { datasetSignature } from '../datasetSignature'
 import { makeProject, parseProject, projectJson, rebuildLinkedDataset, type ProjectFile } from '../projects'
 import { saveCurrentDesktopProject } from '../projectSave'
 import { chooseSourceDataset } from '../sourceData'
@@ -98,9 +99,22 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     setMessage('Graph deleted. You can use Undo to restore it until the project is closed.')
   }
   const saveFile = async () => {
+    setBusy(true); setMessage(undefined)
     try {
-      const project = makeProject(name, dataset, projectGraphs(state), activeGraphId, mode)
-      const fingerprint = projectFingerprint({ ...state, projectName: project.name, projectMode: mode })
+      if (isDesktop() && mode === 'linked' && dataset.source?.fileName && !dataset.source.nativePath) {
+        const sourcePath = await chooseDesktopFile('source')
+        if (!sourcePath) return
+        const source = dataset.source
+        const sourceName = sourcePath.split(/[\\/]/).at(-1) || source.fileName
+        const sheets = await importTabularFile(await readDesktopFile(sourcePath), source.skipRows ?? 0)
+        const expectedSignature = source.signature ?? datasetSignature({ columns: dataset.columns.filter((column) => !column.formula) })
+        const selected = chooseSourceDataset(sheets, { fileName: sourceName, sheetName: source.sheetName, nativePath: sourcePath, skipRows: source.skipRows }, expectedSignature)
+        if (!selected?.source) throw new Error('That source file does not have the expected columns. Choose the original data file before saving a linked project.')
+        useBuilderStore.getState().setDatasetSource(selected.source)
+      }
+      const current = useBuilderStore.getState()
+      const project = makeProject(name, current.dataset, projectGraphs(current), current.activeGraphId, mode)
+      const fingerprint = projectFingerprint({ ...current, projectName: project.name, projectMode: mode })
       if (isDesktop()) {
         const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project), 'graphbuilder')
         if (!path) return
@@ -112,6 +126,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
       useBuilderStore.getState().markProjectSaved(fingerprint)
       setMessage(isDesktop() ? 'Project saved on this computer.' : mode === 'embedded' ? 'Project downloaded with its data and graph settings.' : 'Linked project downloaded. Its source data must be reconnected when opened.')
     } catch (error) { report(error) }
+    finally { setBusy(false) }
   }
   const saveBeforeUpdate = async () => {
     try {
@@ -135,7 +150,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
         const source = project.data.source
         if (isDesktop() && source.nativePath) {
           try {
-            const sheets = await importTabularFile(await readDesktopFile(source.nativePath))
+            const sheets = await importTabularFile(await readDesktopFile(source.nativePath), source.skipRows ?? 0)
             const selected = chooseSourceDataset(sheets, source, source.signature)
             if (!selected) throw new Error('The saved source path no longer has matching columns.')
             const restored = project.data.columns ? rebuildLinkedDataset(selected, project.data.columns) : selected
@@ -173,8 +188,8 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     setBusy(true); setMessage(undefined)
     try {
       const source = pendingLinked.data.source
-      const sheets = await importTabularFile(file)
-      const selected = chooseSourceDataset(sheets, { fileName: file.name, sheetName: source.sheetName, nativePath }, source.signature)
+      const sheets = await importTabularFile(file, source.skipRows ?? 0)
+      const selected = chooseSourceDataset(sheets, { fileName: file.name, sheetName: source.sheetName, nativePath, skipRows: source.skipRows }, source.signature)
       if (!selected) throw new Error('This source file does not have the columns expected by the linked project. The current project was not changed.')
       const restored = pendingLinked.data.columns ? rebuildLinkedDataset(selected, pendingLinked.data.columns) : selected
       prepareOpen({ project: pendingLinked, dataset: restored, nativePath: pendingLinkedPath })
@@ -251,10 +266,10 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     <section ref={dialogRef} className="project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-title" aria-hidden={Boolean(pendingOpen || openError)} inert={Boolean(pendingOpen || openError)} tabIndex={-1}>
       <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" disabled={updateInstalling || Boolean(pendingOpen || openError)} onClick={onClose}>×</button></header>
       <div className="project-body">
-        <section className="project-section"><h3>Project file</h3><span className="project-save-state">Current project: <strong>{state.projectMode === 'embedded' ? 'Embedded — includes data' : 'Linked — reconnects source'}</strong></span><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={() => void saveFile()}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div><small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
+        <section className="project-section"><h3>Project file</h3><span className="project-save-state">Current project: <strong>{state.projectMode === 'embedded' ? 'Embedded — includes data' : 'Linked — reconnects source'}</strong></span><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={() => void saveFile()}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div>{mode === 'linked' && dataset.source?.fileName && <span className="project-save-state">Source location: <strong>{dataset.source.nativePath ?? `${dataset.source.fileName} (${isDesktop() ? 'choose its location when saving' : 'folder path unavailable in the browser'})`}</strong></span>}<small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
         {isDesktop() && <DesktopUpdater saveBeforeInstall={saveBeforeUpdate} onInstalling={setUpdateInstalling} />}
         {recent.length > 0 && <section className="project-section"><div className="project-section-heading"><h3>Recent projects</h3><button className="clear-recent-button" disabled={busy} onClick={() => { clearRecentProjects(); setRecent([]); setMessage('Recent projects cleared. Your project files were not deleted.') }}>Clear recent projects</button></div><div className="project-graph-list">{recent.map((item) => <button key={item.path} title={item.path} disabled={busy} onClick={() => void readProject(undefined, item.path)}>{item.name}</button>)}</div></section>}
-        {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><p className="source-last-path">Last found at {pendingLinked.data.source.nativePath ?? pendingLinked.data.source.fileName}{!pendingLinked.data.source.nativePath && <span> (folder path unavailable in the browser)</span>}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setPendingLinkedPath(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.'); if (initialProjectPath || initialProjectFile) onClose() }}>Cancel</button></div></section>}
+        {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><p className="source-last-path">Last found at {pendingLinked.data.source.nativePath ?? pendingLinked.data.source.fileName}{!pendingLinked.data.source.nativePath && <span> {isDesktop() ? '(folder path was not saved with this project)' : '(folder path unavailable in the browser)'}</span>}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setPendingLinkedPath(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.'); if (initialProjectPath || initialProjectFile) onClose() }}>Cancel</button></div></section>}
         <section className="project-section"><h3>Graphs in this project</h3><div className="project-graph-list">{graphs.map((graph) => <div className="project-graph-item" key={graph.id}><button className={graph.id === activeGraphId ? 'active' : ''} disabled={graph.id === activeGraphId} onClick={() => { openGraph(graph.id); setGraphName(graph.name); setTemplateName(graph.name); setPendingDeleteId(undefined) }}>{graph.name}{graph.id === activeGraphId ? ' · open' : ''}</button><button className="project-delete-button" disabled={graphs.length === 1} aria-label={`Delete ${graph.name}`} title={graphs.length === 1 ? 'A project must have at least one graph' : `Delete ${graph.name}`} onClick={() => setPendingDeleteId(graph.id)}>Delete</button></div>)}</div>{pendingDelete && <div className="project-delete-confirm" role="group" aria-label="Confirm graph deletion"><span>Delete “{pendingDelete.name}” from this project?</span><button onClick={confirmDelete}>Delete graph</button><button onClick={() => setPendingDeleteId(undefined)}>Cancel</button></div>}<div className="project-actions"><button onClick={() => { newGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>New graph</button><button onClick={() => { duplicateGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>Duplicate open graph</button></div><div className="project-actions"><label>Open graph name<input value={graphName} onChange={(event) => setGraphName(event.target.value)} /></label><button onClick={() => renameGraph(graphName)}>Rename</button></div></section>
         <section className="project-section"><h3>Reusable graph template</h3><p>Templates save the current graph and filters without data; import them with a dataset that has matching columns.</p><div className="project-actions"><label>Template name<input value={templateName} onChange={(event) => setTemplateName(event.target.value)} /></label><button onClick={() => void exportTemplate()}>{isDesktop() ? 'Save template…' : 'Download template'}</button><button disabled={busy} onClick={() => void chooseTemplate()}>Open template…</button></div></section>
         {legacyTemplates.length > 0 && <section className="project-section"><h3>Previous saved graphs</h3><p>Download each saved graph as a template before clearing this browser's data. Templates keep graph settings and filters, but need the original dataset when opened.</p><div className="project-graph-list">{legacyTemplates.map((template, index) => <div className="project-graph-item" key={`${template.name}-${index}`}><span>{template.name}</span><button onClick={() => downloadText(`${safeFileName(template.name)}.graphbuilder-template.json`, JSON.stringify(template, null, 2))}>Download template</button></div>)}</div></section>}

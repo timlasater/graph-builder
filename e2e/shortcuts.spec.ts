@@ -30,3 +30,26 @@ test('Ctrl+N adds an empty graph to the current project', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'New graph · open' })).toBeVisible()
   await expect(page.locator('.project-graph-list').first().getByRole('button')).toHaveCount(4)
 })
+
+test('mouse Back and Forward undo and redo graph changes', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Projects & export' }).focus()
+  await page.keyboard.press('Control+n')
+  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('Build a graph')
+  await page.evaluate(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 3 })))
+  await expect(page.getByRole('region', { name: 'Graph preview' })).not.toContainText('Build a graph')
+  await page.evaluate(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 4 })))
+  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('Build a graph')
+})
+
+test('Ctrl+D opens the data table and suggested-layer feedback fades away', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Projects & export' }).focus()
+  await page.keyboard.press('Control+d')
+  await expect(page.getByRole('dialog', { name: 'Example measurements (synthetic data)' })).toBeVisible()
+  await page.getByRole('button', { name: 'Close data table' }).click()
+  await page.getByRole('button', { name: /Bars$/ }).first().click()
+  await page.locator('.suggest-button').click()
+  await expect(page.locator('.compatibility-message.transient')).toBeVisible()
+  await expect(page.locator('.compatibility-message')).toHaveCount(0, { timeout: 6500 })
+})

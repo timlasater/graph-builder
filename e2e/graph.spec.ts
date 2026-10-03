@@ -15,6 +15,7 @@ test('imports a file, builds a graph, saves and reopens a project, then exports'
   }
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'sample-study.csv', mimeType: 'text/csv', buffer: Buffer.from('Pressure,Dose,Group\n10,20,A\n10,40,A\n30,70,B\n') })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
   await expect(page.getByText('sample-study', { exact: true }).first()).toBeVisible()
   await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('3 source rows')
   await page.getByRole('button', { name: 'View data table' }).click()
@@ -67,6 +68,7 @@ test('opening a project can be canceled, saved, undone, and redone; invalid file
 
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'my-work.csv', mimeType: 'text/csv', buffer: Buffer.from('X,Y\n1,2\n3,4\n') })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
   await expect(page.getByText('my-work', { exact: true }).first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Projects & export' }).click()
@@ -132,11 +134,28 @@ test('the untouched example opens a project without a save prompt', async ({ pag
   await expect(page.getByRole('dialog', { name: 'Projects' })).toHaveCount(0)
 })
 
+test('Reset example can be undone and redone', async ({ page }) => {
+  await page.goto('/')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'reset-test.csv', mimeType: 'text/csv', buffer: Buffer.from('X,Y\n1,2\n3,4\n') })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
+  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('reset-test. 2 source rows')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: 'Reset example' }).click()
+  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('45 source rows')
+  await page.keyboard.press('Control+z')
+  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('reset-test. 2 source rows')
+  await page.keyboard.press('Control+y')
+  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('45 source rows')
+})
+
 test('a linked project shows its data mode when reopened', async ({ page }) => {
   await page.goto('/')
-  const source = { name: 'linked-data.csv', mimeType: 'text/csv', buffer: Buffer.from('X,Y\n1,2\n3,4\n') }
+  const source = { name: 'linked-data.csv', mimeType: 'text/csv', buffer: Buffer.from('Study results\nX,Y\n1,2\n3,4\n') }
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles(source)
+  await page.getByRole('spinbutton', { name: 'Rows to skip before header' }).fill('1')
+  await page.getByRole('button', { name: 'Import selected data' }).click()
   await page.getByRole('button', { name: 'Projects & export' }).click()
   const projects = page.getByRole('dialog', { name: 'Projects' })
   await expect(projects.getByText('Current project:')).toContainText('Embedded')
@@ -151,6 +170,7 @@ test('a linked project shows its data mode when reopened', async ({ page }) => {
   await expect(page.getByText('Last found at linked-data.csv (folder path unavailable in the browser)')).toBeVisible()
   await page.getByRole('button', { name: 'Cancel', exact: true }).click()
   const linkedContent = JSON.parse(await readFile(await linkedProject.path(), 'utf8'))
+  expect(linkedContent.data.source.skipRows).toBe(1)
   linkedContent.data.source.nativePath = 'C:\\Studies\\linked-data.csv'
   await page.getByLabel('Choose a project file').setInputFiles({ name: 'linked-data.graphbuilder', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(linkedContent)) })
   await expect(page.getByText('Last found at C:\\Studies\\linked-data.csv')).toBeVisible()
@@ -170,6 +190,7 @@ test('dropping a project file opens it through the save-or-discard flow', async 
 
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'dropped-work.csv', mimeType: 'text/csv', buffer: Buffer.from('X,Y\n1,2\n') })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
   const content = await readFile(await project.path(), 'utf8')
   await page.evaluate((projectContent) => {
     const transfer = new DataTransfer()

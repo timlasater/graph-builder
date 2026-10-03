@@ -29,6 +29,30 @@ describe('graph history', () => {
     expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
   })
 
+  it('undoes and redoes resetting a saved project to the example', () => {
+    const store = useBuilderStore.getState()
+    store.renameProject('My study')
+    store.setProjectPath('C:\\Studies\\study.graphbuilder')
+    store.updateCell(sampleDataset.rows[0].id, 'dose', 777)
+    store.newGraph()
+    const before = useBuilderStore.getState()
+    const original = { dataset: structuredClone(before.dataset), graphs: structuredClone(projectGraphs(before)) }
+    store.markProjectSaved(projectFingerprint(before))
+
+    store.resetToExample()
+    expect(useBuilderStore.getState().projectName).toBe(sampleDataset.name)
+    expect(useBuilderStore.getState().projectPath).toBeUndefined()
+    expect(useBuilderStore.getState().dataset).toEqual(sampleDataset)
+    store.undo()
+    expect(useBuilderStore.getState().projectName).toBe('My study')
+    expect(useBuilderStore.getState().projectPath).toBe('C:\\Studies\\study.graphbuilder')
+    expect(useBuilderStore.getState().dataset).toEqual(original.dataset)
+    expect(projectGraphs(useBuilderStore.getState())).toEqual(original.graphs)
+    expect(hasUnsavedProjectChanges(useBuilderStore.getState())).toBe(false)
+    store.redo()
+    expect(useBuilderStore.getState().dataset).toEqual(sampleDataset)
+  })
+
   it('keeps the opened project data mode and resets it for new data', () => {
     const store = useBuilderStore.getState()
     store.openProject('Linked study', sampleDataset, projectGraphs(store), store.activeGraphId, undefined, 'linked')

@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { persistentFilePickerAvailable, pickPersistentFile } from '../fileHandles'
 import { chooseDesktopFile, desktopOpenKind, isDesktop, readDesktopFile } from '../desktopFiles'
-import { importTabularFile, type ImportedSheet } from '../importData'
+import { importPreparedFile, prepareTabularFile, type PreparedTabularFile } from '../importData'
 import { withFileSource } from '../sourceData'
 import { useDialogFocus } from '../useDialogFocus'
 import type { Dataset } from '../types'
 
 interface PendingSheets {
-  sheets: ImportedSheet[]
-  fileName: string
+  prepared: PreparedTabularFile
   handleId?: string
   nativePath?: string
 }
@@ -24,6 +23,8 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
   const dragDepthRef = useRef(0)
   const processedOpenRequest = useRef<number | undefined>(undefined)
   const [pending, setPending] = useState<PendingSheets>()
+  const [skipRows, setSkipRows] = useState(0)
+  const [selectedSheet, setSelectedSheet] = useState('')
   const sheetDialogRef = useDialogFocus<HTMLElement>(Boolean(pending))
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
@@ -34,9 +35,10 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
     setBusy(true)
     setError(undefined)
     try {
-      const imported = await importTabularFile(file)
-      if (imported.length === 1) onImportRef.current(withFileSource(imported[0], file.name, handleId, nativePath))
-      else setPending({ sheets: imported, fileName: file.name, handleId, nativePath })
+      const prepared = await prepareTabularFile(file)
+      setSkipRows(0)
+      setSelectedSheet(prepared.sheets[0].name)
+      setPending({ prepared, handleId, nativePath })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The file could not be imported.')
     } finally {
@@ -97,6 +99,7 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
       event.preventDefault()
       dragDepthRef.current = 0
       setFileDragging(false)
+      if (isDesktop()) return
       const file = event.dataTransfer?.files[0]
       if (!file) return
       if (desktopOpenKind(file.name) === 'project') onProjectDropRef.current(file)
@@ -136,6 +139,19 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
     }
   }
 
+  const finishImport = () => {
+    if (!pending) return
+    try {
+      const sheet = importPreparedFile(pending.prepared, skipRows, selectedSheet)[0]
+      if (!sheet) throw new Error('Choose a worksheet to import.')
+      onImport(withFileSource(sheet, pending.prepared.fileName, pending.handleId, pending.nativePath, skipRows))
+      setPending(undefined)
+      setError(undefined)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'The file could not be imported.')
+    }
+  }
+
   return (
     <>
       <input ref={inputRef} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a CSV or Excel data file" accept=".csv,.tsv,.txt,.xlsx,.xls" onChange={(event) => void readFile(event.target.files?.[0])} />
@@ -145,17 +161,19 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
       {pending && (
         <div className="modal-backdrop" role="presentation">
           <section ref={sheetDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabIndex={-1}>
-            <span className="eyebrow">EXCEL WORKBOOK</span>
-            <h2 id="sheet-title">Choose a worksheet</h2>
-            <p>Select the sheet you want to graph. Graph Annotations are applied automatically; tagged rows are not counted as measurements.</p>
-            <div className="sheet-list">
-              {pending.sheets.map((sheet) => <button key={sheet.name} onClick={() => { onImport(withFileSource(sheet, pending.fileName, pending.handleId, pending.nativePath)); setPending(undefined) }}><strong>{sheet.name}</strong><span>{sheet.dataset.rows.length} rows · {sheet.dataset.columns.length} columns · {(sheet.dataset.importedAnnotations?.referenceLines.length ?? 0) + (sheet.dataset.importedAnnotations?.referenceRegions.length ?? 0)} annotations</span></button>)}
-            </div>
-            <button className="dialog-cancel" onClick={() => setPending(undefined)}>Cancel</button>
+            <span className="eyebrow">{pending.prepared.kind === 'workbook' ? 'EXCEL WORKBOOK' : 'DATA FILE'}</span>
+            <h2 id="sheet-title">{pending.prepared.sheets.length > 1 ? 'Choose a worksheet' : 'Import data'}</h2>
+            {pending.prepared.sheets.length > 1 && <div className="sheet-list" role="group" aria-label="Worksheets">{pending.prepared.sheets.map((sheet) => <label key={sheet.name}><input type="radio" name="import-sheet" checked={selectedSheet === sheet.name} onChange={() => setSelectedSheet(sheet.name)} /><strong>{sheet.name}</strong></label>)}</div>}
+            <label className="import-skip-rows">Rows to skip before header<input type="number" min="0" step="1" value={skipRows} onChange={(event) => setSkipRows(event.target.value === '' ? 0 : Number(event.target.value))} /></label>
+            <p className="import-header-preview">{(() => { const matrix = pending.prepared.sheets.find((sheet) => sheet.name === selectedSheet)?.matrix ?? []; const header = matrix.slice(Math.max(0, skipRows)).find((row) => row.some((value) => value !== null && value !== undefined && String(value).trim() !== '')); return header ? `Header row: ${header.map((value) => String(value ?? '')).join(' · ')}` : 'No header row remains. Choose a smaller number.' })()}</p>
+            {pending.prepared.kind === 'workbook' && <p>Graph Annotations are applied automatically; tagged rows are not counted as measurements.</p>}
+            {error && <p className="import-dialog-error" role="alert">{error}</p>}
+            <button className="import-confirm" onClick={finishImport}>Import selected data</button>
+            <button className="dialog-cancel" onClick={() => { setPending(undefined); setError(undefined) }}>Cancel</button>
           </section>
         </div>
       )}
-      {error && <div className="import-error" role="alert"><span>{error}</span><button aria-label="Dismiss import error" onClick={() => setError(undefined)}>×</button></div>}
+      {error && !pending && <div className="import-error" role="alert"><span>{error}</span><button aria-label="Dismiss import error" onClick={() => setError(undefined)}>×</button></div>}
     </>
   )
 }

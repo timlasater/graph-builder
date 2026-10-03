@@ -31,6 +31,7 @@ test('browser graph exports match the R 4.6.1 practice-file reference', async ({
   await page.goto('/')
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles('test-data/r-visual-reference.csv')
+  await page.getByRole('button', { name: 'Import selected data' }).click()
   await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('16 source rows')
 
   const points = (await plottedRows(page)).filter((row) => row.y !== '')

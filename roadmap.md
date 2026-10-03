@@ -28,7 +28,8 @@ The primary supported workload is about 100–500 rows and 1,000–10,000 popula
 2. Verify offline use after installation: launch, import, graph, save, reopen, and export. Installing on a machine without WebView2 may require an initial download; ordinary use after installation must not.
 3. Verify the installed app's update choices: no update available, declining an available update, and installing an update after saving work. The signed 0.1.2 → 0.1.3 install path was already tested.
 4. Publish 0.1.4 after acceptance, then add a desktop download button and verified specifications to the public landing page. Check installer links from a clean device. The browser app is available from [the Graph Builder page](https://timothylasater.com/graph-builder/) and directly at [the app](https://timothylasater.com/graph-builder/app/).
-5. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
+5. Improve the desktop linked-project save flow: when a source path is missing, clearly explain that the file picker is asking for the original data file, not where to save the project. Make the picker purpose clear before it opens and in its title where supported.
+6. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
 
 ## Release and maintenance notes
 

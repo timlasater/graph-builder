@@ -82,7 +82,7 @@ function ReferenceControls({ spec, updateSpec }: { spec: GraphSpec; updateSpec: 
 }
 
 function App() {
-  const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, reset } = useBuilderStore()
+  const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, compatibilityMessageTransient, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, resetToExample } = useBuilderStore()
   const [dataTableView, setDataTableView] = useState<'default' | 'quality' | null>(null)
   const [showProjects, setShowProjects] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
@@ -144,11 +144,18 @@ function App() {
       if (event.repeat) return
       if (shortcut === 'projects') setShowProjects(true)
       else if (shortcut === 'newGraph') useBuilderStore.getState().newGraph()
+      else if (shortcut === 'dataTable') setDataTableView('default')
       else setShowShortcutHelp(true)
     }
     window.addEventListener('keydown', handleNavigationShortcut)
     return () => window.removeEventListener('keydown', handleNavigationShortcut)
   }, [desktop])
+
+  useEffect(() => {
+    if (!compatibilityMessage || !compatibilityMessageTransient) return
+    const timeout = window.setTimeout(clearCompatibilityMessage, 4500)
+    return () => window.clearTimeout(timeout)
+  }, [compatibilityMessage, compatibilityMessageTransient, clearCompatibilityMessage])
 
   useEffect(() => {
     const handleHistoryShortcut = (event: KeyboardEvent) => {
@@ -166,6 +173,28 @@ function App() {
     }
     window.addEventListener('keydown', handleHistoryShortcut)
     return () => window.removeEventListener('keydown', handleHistoryShortcut)
+  }, [])
+
+  useEffect(() => {
+    const handleHistoryMouse = (event: MouseEvent) => {
+      if (event.button !== 3 && event.button !== 4) return
+      event.preventDefault()
+      if (document.querySelector('[aria-modal="true"]')) return
+      const target = event.target
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], .ag-root'))) return
+      const current = useBuilderStore.getState()
+      if (event.button === 3 && current.past.length) current.undo()
+      if (event.button === 4 && current.future.length) current.redo()
+    }
+    const preventHistoryNavigation = (event: MouseEvent) => {
+      if (event.button === 3 || event.button === 4) event.preventDefault()
+    }
+    window.addEventListener('mousedown', handleHistoryMouse, true)
+    window.addEventListener('auxclick', preventHistoryNavigation, true)
+    return () => {
+      window.removeEventListener('mousedown', handleHistoryMouse, true)
+      window.removeEventListener('auxclick', preventHistoryNavigation, true)
+    }
   }, [])
 
   useEffect(() => {
@@ -309,7 +338,7 @@ function App() {
             <ImportDataButton openRequest={dataOpenRequest} onProjectDrop={(file) => { const id = ++nextOpenRequestId.current; if (typeof file === 'string') setProjectOpenRequest({ id, path: file }); else setProjectDropRequest({ id, file }) }} onImport={(incoming) => { if (window.confirm('Import this data and replace the current project? Download an embedded project first if you need to keep your work. You can also use Undo immediately after importing.')) setDataset(incoming) }} />
             <button onClick={undo} disabled={!past.length} title="Undo (Ctrl+Z)">↶</button>
             <button onClick={redo} disabled={!future.length} title="Redo (Ctrl+Y)">↷</button>
-            <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? This closes the current project and clears Undo. Download an embedded project first if you need to keep your work.')) reset() }}>Reset example</button>
+            <button className="secondary" onClick={() => { if (window.confirm('Reset to the example data? You can Undo to return to your current project while the app remains open.')) resetToExample() }}>Reset example</button>
           </div>
         </header>
 
@@ -445,7 +474,7 @@ function App() {
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
-      {compatibilityMessage && <div className="compatibility-message" role="alert"><span>{compatibilityMessage}</span><button onClick={clearCompatibilityMessage}>×</button></div>}
+      {compatibilityMessage && <div className={`compatibility-message${compatibilityMessageTransient ? ' transient' : ''}`} role="alert"><span>{compatibilityMessage}</span><button aria-label="Dismiss message" onClick={clearCompatibilityMessage}>×</button></div>}
       {projectSaveStatus && <div className="compatibility-message" role="status"><span>{projectSaveStatus}</span><button aria-label="Dismiss save message" onClick={() => setProjectSaveStatus(undefined)}>×</button></div>}
       {pngError && <div className="compatibility-message" role="alert"><span>{pngError}</span><button aria-label="Dismiss PNG error" onClick={() => setPngError(undefined)}>×</button></div>}
       {linkError && <div className="compatibility-message" role="alert"><span>{linkError}</span><button aria-label="Dismiss link error" onClick={() => setLinkError(undefined)}>×</button></div>}

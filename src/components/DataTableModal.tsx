@@ -21,8 +21,8 @@ export function DataTableModal({ onClose, openQuality = false }: { onClose: () =
   const inputColumnCount = dataset.columns.filter((column) => !column.formula).length
   const activeRows = useMemo(() => dataset.rows.filter((row) => rowMatchesFilters(row, filters)), [dataset.rows, filters])
   const rows = useMemo<GridRow[]>(() => activeRows.map((row) => ({ __id: row.id, __excluded: row.excluded, ...row.values })), [activeRows])
-  const columns = useMemo<ColDef<GridRow>[]>(() => [{ field: '__excluded', headerName: 'Graph row', width: 110, pinned: 'left', filter: false,
-    cellRenderer: ({ data, node }: { data?: GridRow; node: { rowIndex: number | null } }) => data && <button className="row-exclude-button" aria-label={`${data.__excluded ? 'Include' : 'Exclude'} row ${(node.rowIndex ?? 0) + 1}`} onClick={(event) => { event.stopPropagation(); setRowExcluded(data.__id, !data.__excluded) }}>{data.__excluded ? 'Include' : 'Exclude'}</button>,
+  const columns = useMemo<ColDef<GridRow>[]>(() => [{ field: '__excluded', headerName: 'Include in graph', width: 130, pinned: 'left', filter: false,
+    cellRenderer: ({ data, node }: { data?: GridRow; node: { rowIndex: number | null } }) => data && <input type="checkbox" aria-label={`Include row ${(node.rowIndex ?? 0) + 1} in graph`} checked={!data.__excluded} onClick={(event) => event.stopPropagation()} onChange={(event) => setRowExcluded(data.__id, !event.target.checked)} />,
   }, ...dataset.columns.map((column): ColDef<GridRow> => ({
     field: column.id, headerName: `${column.name}${column.formula ? ' ƒx' : ''}`, editable: !column.formula, sortable: true, filter: false, minWidth: 130, flex: 1,
     valueFormatter: ({ value }) => value === null ? '' : column.valueLabels?.[String(value)] ?? (column.dataType === 'date' ? new Date(String(value)).toLocaleString() : String(value)),

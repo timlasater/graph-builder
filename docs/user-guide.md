@@ -28,7 +28,7 @@ Graph Builder makes graphs from a table of measurements. It runs as a Windows ap
 
 ## Import data
 
-Choose **Import data**, or drop a file onto the app. CSV, TSV, TXT, XLSX, and XLS files are supported. For Excel, choose the worksheet containing measurements. Confirm the replacement of the current project. Import replaces the active dataset and graphs; **Undo** can reverse it while this session remains open.
+Choose **Import data**, or drop a file onto the app. CSV, TSV, TXT, XLSX, and XLS files are supported. Choose the data worksheet for Excel. If a title or notes appear above the real column names, set **Rows to skip before header** to the number of rows above them. Check the header preview, then choose **Import selected data**. Confirm the replacement of the current project. Import replaces the active dataset and graphs; **Undo** can reverse it while this session remains open.
 
 Use a header row with distinct column names and one observation per row. Empty cells become missing values. The app infers numbers, text, dates, and true/false values; review the result in **View data table**. CSV quoting and separators must be valid. If a file has multiple worksheets, only the selected data worksheet is graphed; an optional `Graph Annotations` worksheet supplies reference marks.
 
@@ -58,7 +58,7 @@ Drag from **Variables** into a role box, or move a label between boxes. X is the
 | Page | Show one category at a time; use the selector above the graph to change the page. |
 | Filter | Keep selected rows visible in both graph and table. |
 
-Some roles cannot be combined. Graph Builder explains a conflict and may move an earlier assignment. **Swap X/Y** exchanges the two axes. **Suggest** chooses a suitable plot for the current variables; click it to apply the suggestion. **Undo** and **Redo** reverse or restore recent changes. **Reset example** returns to the original synthetic dataset and clears the current project's undo history.
+Some roles cannot be combined. Graph Builder explains a conflict and may move an earlier assignment. **Swap X/Y** exchanges the two axes. **Suggest** chooses a suitable plot for the current variables; click it to apply the suggestion. **Undo** and **Redo** reverse or restore recent changes. **Reset example** returns to the original synthetic dataset; use **Undo** to return to the previous project while the app remains open.
 
 ## Layers and statistical summaries
 
@@ -113,7 +113,7 @@ Open **Projects & export**. One project contains one dataset and one or more nam
 The Project file section shows whether the current project is embedded or linked, and **Data in saved file** starts with that mode selected. Give the project a name and choose a save mode:
 
 - **Embedded — include data** saves a `.graphbuilder` file with data rows, edits, formulas, annotations, graphs, and filters. Use this for a reproducible backup or to move between computers.
-- **Linked — reconnect source** saves graph and column settings without source rows. It requires the original compatible CSV or Excel file when reopened. Individual cell edits and excluded rows are not retained. The Windows app first tries the recorded path; if reconnection is needed, the prompt shows where the source was last found. A browser shows the last known filename because it cannot access the folder path, then asks you to choose the source again. The built-in example cannot be saved as linked data.
+- **Linked — reconnect source** saves graph and column settings without source rows. It requires the original compatible CSV or Excel file when reopened. Individual cell edits and excluded rows are not retained. The Windows app records the source path; if one is missing, it asks you to choose the original data file before saving. Projects & export shows the source location to be saved. If reconnection is needed, the prompt shows where the source was last found. A browser shows the last known filename because it cannot access the folder path, then asks you to choose the source again. The built-in example cannot be saved as linked data.
 
 Choose **Open project…** to reopen a `.graphbuilder` file, or drag it from File Explorer onto the app. Older `.graphbuilder.json` files can also be opened. The desktop app can also open these files when you double-click them in Windows, whether the app is running or closed. If the current project has changed since it was last saved, choose **Save current project and open** to keep an embedded copy, **Discard edits and open** to replace the current work, or **Cancel opening** to stay where you are. An unchanged saved project or the untouched built-in example opens without that prompt. In the Windows app, saving before opening updates the current `.graphbuilder` file if it already has one; otherwise it asks where to save. If you open the new file, **Undo** restores your previous project during the current session. An invalid file shows a prominent error dialog and leaves the current project untouched. The app makes a local recovery copy and may offer it on the next launch. Browser storage can be cleared, so keep an embedded project file for important work. Older browser-only saved graphs can be downloaded as templates from **Previous saved graphs** when available.
 
@@ -157,6 +157,8 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Arrow keys on a resize handle | Resize the graph or a sidebar in small steps. |
 | Ctrl+click / Shift+click | Add or range-select data-table rows with a pointer. |
 | Ctrl+N | Create a new empty graph in the current project in the browser or Windows app. On macOS, use Command instead of Ctrl. |
+| Ctrl+D | Open the data table in the browser or Windows app. On macOS, use Command instead of Ctrl. |
+| Mouse Back / Forward | Undo / redo a graph change outside text fields and dialogs. |
 | Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 | Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
@@ -172,7 +174,7 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 3. To remove an assignment, Tab to its × button and press Enter. To filter, select a variable, Tab to **Filter selected column**, and press Enter; move through the dialog with Tab and Space, then activate **Apply filter**.
 4. Tab to an **Add layer** button and press Enter. In **Properties → Layers**, select a layer, then use its labeled controls. Use the top **Undo**, **Redo**, and **Projects & export** buttons as needed.
    To change graph titles or axes without double-clicking the picture, use the text fields in **Graph** and **Axes and categories**. To hide a series, focus its legend button and press Enter or Space. Press F2 to rename that series, or Left/Right Arrow to reorder it.
-5. For the data table, Tab to **View data table**, press Enter, then Tab through toolbar actions and use AG Grid's normal cell keyboard navigation. Press Escape to close. Use the table's **Excluded** column or toolbar buttons to change row inclusion.
+5. For the data table, Tab to **View data table**, press Enter, then Tab through toolbar actions and use AG Grid's normal cell keyboard navigation. Press Escape to close. Use the **Include in graph** checkboxes or toolbar buttons to change row inclusion.
 6. Resize the graph with its labeled width, height, and corner handles using arrow keys. Resize sidebars with their labeled divider controls using Left/Right Arrow. Legend labels use Left/Right Arrow for ordering and F2 for renaming.
 7. Tab to **Projects & export** to save or export. In a desktop file dialog, use Windows keyboard navigation; in a browser, use the browser's file chooser or download controls. After a dialog closes, focus returns to the app.
 

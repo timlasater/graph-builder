@@ -25,6 +25,15 @@ describe('tabular data import', () => {
     expect(dataset.warnings.map((warning) => warning.code)).toEqual(['duplicate-heading', 'empty-heading'])
   })
 
+  it('uses the row after a chosen number of leading rows as the header', async () => {
+    const file = new File(['Study results\nRecorded 2026\nGroup,Value\nA,12\nB,18'], 'results.csv', { type: 'text/csv' })
+    const [sheet] = await importTabularFile(file, 2)
+    expect(sheet.dataset.columns.map((column) => column.name)).toEqual(['Group', 'Value'])
+    expect(sheet.dataset.rows).toHaveLength(2)
+    expect(sheet.dataset.rows[0].values.value_1).toBe(12)
+    await expect(importTabularFile(file, 5)).rejects.toThrow('No header row remains')
+  })
+
   it('omits entirely empty columns without dropping blank-headed columns that contain data', () => {
     const dataset = datasetFromMatrix([
       ['Dose', '', '', 'Pressure', ''],
