@@ -42,7 +42,15 @@ npm ci
 npm run dev
 ```
 
-Open the local address printed by Vite. To start the Windows shell, run `npm run desktop:dev`; to build the installer locally, run `npm run desktop:build` after installing the Windows prerequisites.
+Open the local address printed by Vite to test the interface in a browser.
+
+To test the current code as a Windows app without building an installer, run this from the project folder after `npm ci`:
+
+```powershell
+npm run desktop:dev
+```
+
+The app opens automatically. Leave the PowerShell window open while testing, then press **Ctrl+C** in that window to stop it. This command does not need the release signing key. Use it for Windows file dialogs, File Explorer drag and drop, and saved source-path checks. For browser-only checks, use `npm run dev` above. To create an installer instead, run `npm run desktop:build` after installing the Windows prerequisites and configuring the existing release signing key as described in the [desktop release guide](docs/desktop-release.md).
 
 ## Verify changes
 
