@@ -25,6 +25,23 @@ describe('tabular data import', () => {
     expect(dataset.warnings.map((warning) => warning.code)).toEqual(['duplicate-heading', 'empty-heading'])
   })
 
+  it('treats common missing markers as empty without changing numeric inference', async () => {
+    const file = new File(['Dose,Response,Group\n1,10,A\n2,N/A,none\n3, null ,B\n4,#N/A,C\n5,NA,D\n6,missing,E\n7,12,F\nnull,N/A,none'], 'missing.csv', { type: 'text/csv' })
+    const [{ dataset }] = await importTabularFile(file)
+    expect(dataset.columns.map((column) => column.dataType)).toEqual(['number', 'number', 'text'])
+    expect(dataset.rows).toHaveLength(7)
+    expect(dataset.rows.map((row) => row.values.response_1)).toEqual([10, null, null, null, null, null, 12])
+    expect(dataset.rows[1].values.group_2).toBeNull()
+    expect(dataset.warnings.filter((warning) => warning.code === 'mixed-types')).toEqual([])
+  })
+
+  it('keeps real text and does not mistake embedded marker words for empty values', () => {
+    const dataset = datasetFromMatrix([['Reading'], ['12'], ['not available today']], 'Mixed values')
+    expect(dataset.columns[0].dataType).toBe('text')
+    expect(dataset.rows[1].values.reading_0).toBe('not available today')
+    expect(dataset.warnings.map((warning) => warning.code)).toContain('mixed-types')
+  })
+
   it('uses the row after a chosen number of leading rows as the header', async () => {
     const file = new File(['Study results\nRecorded 2026\nGroup,Value\nA,12\nB,18'], 'results.csv', { type: 'text/csv' })
     const [sheet] = await importTabularFile(file, 2)

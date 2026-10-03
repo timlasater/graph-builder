@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { axisConfiguration, categoryTickLayout, orderedCategories, palettes } from './appearance'
+import { axisConfiguration, categoryTickLayout, orderedCategories, pairedYColor, palettes } from './appearance'
 import type { DataColumn, DataRow, GraphSpec } from './types'
 
 const column: DataColumn = { id: 'group', name: 'Group', dataType: 'text', modelingType: 'nominal' }
@@ -32,6 +32,14 @@ describe('appearance rules', () => {
 
   it('provides an accessible palette with distinct series colors', () => {
     expect(new Set(palettes.colorblind).size).toBe(palettes.colorblind.length)
+    for (const palette of Object.values(palettes)) expect(palette.length).toBeGreaterThanOrEqual(10)
+  })
+
+  it('uses separate color sets for two Y variables and varies groups within each set', () => {
+    const left = [0, 1, 2].map((group) => pairedYColor(palettes.standard, 0, group))
+    const right = [0, 1, 2].map((group) => pairedYColor(palettes.standard, 1, group))
+    expect(new Set([...left, ...right]).size).toBe(6)
+    expect(pairedYColor(['#225588', '#cc6633'], 0, 0)).not.toBe(pairedYColor(['#225588', '#cc6633'], 0, 1))
   })
 
   it('reserves margin for categorical ticks and angles long labels', () => {

@@ -15,8 +15,15 @@ export const desktopOpenKind = (path: string): 'data' | 'project' | undefined =>
   return dataExtensions.some((extension) => lower.endsWith(`.${extension}`)) ? 'data' : undefined
 }
 
-export const chooseDesktopFile = async (kind: 'data' | 'project' | 'source' | 'template' | 'open') => {
-  const path = await open({ multiple: false, directory: false, filters: [{ name: kind === 'open' ? 'Data or Graph Builder project' : kind === 'project' ? 'Graph Builder project' : kind === 'template' ? 'Graph Builder template' : 'Data file', extensions: kind === 'open' ? [...dataExtensions, ...projectExtensions, 'json'] : kind === 'project' ? projectExtensions : kind === 'template' ? ['graphbuilder-template.json'] : dataExtensions }] })
+export const chooseDesktopFile = async (kind: 'data' | 'project' | 'source' | 'template' | 'open', lastKnownPath?: string) => {
+  const separator = lastKnownPath ? Math.max(lastKnownPath.lastIndexOf('\\'), lastKnownPath.lastIndexOf('/')) : -1
+  const lastKnownDirectory = separator < 0 ? undefined : lastKnownPath!.slice(0, separator === 2 && lastKnownPath![1] === ':' ? 3 : separator || 1)
+  const options = { multiple: false, directory: false, filters: [{ name: kind === 'open' ? 'Data or Graph Builder project' : kind === 'project' ? 'Graph Builder project' : kind === 'template' ? 'Graph Builder template' : 'Data file', extensions: kind === 'open' ? [...dataExtensions, ...projectExtensions, 'json'] : kind === 'project' ? projectExtensions : kind === 'template' ? ['graphbuilder-template.json'] : dataExtensions }] }
+  let path
+  if (lastKnownDirectory) {
+    try { path = await open({ ...options, defaultPath: lastKnownDirectory }) }
+    catch { path = await open(options) }
+  } else path = await open(options)
   return typeof path === 'string' ? path : undefined
 }
 

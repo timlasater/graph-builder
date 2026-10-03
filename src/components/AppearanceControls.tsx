@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { palettes } from '../appearance'
+import { canUseDualYAxis } from '../dualYAxis'
 import { useBuilderStore } from '../store'
 import { CollapsibleSection } from './CollapsibleSection'
 import type { AxisAppearance, GraphSpec } from '../types'
@@ -11,7 +12,7 @@ export function AppearanceControls() {
   const { spec, dataset, updateSpec } = useBuilderStore()
   const [customColors, setCustomColors] = useState('')
   const [paletteError, setPaletteError] = useState('')
-  const axis = (role: 'xAxis' | 'yAxis', patch: AxisAppearance) => updateSpec({ [role]: { ...spec[role], ...patch } })
+  const axis = (role: 'xAxis' | 'yAxis' | 'y2Axis', patch: AxisAppearance) => updateSpec({ [role]: { ...spec[role], ...patch } })
   const set = <K extends keyof GraphSpec>(key: K, value: GraphSpec[K]) => updateSpec({ [key]: value })
   const categories = spec.x.length === 1 ? [...new Set(dataset.rows.map((row) => String(row.values[spec.x[0]])))].filter((value) => value !== 'null') : []
   const manualCategories = [...(spec.manualCategories ?? []).filter((value) => categories.includes(value)), ...categories.filter((value) => !spec.manualCategories?.includes(value))]
@@ -23,7 +24,7 @@ export function AppearanceControls() {
       <div className="property-grid"><label>Font<select value={spec.fontFamily ?? 'Segoe UI, sans-serif'} onChange={(event) => set('fontFamily', event.target.value)}><option value="Segoe UI, sans-serif">Segoe UI</option><option value="Arial, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option></select></label><label>Font size<input type="number" min="8" max="28" value={spec.fontSize ?? 12} onChange={(event) => set('fontSize', Number(event.target.value))} /></label></div>
     </CollapsibleSection>
     <CollapsibleSection title="Axes and categories">
-      {(['xAxis', 'yAxis'] as const).map((role) => <div className="axis-controls" key={role}><strong>{role === 'xAxis' ? 'X axis' : 'Y axis'}</strong>
+      {(['xAxis', 'yAxis', ...(spec.yDisplay === 'dual' && canUseDualYAxis(spec, dataset) ? ['y2Axis' as const] : [])] as const).map((role) => <div className="axis-controls" key={role}><strong>{role === 'xAxis' ? 'X axis' : role === 'y2Axis' ? 'Right Y axis' : spec.yDisplay === 'dual' && canUseDualYAxis(spec, dataset) ? 'Left Y axis' : 'Y axis'}</strong>
         <label>Axis title<input value={spec[role]?.title ?? ''} placeholder="Use column name and unit" onChange={(event) => axis(role, { title: event.target.value })} /></label>
         <div className="property-grid"><label>Scale<select value={spec[role]?.scale ?? 'linear'} onChange={(event) => axis(role, { scale: event.target.value as AxisAppearance['scale'] })}><option value="linear">Linear / date</option><option value="log">Logarithmic</option></select></label><label>Tick interval<input type="number" step="any" min="0" value={spec[role]?.tickInterval ?? ''} placeholder="Auto; days for dates" onChange={(event) => axis(role, { tickInterval: numeric(event.target.value) })} /></label></div>
         <div className="property-grid"><label>Minimum<input type="number" step="any" value={spec[role]?.min ?? ''} placeholder="Automatic" onChange={(event) => axis(role, { min: numeric(event.target.value) })} /></label><label>Maximum<input type="number" step="any" value={spec[role]?.max ?? ''} placeholder="Automatic" onChange={(event) => axis(role, { max: numeric(event.target.value) })} /></label></div>
@@ -41,7 +42,7 @@ export function AppearanceControls() {
       <div className="property-grid"><label>Error cap (px)<input type="number" min="0" max="20" value={spec.errorCap ?? 4} onChange={(event) => set('errorCap', Number(event.target.value))} /></label><label>Error line (px)<input type="number" min="0.5" max="8" step="0.5" value={spec.errorThickness ?? 1.5} onChange={(event) => set('errorThickness', Number(event.target.value))} /></label></div>
       <label>Error bar color<select value={spec.errorColor ? 'custom' : 'series'} onChange={(event) => set('errorColor', event.target.value === 'series' ? undefined : '#0f6c75')}><option value="series">Match series</option><option value="custom">Custom</option></select></label>
       {spec.errorColor && <input type="color" aria-label="Custom error bar color" value={spec.errorColor} onChange={(event) => set('errorColor', event.target.value)} />}
-      <label>Palette<select value={Object.entries(palettes).find(([, colors]) => JSON.stringify(colors) === JSON.stringify(spec.palette))?.[0] ?? (spec.palette ? 'custom' : 'standard')} onChange={(event) => { if (event.target.value !== 'custom') { set('palette', [...palettes[event.target.value as keyof typeof palettes]]); setPaletteError('') } }}><option value="standard">Standard</option><option value="colorblind">Colorblind accessible</option><option value="monochrome">Monochrome</option><option value="custom">Custom</option></select></label>
+      <label>Palette<select value={Object.entries(palettes).find(([, colors]) => JSON.stringify(colors) === JSON.stringify(spec.palette))?.[0] ?? (spec.palette ? 'custom' : 'standard')} onChange={(event) => { if (event.target.value !== 'custom') { set('palette', [...palettes[event.target.value as keyof typeof palettes]]); setPaletteError('') } }}><option value="standard">Standard</option><option value="colorblind">Colorblind accessible</option><option value="monochrome">Monochrome</option><option value="vibrant">Vibrant</option><option value="earth">Earth tones</option><option value="custom">Custom</option></select></label>
       <label>Custom colors (hex, comma separated)<input value={customColors} placeholder="#0f6c75, #ef8354" onChange={(event) => setCustomColors(event.target.value)} onBlur={() => { if (!customColors.trim()) return; const colors = customColors.split(',').map((value) => value.trim()); if (colors.every((value) => /^#[0-9a-fA-F]{6}$/.test(value))) { set('palette', colors); setPaletteError('') } else setPaletteError('Use six-digit hex colors, separated by commas (for example #0072b2, #e69f00).') }} /></label>
       {paletteError && <small className="setting-warning" role="alert">{paletteError}</small>}
       <label>Legend placement<select value={spec.legendPlacement ?? 'bottom'} onChange={(event) => set('legendPlacement', event.target.value as GraphSpec['legendPlacement'])}><option value="bottom">Below graph</option><option value="top">Above graph</option><option value="right">Right of graph</option><option value="hidden">Hide legend</option></select></label>

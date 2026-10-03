@@ -33,13 +33,49 @@ test('Ctrl+N adds an empty graph to the current project', async ({ page }) => {
 
 test('mouse Back and Forward undo and redo graph changes', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Projects & export' }).focus()
+  const projects = page.getByRole('button', { name: 'Projects & export' })
+  await projects.focus()
   await page.keyboard.press('Control+n')
   await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('Build a graph')
-  await page.evaluate(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 3 })))
+  const bounds = await projects.boundingBox()
+  expect(bounds).not.toBeNull()
+  const mouse = await page.context().newCDPSession(page)
+  const x = bounds!.x + bounds!.width / 2
+  const y = bounds!.y + bounds!.height / 2
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'back', clickCount: 1 })
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'back', clickCount: 1 })
   await expect(page.getByRole('region', { name: 'Graph preview' })).not.toContainText('Build a graph')
-  await page.evaluate(() => document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 4 })))
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'forward', clickCount: 1 })
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'forward', clickCount: 1 })
   await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('Build a graph')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.evaluate(() => {
+    const button = Array.from(document.querySelectorAll('button')).find((item) => item.textContent === 'Projects & export')
+    if (!button) throw new Error('Projects button not found')
+    button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 3 }))
+    button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, button: 3 }))
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }))
+  })
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('mouse Back over a graph point does not select it or start box selection', async ({ page }) => {
+  await page.goto('/')
+  const point = page.locator('.plotly-chart .scatterlayer .point').first()
+  await expect(point).toBeVisible()
+  const bounds = await point.boundingBox()
+  expect(bounds).not.toBeNull()
+  const x = bounds!.x + bounds!.width / 2
+  const y = bounds!.y + bounds!.height / 2
+  const mouse = await page.context().newCDPSession(page)
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'back', clickCount: 1 })
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: x + 25, y: y + 25, button: 'back', buttons: 8 })
+  await mouse.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: x + 25, y: y + 25, button: 'back', clickCount: 1 })
+  await expect(page.locator('.graph-selection-bar')).toHaveCount(0)
+  await expect(page.locator('.select-outline')).toHaveCount(0)
+  await page.mouse.click(x, y)
+  await expect(page.locator('.graph-selection-bar')).toBeVisible()
 })
 
 test('Ctrl+D opens the data table and suggested-layer feedback fades away', async ({ page }) => {

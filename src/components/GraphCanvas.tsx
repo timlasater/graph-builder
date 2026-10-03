@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { requiresYAssignment } from '../compatibility'
-import { axisConfiguration, categoryTickLayout, orderedCategories, palettes, themes } from '../appearance'
+import { canUseDualYAxis } from '../dualYAxis'
+import { axisConfiguration, categoryTickLayout, orderedCategories, pairedYColor, palettes, themes } from '../appearance'
 import { histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, smoothedTrend, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
 import { statisticalSeries } from '../statisticalSeries'
 import { rowMatchesFilters, useBuilderStore } from '../store'
@@ -41,7 +42,7 @@ export function GraphCanvas() {
   const chartRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const cancelTitleBlur = useRef(false)
-  const [editingTitle, setEditingTitle] = useState<{ kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'panel'; panelId?: string; value: string; left: number; top: number }>()
+  const [editingTitle, setEditingTitle] = useState<{ kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'y2Axis' | 'panel'; panelId?: string; value: string; left: number; top: number }>()
   const [titleDraft, setTitleDraft] = useState('')
   const [dismissedWarningsFor, setDismissedWarningsFor] = useState<{ dataset: typeof dataset; spec: typeof spec; filters: typeof filters; message: string }>()
   useEffect(() => { if (editingTitle) titleInputRef.current?.focus({ preventScroll: true }) }, [editingTitle])
@@ -50,6 +51,7 @@ export function GraphCanvas() {
   const columnFor = (id?: string) => dataset.columns.find((column) => column.id === id)
   const sharedX = spec.x.map((id) => columnFor(id)).filter((column): column is DataColumn => Boolean(column))
   const sharedY = spec.y.map((id) => columnFor(id)).filter((column): column is DataColumn => Boolean(column))
+  const dualY = spec.yDisplay === 'dual' && canUseDualYAxis(spec, dataset)
   const splitX = !spec.panels?.length && sharedX.length > 1 && spec.xDisplay === 'subplots'
   const splitY = !spec.panels?.length && sharedY.length > 1 && spec.yDisplay === 'subplots'
   const axisSubplots = splitX || splitY
@@ -102,13 +104,15 @@ export function GraphCanvas() {
       const collated = collateMeasures && !facet.axisSplit
       const collatedWidth = 0.76 / (sharedY.length * availableKeys.length)
       const collatedX = (categories: string[]) => categories.map((category) => Number((collateCategories.indexOf(category) - 0.38 + (sharedY.findIndex((column) => column.id === yColumn.id) * availableKeys.length + availableKeys.indexOf(key) + 0.5) * collatedWidth).toFixed(6)))
+      const yIndex = sharedY.findIndex((column) => column.id === yColumn.id)
+      const pairedY = sharedY.length === 2 && yIndex >= 0 && !layer.y && !splitY && !spec.panels?.length
       const paletteIndex = colorColumn ? colorIndex : collated ? sharedY.findIndex((column) => column.id === yColumn.id) : layerIndex + Math.max(0, availableKeys.indexOf(key))
-      const color = spec.seriesColors?.[legendId] ?? (collated ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length]
+      const color = spec.seriesColors?.[legendId] ?? (pairedY ? pairedYColor(palette, yIndex, colorColumn ? colorIndex : Math.max(0, availableKeys.indexOf(key))) : (collated ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length])
       const nameParts = [facet.custom && facet.label, spec.layers.length > 1 && layer.name, (facet.custom || sharedX.length > 1 || sharedY.length > 1) && `${yColumn.name} vs ${xColumn.name}`, key].filter(Boolean)
       const legendKey = spec.seriesNames?.[legendId] || nameParts.join(' · '); const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
       const xValues = [...new Set(rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id]))))]
       if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined })
-      const base = { name: legendKey, legendgroup: legendId, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: layer.lineStyle ?? spec.lineStyle ?? (overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid') }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
+      const base = { name: legendKey, legendgroup: legendId, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: dualY && yColumn.id === sharedY[1].id ? 'y2' : axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: layer.lineStyle ?? spec.lineStyle ?? (overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid') }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
       if (layer.element === 'fit') {
         const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, layer.fixedIntercept)
         if (fit && (layer.showEquation || layer.showRSquared || layer.showSampleSize)) {
@@ -203,16 +207,19 @@ export function GraphCanvas() {
     const xCategories = naturalXCategories && xColumn ? orderedCategories(includedRows, xColumn, spec, preferredXCategories, yColumn?.id) : naturalXCategories
     const yCategories = yColumn && yColumn.modelingType !== 'continuous' ? stableCategoryOrder(includedRows.map((row) => row.values[yColumn.id]), yColumn).map(String) : undefined
     hasCategoricalX ||= Boolean(xCategories)
-    const panelTraces = (data as { xaxis?: string; x?: unknown[]; y?: unknown[] }[]).filter((trace) => (trace.xaxis ?? 'x') === (number === 1 ? 'x' : `x${number}`))
-    const plottedValues = (axis: 'x' | 'y') => panelTraces.flatMap((trace) => (trace[axis] ?? []).filter((value): value is string | number | boolean | null => value === null || ['string', 'number', 'boolean'].includes(typeof value)))
+    const panelTraces = (data as { xaxis?: string; yaxis?: string; x?: unknown[]; y?: unknown[] }[]).filter((trace) => (trace.xaxis ?? 'x') === (number === 1 ? 'x' : `x${number}`))
+    const plottedValues = (axis: 'x' | 'y', yAxis?: string) => panelTraces.filter((trace) => !yAxis || (trace.yaxis ?? 'y') === yAxis).flatMap((trace) => (trace[axis] ?? []).filter((value): value is string | number | boolean | null => value === null || ['string', 'number', 'boolean'].includes(typeof value)))
     const collatedAxis = collateMeasures && !facet.axisSplit
     const xAxis = axisConfiguration(spec.xAxis, plottedValues('x'), xCategories ? 'category' : xColumn?.dataType === 'date' ? 'date' : 'number', collatedAxis ? undefined : xCategories)
-    const yAxis = axisConfiguration(spec.yAxis, plottedValues('y'), yCategories ? 'category' : yColumn?.dataType === 'date' ? 'date' : 'number', yCategories)
+    const yAxis = axisConfiguration(spec.yAxis, plottedValues('y', dualY ? 'y' : undefined), yCategories ? 'category' : yColumn?.dataType === 'date' ? 'date' : 'number', yCategories)
+    const rightYAxis = dualY ? axisConfiguration(spec.y2Axis, plottedValues('y', 'y2'), 'number') : undefined
     axisError ??= xAxis.error ? `Panel ${number} X axis: ${xAxis.error}` : yAxis.error ? `Panel ${number} Y axis: ${yAxis.error}` : undefined
+    axisError ??= rightYAxis?.error ? `Right Y axis: ${rightYAxis.error}` : undefined
     const xTitle = (facet.custom ? spec.panels?.[index]?.xAxisTitle : undefined) || spec.xAxis?.title || (facet.custom || facet.axisSplit && splitX ? xColumn ? columnLabel(xColumn) : boxCategoryColumn.name : sharedX.length ? sharedX.map(columnLabel).join(' / ') : boxCategoryColumn.name)
-    const yTitle = (facet.custom ? spec.panels?.[index]?.yAxisTitle : undefined) || spec.yAxis?.title || (facet.custom || facet.axisSplit && splitY ? yColumn ? columnLabel(yColumn) : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : '' : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / '))
+    const yTitle = (facet.custom ? spec.panels?.[index]?.yAxisTitle : undefined) || spec.yAxis?.title || (dualY ? columnLabel(sharedY[0]) : facet.custom || facet.axisSplit && splitY ? yColumn ? columnLabel(yColumn) : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : '' : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / '))
     axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), type: collatedAxis ? 'linear' : xAxis.axis?.type, ...(collatedAxis ? { tickmode: 'array', tickvals: collateCategories.map((_, categoryIndex) => categoryIndex), ticktext: collateCategories, range: spec.xAxis?.reversed ? [collateCategories.length - 0.5, -0.5] : [-0.5, collateCategories.length - 0.5], autorange: false } : {}), domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && !splitX && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.axisSplit || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
     axes[yKey] = { ...yAxis.axis, domain: [yTop - cellHeight, yTop], anchor: number === 1 ? 'x' : `x${number}`, matches: !facet.custom && !splitY && spec.facetScale !== 'independent' && number > 1 ? 'y' : undefined, title: { text: facet.custom || facet.axisSplit || (!groupYColumn && facet.column === 0) ? yTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
+    if (dualY) axes.yaxis2 = { ...rightYAxis?.axis, overlaying: 'y', side: 'right', anchor: 'x', title: { text: spec.y2Axis?.title || columnLabel(sharedY[1]), standoff: 12 }, showgrid: false, zeroline: false }
     if (facet.label) { if (facet.custom) panelTitleAnnotations.set(annotations.length, spec.panels![index].id); annotations.push({ text: `<b>${facet.label}</b>`, x: 0.5, y: 1.04, xref: number === 1 ? 'x domain' : `x${number} domain`, yref: number === 1 ? 'y domain' : `y${number} domain`, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 10, color: '#53656e' } }) }
     const xRef = number === 1 ? 'x' : `x${number}`; const yRef = number === 1 ? 'y' : `y${number}`
     spec.referenceLines?.forEach((line) => {
@@ -236,9 +243,9 @@ export function GraphCanvas() {
   const beginTitleEdit = ({ kind, axisNumber, annotationIndex, text, rect }: PlotTitleTarget) => {
     const panelId = kind === 'annotation' ? panelTitleAnnotations.get(annotationIndex ?? -1) : axisNumber ? spec.panels?.[axisNumber - 1]?.id : undefined
     if (kind === 'annotation' && !panelId) return
-    const editKind = kind === 'annotation' ? 'panel' : kind
+    const editKind = kind === 'annotation' ? 'panel' : kind === 'yAxis' && axisNumber === 2 && dualY ? 'y2Axis' : kind
     const panel = spec.panels?.find((item) => item.id === panelId)
-    const value = editKind === 'graph' ? spec.title : editKind === 'subtitle' ? spec.subtitle : editKind === 'xAxis' ? panel?.xAxisTitle || spec.xAxis?.title || text : editKind === 'yAxis' ? panel?.yAxisTitle || spec.yAxis?.title || text : panel?.title ?? text
+    const value = editKind === 'graph' ? spec.title : editKind === 'subtitle' ? spec.subtitle : editKind === 'xAxis' ? panel?.xAxisTitle || spec.xAxis?.title || text : editKind === 'yAxis' ? panel?.yAxisTitle || spec.yAxis?.title || text : editKind === 'y2Axis' ? spec.y2Axis?.title || text : panel?.title ?? text
     const bounds = chartRef.current?.getBoundingClientRect()
     if (!bounds) return
     const left = Math.max(135, Math.min(bounds.width - 135, rect.left - bounds.left + rect.width / 2))
@@ -261,6 +268,7 @@ export function GraphCanvas() {
         if (editingTitle.panelId) updateSpec({ panels: spec.panels?.map((panel) => panel.id === editingTitle.panelId ? { ...panel, yAxisTitle: title } : panel) })
         else updateSpec({ yAxis: { ...spec.yAxis, title } })
       }
+      if (editingTitle.kind === 'y2Axis') updateSpec({ y2Axis: { ...spec.y2Axis, title } })
     }
     setEditingTitle(undefined)
   }
@@ -269,8 +277,8 @@ export function GraphCanvas() {
   return <div ref={chartRef} className={`chart-with-legend legend-${spec.legendPlacement ?? 'bottom'} theme-${spec.theme ?? 'light'}`} style={{ background: theme.paper }}>
     {axisError && <div className="axis-error" role="alert">{axisError}</div>}
     {statisticsWarnings.size > 0 && !statisticsWarningDismissed && <div className="statistics-warnings" role="status"><span>{statisticsWarningText}</span><button aria-label="Dismiss graph warning" onClick={() => setDismissedWarningsFor({ dataset, spec, filters, message: statisticsWarningText })}>×</button></div>}
-    {!axisError && <PlotlyChart data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: 24, t: groupXColumn && !spec.panels?.length ? 126 : 100, b: hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
-    {editingTitle && <input ref={titleInputRef} className="chart-title-editor" aria-label={editingTitle.kind === 'subtitle' ? 'Edit graph subtitle' : `Edit ${editingTitle.kind === 'panel' ? 'subplot' : editingTitle.kind === 'graph' ? 'graph' : editingTitle.kind === 'xAxis' ? 'X axis' : 'Y axis'} title`} style={{ left: editingTitle.left, top: editingTitle.top }} value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} onBlur={commitTitle} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelTitleBlur.current = true; setEditingTitle(undefined) } }} />}
+    {!axisError && <PlotlyChart data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: dualY ? 88 : 24, t: groupXColumn && !spec.panels?.length ? 126 : 100, b: hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
+    {editingTitle && <input ref={titleInputRef} className="chart-title-editor" aria-label={editingTitle.kind === 'subtitle' ? 'Edit graph subtitle' : `Edit ${editingTitle.kind === 'panel' ? 'subplot' : editingTitle.kind === 'graph' ? 'graph' : editingTitle.kind === 'xAxis' ? 'X axis' : editingTitle.kind === 'y2Axis' ? 'right Y axis' : 'Y axis'} title`} style={{ left: editingTitle.left, top: editingTitle.top }} value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} onBlur={commitTitle} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelTitleBlur.current = true; setEditingTitle(undefined) } }} />}
     {selectedRowIds.length > 0 && <div className="graph-selection-bar"><strong>{selectedRowIds.length} source row{selectedRowIds.length === 1 ? '' : 's'} selected</strong><span>{selectedRowIds.slice(0, 4).join(', ')}{selectedRowIds.length > 4 ? '…' : ''}</span><button onClick={() => setRowsExcluded(selectedRowIds, true)}>Exclude</button><button onClick={() => setRowsExcluded(selectedRowIds, false)}>Include</button><button onClick={clearRowSelection}>Clear</button></div>}
     <div className="interactive-legend" style={{ background: theme.paper, color: theme.ink }} role="list" aria-label="Graph series; drag to reorder"><span className="legend-help">Drag to reorder · Double-click a name to rename</span>{orderedLegendItems.map((item, index) => <LegendEntry key={item.id} item={item} index={index} items={orderedLegendItems} hidden={spec.hiddenSeries?.includes(item.id) ?? false} highlighted={spec.highlightedSeries === item.id} dimmed={Boolean(spec.highlightedSeries && spec.highlightedSeries !== item.id)} onToggle={() => toggleSeries(item.id)} onReorder={reorderLegend} onRecolor={(color) => recolorLegend(item.id, color)} onHighlight={() => updateSpec({ highlightedSeries: spec.highlightedSeries === item.id ? undefined : item.id })} onRename={(name) => renameSeries(item.id, name)} />)}</div>
   </div>

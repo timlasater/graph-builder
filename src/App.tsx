@@ -16,6 +16,7 @@ import { VariableCard } from './components/VariableCard'
 import { elementLabel, suggestElement } from './compatibility'
 import { downloadImage, renderGraphImage, safeFileName } from './graphExport'
 import { chooseDesktopFile, desktopOpenKind, isDesktop, saveDesktopImage } from './desktopFiles'
+import { canUseDualYAxis } from './dualYAxis'
 import { saveCurrentDesktopProject } from './projectSave'
 import { navigationShortcut } from './navigationShortcuts'
 import { stackCompatibility } from './plotTransforms'
@@ -85,6 +86,7 @@ function App() {
   const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, compatibilityMessageTransient, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, resetToExample } = useBuilderStore()
   const [dataTableView, setDataTableView] = useState<'default' | 'quality' | null>(null)
   const [showProjects, setShowProjects] = useState(false)
+  const [showSavePrompt, setShowSavePrompt] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
   const [dataOpenRequest, setDataOpenRequest] = useState<{ id: number; path: string }>()
@@ -130,6 +132,7 @@ function App() {
   const subplotColumns = Math.min(subplotCount, Math.max(1, Math.round(spec.subplotColumns ?? Math.ceil(Math.sqrt(subplotCount)))))
   const customPanelHeight = subplotCount ? Math.ceil(subplotCount / (spec.panels?.length ? Math.ceil(Math.sqrt(subplotCount)) : subplotColumns)) * 320 + 80 : undefined
   const canCollate = spec.x.length === 1 && columnFor(spec.x[0])?.modelingType !== 'continuous' && spec.layers.every((layer) => ['bar', 'points', 'box'].includes(layer.element))
+  const canDualY = canUseDualYAxis(spec, dataset)
   const desktop = isDesktop()
   const associatedProject = useAssociatedProjects(desktop)
   const openingAssociatedProject = Boolean(associatedProject.path && recovery.ready)
@@ -176,9 +179,34 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const handleHistoryMouse = (event: MouseEvent) => {
-      if (event.button !== 3 && event.button !== 4) return
+    let suppressClick = false
+    let handledHistoryRelease = false
+    let clearClickTimeout: number | undefined
+    const isHistoryButton = (event: MouseEvent) => event.button === 3 || event.button === 4
+    const consumeHistoryButton = (event: MouseEvent) => {
+      if (!isHistoryButton(event)) return
       event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    const consumeHistoryPointer = (event: PointerEvent) => {
+      if (event.button !== 3 && event.button !== 4 && !(event.buttons & 24)) return
+      if (event.type === 'pointerdown') handledHistoryRelease = false
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    const consumeHistoryMove = (event: MouseEvent) => {
+      if (!(event.buttons & 24)) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    const handleHistoryMouse = (event: MouseEvent) => {
+      if (!isHistoryButton(event)) return
+      consumeHistoryButton(event)
+      if (handledHistoryRelease) return
+      handledHistoryRelease = true
+      suppressClick = true
+      window.clearTimeout(clearClickTimeout)
+      clearClickTimeout = window.setTimeout(() => { suppressClick = false }, 0)
       if (document.querySelector('[aria-modal="true"]')) return
       const target = event.target
       if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], .ag-root'))) return
@@ -186,14 +214,33 @@ function App() {
       if (event.button === 3 && current.past.length) current.undo()
       if (event.button === 4 && current.future.length) current.redo()
     }
-    const preventHistoryNavigation = (event: MouseEvent) => {
-      if (event.button === 3 || event.button === 4) event.preventDefault()
+    const preventHistoryClick = (event: MouseEvent) => {
+      if (!isHistoryButton(event) && !suppressClick) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
     }
-    window.addEventListener('mousedown', handleHistoryMouse, true)
-    window.addEventListener('auxclick', preventHistoryNavigation, true)
+    window.addEventListener('pointerdown', consumeHistoryPointer, true)
+    window.addEventListener('pointermove', consumeHistoryPointer, true)
+    window.addEventListener('pointerup', handleHistoryMouse, true)
+    const handleHistoryMouseDown = (event: MouseEvent) => {
+      if (isHistoryButton(event)) handledHistoryRelease = false
+      consumeHistoryButton(event)
+    }
+    window.addEventListener('mousedown', handleHistoryMouseDown, true)
+    window.addEventListener('mousemove', consumeHistoryMove, true)
+    window.addEventListener('mouseup', handleHistoryMouse, true)
+    window.addEventListener('click', preventHistoryClick, true)
+    window.addEventListener('auxclick', preventHistoryClick, true)
     return () => {
-      window.removeEventListener('mousedown', handleHistoryMouse, true)
-      window.removeEventListener('auxclick', preventHistoryNavigation, true)
+      window.clearTimeout(clearClickTimeout)
+      window.removeEventListener('pointerdown', consumeHistoryPointer, true)
+      window.removeEventListener('pointermove', consumeHistoryPointer, true)
+      window.removeEventListener('pointerup', handleHistoryMouse, true)
+      window.removeEventListener('mousedown', handleHistoryMouseDown, true)
+      window.removeEventListener('mousemove', consumeHistoryMove, true)
+      window.removeEventListener('mouseup', handleHistoryMouse, true)
+      window.removeEventListener('click', preventHistoryClick, true)
+      window.removeEventListener('auxclick', preventHistoryClick, true)
     }
   }, [])
 
@@ -225,12 +272,12 @@ function App() {
 
   useEffect(() => {
     if (!desktop) return
-    const saveCurrentProject = async (saveAs: boolean) => {
+    const saveCurrentProject = async () => {
       if (projectSaveInProgress.current) return
       projectSaveInProgress.current = true
       setProjectSaveStatus(undefined)
       try {
-        const path = await saveCurrentDesktopProject(saveAs)
+        const path = await saveCurrentDesktopProject(false)
         if (path) setProjectSaveStatus(`Project saved: ${path.split(/[\\/]/).at(-1)}`)
       } catch (error) {
         setProjectSaveStatus(error instanceof Error ? `Could not save project: ${error.message}` : 'Could not save project.')
@@ -242,7 +289,9 @@ function App() {
       if (target instanceof HTMLElement && (target.isContentEditable || target.closest('input, textarea, select, [role="textbox"], .ag-root'))) return
       if (document.querySelector('[aria-modal="true"]')) return
       event.preventDefault()
-      if (!event.repeat) void saveCurrentProject(event.shiftKey)
+      if (event.repeat) return
+      if (event.shiftKey || !useBuilderStore.getState().projectPath) { setShowSavePrompt(true); setShowProjects(true) }
+      else void saveCurrentProject()
     }
     window.addEventListener('keydown', handleSaveShortcut)
     return () => window.removeEventListener('keydown', handleSaveShortcut)
@@ -444,7 +493,8 @@ function App() {
               <label>Title<input value={spec.title} onChange={(event) => updateSpec({ title: event.target.value })} /></label>
               <label>Subtitle<input value={spec.subtitle} onChange={(event) => updateSpec({ subtitle: event.target.value })} /></label>
               {spec.x.length > 1 && <label>X variables<select value={spec.xDisplay ?? 'together'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ xDisplay: event.target.value as 'together' | 'subplots' })}><option value="together">Display together</option><option value="subplots">Subplots</option></select></label>}
-              {spec.y.length > 1 && <label>Y variables<select value={spec.yDisplay ?? 'together'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ yDisplay: event.target.value as 'together' | 'subplots' | 'collate' })}><option value="together">Display together</option><option value="subplots">Subplots</option>{canCollate && <option value="collate">Collate by category</option>}</select></label>}
+              {spec.y.length > 1 && <label>Y variables<select value={spec.yDisplay === 'dual' && !canDualY ? 'together' : spec.yDisplay ?? 'together'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ yDisplay: event.target.value as 'together' | 'subplots' | 'collate' | 'dual' })}><option value="together">Display together</option><option value="subplots">Subplots</option>{canDualY && <option value="dual">Dual Y axes (left / right)</option>}{canCollate && <option value="collate">Collate by category</option>}</select></label>}
+              {spec.yDisplay === 'dual' && canDualY && <small className="setting-help">First Y variable uses the left scale; second Y variable uses the right scale.</small>}
               {(splitX || splitY) && !spec.panels?.length && <><label>Subplot arrangement<select value={subplotColumns === 1 ? 'vertical' : subplotColumns === axisPanelCount ? 'horizontal' : 'grid'} onChange={(event) => { const value = event.target.value; updateSpec({ subplotColumns: value === 'vertical' ? 1 : value === 'horizontal' ? axisPanelCount : Math.min(2, axisPanelCount) }) }}><option value="horizontal">Horizontal</option><option value="vertical">Vertical</option>{axisPanelCount > 2 && <option value="grid">Grid</option>}</select></label>{axisPanelCount > 2 && <div className="property-grid"><label>Subplots per row<input type="number" min="1" max={axisPanelCount} value={subplotColumns} onChange={(event) => updateSpec({ subplotColumns: Math.min(axisPanelCount, Math.max(1, Number(event.target.value) || 1)) })} /></label><label>Subplots per column<input type="number" min="1" max={axisPanelCount} value={Math.ceil(axisPanelCount / subplotColumns)} onChange={(event) => updateSpec({ subplotColumns: Math.ceil(axisPanelCount / Math.min(axisPanelCount, Math.max(1, Number(event.target.value) || 1))) })} /></label></div>}<small className="setting-help">Each selected variable gets its own panel. X and Y subplot choices combine into one panel for each pair. Group X, Group Y, Wrap, and layer X/Y overrides pause while these subplots are shown.</small></>}
               {spec.yDisplay === 'collate' && canCollate && spec.y.length > 1 && <small className="setting-help">For each X category, show the Y measures side by side in one graph.</small>}
               <label>Facet scales<select value={spec.facetScale ?? 'shared'} disabled={!!spec.panels?.length} onChange={(event) => updateSpec({ facetScale: event.target.value as 'shared' | 'independent' })}><option value="shared">Shared across panels</option><option value="independent">Independent per panel</option></select></label>
@@ -468,7 +518,7 @@ function App() {
         </main>
       </div>
       {dataTableView && <DataTableModal openQuality={dataTableView === 'quality'} onClose={() => setDataTableView(null)} />}
-      {(showProjects || projectPathToOpen || projectDropRequest) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : projectDropRequest ? `drop:${projectDropRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} initialProjectFile={projectDropRequest?.file} onClose={() => { if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else if (projectDropRequest) setProjectDropRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
+      {(showProjects || projectPathToOpen || projectDropRequest) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : projectDropRequest ? `drop:${projectDropRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} initialProjectFile={projectDropRequest?.file} initialSavePrompt={showSavePrompt} onClose={() => { setShowSavePrompt(false); if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else if (projectDropRequest) setProjectDropRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {showShortcutHelp && <ShortcutHelp desktop={desktop} onClose={() => setShowShortcutHelp(false)} onFullGuide={() => { setShowShortcutHelp(false); setShowUserGuide(true) }} />}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. Restore it to continue with its data and graphs, or start with the current example. Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>Start with example</button></div></section></div>}

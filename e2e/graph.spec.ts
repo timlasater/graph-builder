@@ -1,6 +1,37 @@
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 
+test('two Y variables can use independent left and right scales', async ({ page }) => {
+  await page.goto('/')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({ name: 'dual-axis.csv', mimeType: 'text/csv', buffer: Buffer.from('Time,Pressure,Temperature\n1,10,1000\n2,20,2000\n3,30,3000\n') })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
+  await page.locator('.variable-list').getByRole('button', { name: 'Temperature', exact: true }).click()
+  await page.getByLabel('Assign selected column to').selectOption('y')
+  await page.getByRole('button', { name: 'Assign', exact: true }).click()
+  await page.getByLabel('Y variables').selectOption('dual')
+  await expect(page.getByLabel('Y variables')).toHaveValue('dual')
+  await expect.poll(() => page.locator('.plotly-chart').evaluate((element) => {
+    const chart = element as HTMLElement & { data?: { yaxis?: string }[]; _fullLayout?: { yaxis?: { range?: number[] }; yaxis2?: { side?: string; overlaying?: string; range?: number[] } } }
+    return { axes: chart.data?.map((trace) => trace.yaxis), side: chart._fullLayout?.yaxis2?.side, overlaying: chart._fullLayout?.yaxis2?.overlaying, separateRanges: (chart._fullLayout?.yaxis?.range?.[1] ?? 0) < (chart._fullLayout?.yaxis2?.range?.[0] ?? 0) }
+  })).toEqual({ axes: ['y', 'y2'], side: 'right', overlaying: 'y', separateRanges: true })
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download project' }).click()
+  const saved = JSON.parse(await readFile(await (await download).path(), 'utf8'))
+  expect(JSON.stringify(saved)).toContain('"yDisplay":"dual"')
+})
+
+test('Enter in Project name starts the project save action', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Projects & export' }).click()
+  const name = page.getByLabel('Project name')
+  await name.fill('Keyboard saved project')
+  const download = page.waitForEvent('download')
+  await name.press('Enter')
+  expect((await download).suggestedFilename()).toBe('Keyboard saved project.graphbuilder')
+})
+
 test('imports a file, builds a graph, saves and reopens a project, then exports', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Variables' })).toBeVisible()

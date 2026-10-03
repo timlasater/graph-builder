@@ -22,6 +22,22 @@ describe('desktop project backup', () => {
     expect(open).toHaveBeenCalledWith(expect.objectContaining({ filters: [expect.objectContaining({ extensions: expect.arrayContaining(['csv', 'xlsx', 'graphbuilder', 'graphbuilder.json']) })] }))
   })
 
+  it('starts source reconnection in the last known folder', async () => {
+    await chooseDesktopFile('source', 'C:\\Studies\\Trial\\measurements.csv')
+    expect(open).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: 'C:\\Studies\\Trial' }))
+    await chooseDesktopFile('source', 'C:\\measurements.csv')
+    expect(open).toHaveBeenLastCalledWith(expect.objectContaining({ defaultPath: 'C:\\' }))
+    await chooseDesktopFile('source')
+    expect(open).toHaveBeenLastCalledWith(expect.not.objectContaining({ defaultPath: expect.any(String) }))
+  })
+
+  it('opens the ordinary picker if the last known folder is gone', async () => {
+    vi.mocked(open).mockRejectedValueOnce(new Error('Folder no longer exists')).mockResolvedValueOnce('C:\\Moved\\measurements.csv')
+    await expect(chooseDesktopFile('source', 'C:\\Old\\measurements.csv')).resolves.toBe('C:\\Moved\\measurements.csv')
+    expect(open).toHaveBeenNthCalledWith(1, expect.objectContaining({ defaultPath: 'C:\\Old' }))
+    expect(open).toHaveBeenNthCalledWith(2, expect.not.objectContaining({ defaultPath: expect.any(String) }))
+  })
+
   it('clears the recent-project list', () => {
     rememberProject('C:\\Studies\\first.graphbuilder', 'First')
     expect(recentProjects()).toHaveLength(1)

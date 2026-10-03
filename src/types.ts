@@ -96,6 +96,7 @@ export interface GraphSpec {
   markerSize: number
   xAxis?: AxisAppearance
   yAxis?: AxisAppearance
+  y2Axis?: AxisAppearance
   categoryOrder?: 'data' | 'alphabetic' | 'summary' | 'manual'
   manualCategories?: string[]
   fontFamily?: string
@@ -122,7 +123,7 @@ export interface GraphSpec {
   highlightedSeries?: string
   facetScale?: 'shared' | 'independent'
   xDisplay?: 'together' | 'subplots'
-  yDisplay?: 'together' | 'subplots' | 'collate'
+  yDisplay?: 'together' | 'subplots' | 'collate' | 'dual'
   subplotColumns?: number
   panels?: GraphPanel[]
   referenceLines?: ReferenceLine[]

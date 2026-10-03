@@ -1,6 +1,26 @@
 import { expect, test } from '@playwright/test'
 import * as XLSX from 'xlsx'
 
+test('the header-row preview closes with Escape or its close button without importing', async ({ page }) => {
+  await page.goto('/')
+  const example = page.getByRole('region', { name: 'Graph preview' })
+  await expect(example).toContainText('45 source rows')
+  const file = { name: 'cancel-preview.csv', mimeType: 'text/csv', buffer: Buffer.from('Notes\nValue\n12\n14\n') }
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles(file)
+  await page.getByRole('spinbutton', { name: 'Rows to skip before header' }).fill('1')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Import data' })).toHaveCount(0)
+  await expect(example).toContainText('45 source rows')
+
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles(file)
+  const close = page.getByRole('button', { name: 'Close import data' })
+  await expect(close).toHaveCSS('color', 'rgb(49, 68, 77)')
+  await expect(close).toHaveCSS('background-color', 'rgb(246, 248, 249)')
+  await close.click()
+  await expect(page.getByRole('dialog', { name: 'Import data' })).toHaveCount(0)
+  await expect(example).toContainText('45 source rows')
+})
+
 test('leading rows can be skipped, graph rows use checkboxes, and warning count opens quality details', async ({ page }) => {
   await page.goto('/')
   page.once('dialog', (dialog) => dialog.accept())

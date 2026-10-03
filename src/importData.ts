@@ -16,6 +16,8 @@ export interface PreparedTabularFile {
 }
 
 const isBlank = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '')
+const missingMarkers = new Set(['n/a', 'na', '#n/a', '<na>', 'null', 'none', 'nil', 'nan', 'missing'])
+const isMissingValue = (value: unknown) => isBlank(value) || (typeof value === 'string' && missingMarkers.has(value.trim().toLocaleLowerCase()))
 
 const normalizedHeader = (value: unknown, index: number, used: Set<string>) => {
   const base = String(value ?? '').trim() || `Column ${index + 1}`
@@ -38,7 +40,7 @@ const looksLikeDate = (value: unknown) => {
 }
 
 export const inferDataType = (values: unknown[]): DataType => {
-  const present = values.filter((value) => !isBlank(value))
+  const present = values.filter((value) => !isMissingValue(value))
   if (!present.length) return 'text'
   if (present.every((value) => typeof value === 'boolean' || /^(true|false|yes|no)$/i.test(String(value).trim()))) return 'boolean'
   if (present.every((value) => typeof value === 'number' ? Number.isFinite(value) : Number.isFinite(Number(String(value).replace(/,/g, ''))))) return 'number'
@@ -47,7 +49,7 @@ export const inferDataType = (values: unknown[]): DataType => {
 }
 
 export const coerceValue = (value: unknown, type: DataType): CellValue => {
-  if (isBlank(value)) return null
+  if (isMissingValue(value)) return null
   if (type === 'number') { const numeric = typeof value === 'number' ? value : Number(String(value).replace(/,/g, '')); return Number.isFinite(numeric) ? numeric : null }
   if (type === 'boolean') return typeof value === 'boolean' ? value : /^(true|yes)$/i.test(String(value).trim())
   if (type === 'date') {
@@ -60,12 +62,12 @@ export const coerceValue = (value: unknown, type: DataType): CellValue => {
 export const datasetFromMatrix = (matrix: unknown[][], name: string, skipRows = 0): Dataset => {
   if (!Number.isSafeInteger(skipRows) || skipRows < 0) throw new Error('The number of rows to skip must be a whole number of zero or more.')
   const annotationResult = parseAnnotationMatrix(matrix.slice(skipRows), name)
-  const nonempty = annotationResult.dataMatrix.filter((row) => row.some((value) => !isBlank(value)))
+  const nonempty = annotationResult.dataMatrix.filter((row) => row.some((value) => !isMissingValue(value)))
   if (!nonempty.length) throw new Error('No header row remains after skipping rows. Choose a smaller number.')
   const width = Math.max(...nonempty.map((row) => row.length))
   const sourceRows = nonempty.slice(1)
   const keptColumnIndexes = Array.from({ length: width }, (_, index) => index).filter((index) =>
-    !isBlank(nonempty[0][index]) || sourceRows.some((row) => !isBlank(row[index])),
+    !isBlank(nonempty[0][index]) || sourceRows.some((row) => !isMissingValue(row[index])),
   )
   const usedNames = new Set<string>()
   const warnings: DataWarning[] = [...annotationResult.warnings]
@@ -88,7 +90,7 @@ export const datasetFromMatrix = (matrix: unknown[][], name: string, skipRows = 
   }))
   columns.forEach((column, columnIndex) => {
     const sourceColumnIndex = keptColumnIndexes[columnIndex]
-    const present = sourceRows.map((row) => row[sourceColumnIndex]).filter((value) => !isBlank(value))
+    const present = sourceRows.map((row) => row[sourceColumnIndex]).filter((value) => !isMissingValue(value))
     const kinds = new Set(present.map((value) => inferDataType([value])))
     if (kinds.size > 1) warnings.push({ code: 'mixed-types', columnId: column.id, message: `${column.name} contains mixed value types and was imported as ${column.dataType}.` })
     const dateLike = present.filter(looksLikeDate).length

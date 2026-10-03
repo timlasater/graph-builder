@@ -15,7 +15,7 @@ import type { Dataset } from '../types'
 
 interface PendingOpen { project: ProjectFile; dataset: Dataset; nativePath?: string }
 
-export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, initialProjectFile }: { onClose: () => void; autosaveStatus: string; initialProjectPath?: string; initialProjectFile?: File }) {
+export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, initialProjectFile, initialSavePrompt = false }: { onClose: () => void; autosaveStatus: string; initialProjectPath?: string; initialProjectFile?: File; initialSavePrompt?: boolean }) {
   const state = useBuilderStore()
   const { dataset, spec, filters, projectName, activeGraphId, activeGraphName, openProject, openGraph, newGraph, duplicateGraph, deleteGraph, renameGraph, renameProject, applyGraphTemplate } = state
   const projectInput = useRef<HTMLInputElement>(null)
@@ -25,6 +25,8 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
   const [graphName, setGraphName] = useState(activeGraphName)
   const [templateName, setTemplateName] = useState(activeGraphName)
   const [mode, setMode] = useState<'embedded' | 'linked'>(state.projectMode)
+  const [showSaveChoice, setShowSaveChoice] = useState(initialSavePrompt)
+  const [saveChoiceError, setSaveChoiceError] = useState<string>()
   const [pendingLinked, setPendingLinked] = useState<ProjectFile>()
   const [pendingLinkedPath, setPendingLinkedPath] = useState<string>()
   const [pendingDeleteId, setPendingDeleteId] = useState<string>()
@@ -37,8 +39,9 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
   const [openError, setOpenError] = useState<string>()
   const [pendingOpen, setPendingOpen] = useState<PendingOpen>()
   const [saveError, setSaveError] = useState<string>()
-  const dialogRef = useDialogFocus<HTMLElement>(!pendingOpen && !openError)
+  const dialogRef = useDialogFocus<HTMLElement>(!pendingOpen && !openError && !showSaveChoice)
   const decisionRef = useDialogFocus<HTMLElement>(Boolean(pendingOpen || openError))
+  const saveChoiceRef = useDialogFocus<HTMLElement>(showSaveChoice)
   const [legacyTemplates] = useState(() => readLegacyTemplates())
   const [recent, setRecent] = useState(() => isDesktop() ? recentProjects() : [])
 
@@ -46,11 +49,12 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || updateInstalling || busy) return
       if (pendingOpen || openError) { setPendingOpen(undefined); setOpenError(undefined); setSaveError(undefined); if (initialProjectPath || initialProjectFile) onClose() }
+      else if (showSaveChoice) { setShowSaveChoice(false); setSaveChoiceError(undefined) }
       else if (!pendingLinked) onClose()
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose, pendingLinked, pendingOpen, openError, initialProjectPath, initialProjectFile, updateInstalling, busy])
+  }, [onClose, pendingLinked, pendingOpen, openError, showSaveChoice, initialProjectPath, initialProjectFile, updateInstalling, busy])
 
   const report = (error: unknown) => setMessage(error instanceof Error ? error.message : 'This action could not be completed.')
   const reportOpenError = (error: unknown) => {
@@ -99,7 +103,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     setMessage('Graph deleted. You can use Undo to restore it until the project is closed.')
   }
   const saveFile = async () => {
-    setBusy(true); setMessage(undefined)
+    setBusy(true); setMessage(undefined); setSaveChoiceError(undefined)
     try {
       if (isDesktop() && mode === 'linked' && dataset.source?.fileName && !dataset.source.nativePath) {
         const sourcePath = await chooseDesktopFile('source')
@@ -125,7 +129,8 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
       useBuilderStore.getState().setProjectMode(mode)
       useBuilderStore.getState().markProjectSaved(fingerprint)
       setMessage(isDesktop() ? 'Project saved on this computer.' : mode === 'embedded' ? 'Project downloaded with its data and graph settings.' : 'Linked project downloaded. Its source data must be reconnected when opened.')
-    } catch (error) { report(error) }
+      setShowSaveChoice(false)
+    } catch (error) { if (showSaveChoice) setSaveChoiceError(error instanceof Error ? error.message : 'The project could not be saved.'); else report(error) }
     finally { setBusy(false) }
   }
   const saveBeforeUpdate = async () => {
@@ -203,7 +208,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
   }
   const chooseLinkedSource = async () => {
     if (!isDesktop()) { sourceInput.current?.click(); return }
-    try { const path = await chooseDesktopFile('source'); if (path) await readLinkedSource(await readDesktopFile(path), path) }
+    try { const path = await chooseDesktopFile('source', pendingLinked?.data.mode === 'linked' ? pendingLinked.data.source.nativePath : undefined); if (path) await readLinkedSource(await readDesktopFile(path), path) }
     catch (error) { report(error) }
   }
   const chooseTemplate = async () => {
@@ -262,11 +267,13 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     catch (error) { report(error) }
   }
 
-  return <><div className="modal-backdrop project-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !updateInstalling && !pendingOpen && !openError) onClose() }}>
-    <section ref={dialogRef} className="project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-title" aria-hidden={Boolean(pendingOpen || openError)} inert={Boolean(pendingOpen || openError)} tabIndex={-1}>
+  const beginSave = () => { if (isDesktop()) { setSaveChoiceError(undefined); setShowSaveChoice(true) } else void saveFile() }
+
+  return <><div className="modal-backdrop project-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !updateInstalling && !pendingOpen && !openError && !showSaveChoice) onClose() }}>
+    <section ref={dialogRef} className="project-dialog" role="dialog" aria-modal="true" aria-labelledby="project-title" aria-hidden={Boolean(pendingOpen || openError || showSaveChoice)} inert={Boolean(pendingOpen || openError || showSaveChoice)} tabIndex={-1}>
       <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" disabled={updateInstalling || Boolean(pendingOpen || openError)} onClick={onClose}>×</button></header>
       <div className="project-body">
-        <section className="project-section"><h3>Project file</h3><span className="project-save-state">Current project: <strong>{state.projectMode === 'embedded' ? 'Embedded — includes data' : 'Linked — reconnects source'}</strong></span><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={() => void saveFile()}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div>{mode === 'linked' && dataset.source?.fileName && <span className="project-save-state">Source location: <strong>{dataset.source.nativePath ?? `${dataset.source.fileName} (${isDesktop() ? 'choose its location when saving' : 'folder path unavailable in the browser'})`}</strong></span>}<small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
+        <section className="project-section"><h3>Project file</h3><span className="project-save-state">Current project: <strong>{state.projectMode === 'embedded' ? 'Embedded — includes data' : 'Linked — reconnects source'}</strong></span><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing && !busy) { event.preventDefault(); beginSave() } }} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={beginSave}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div>{mode === 'linked' && dataset.source?.fileName && <span className="project-save-state">Source location: <strong>{dataset.source.nativePath ?? `${dataset.source.fileName} (${isDesktop() ? 'choose its location when saving' : 'folder path unavailable in the browser'})`}</strong></span>}<small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
         {isDesktop() && <DesktopUpdater saveBeforeInstall={saveBeforeUpdate} onInstalling={setUpdateInstalling} />}
         {recent.length > 0 && <section className="project-section"><div className="project-section-heading"><h3>Recent projects</h3><button className="clear-recent-button" disabled={busy} onClick={() => { clearRecentProjects(); setRecent([]); setMessage('Recent projects cleared. Your project files were not deleted.') }}>Clear recent projects</button></div><div className="project-graph-list">{recent.map((item) => <button key={item.path} title={item.path} disabled={busy} onClick={() => void readProject(undefined, item.path)}>{item.name}</button>)}</div></section>}
         {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><p className="source-last-path">Last found at {pendingLinked.data.source.nativePath ?? pendingLinked.data.source.fileName}{!pendingLinked.data.source.nativePath && <span> {isDesktop() ? '(folder path was not saved with this project)' : '(folder path unavailable in the browser)'}</span>}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setPendingLinkedPath(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.'); if (initialProjectPath || initialProjectFile) onClose() }}>Cancel</button></div></section>}
@@ -281,6 +288,17 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
       <input ref={templateInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a graph template file" accept=".graphbuilder-template.json,.json" onChange={(event) => void importTemplate(event.target.files?.[0])} />
     </section>
   </div>
+    {showSaveChoice && <div className="modal-backdrop project-decision-backdrop" role="presentation">
+      <section ref={saveChoiceRef} className="project-decision project-save-choice" role="dialog" aria-modal="true" aria-labelledby="project-save-choice-title" tabIndex={-1}>
+        <span className="eyebrow">SAVE PROJECT</span>
+        <h2 id="project-save-choice-title">Save project</h2>
+        <label>Project name<input value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing && !busy) { event.preventDefault(); void saveFile() } }} /></label>
+        <label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked" disabled={!dataset.source?.fileName}>Linked — reconnect source</option></select></label>
+        <small>Embedded keeps the data in the project file. Linked reconnects the original data file when opened.</small>
+        {saveChoiceError && <p className="project-decision-error" role="alert">{saveChoiceError}</p>}
+        <div className="project-decision-actions"><button type="button" disabled={busy} onClick={() => void saveFile()}>{busy ? 'Saving…' : 'Choose file location…'}</button><button type="button" className="secondary" disabled={busy} onClick={() => { setShowSaveChoice(false); setSaveChoiceError(undefined) }}>Cancel</button></div>
+      </section>
+    </div>}
     {(pendingOpen || openError) && <div className="modal-backdrop project-decision-backdrop" role="presentation">
       <section ref={decisionRef} className={`project-decision ${openError ? 'project-open-error' : ''}`} role={openError ? 'alertdialog' : 'dialog'} aria-modal="true" aria-labelledby="project-decision-title" aria-describedby="project-decision-description" tabIndex={-1}>
         <span className="eyebrow">{openError ? 'PROJECT FILE ERROR' : 'OPEN PROJECT'}</span>

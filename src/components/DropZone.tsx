@@ -6,8 +6,8 @@ import type { DataColumn, GraphRole } from '../types'
 function AssignmentChip({ column, role, index, onClear }: { column: DataColumn; role: GraphRole; index: number; onClear: () => void }) {
   const { setNodeRef, isDragging, isOver, transform, transition, listeners, attributes } = useSortable({ id: `assigned:${role}:${column.id}`, data: { columnId: column.id, fromRole: role, fromIndex: index, role, index } })
   return <span ref={setNodeRef} className={`assignment-target ${isOver ? 'assignment-over' : ''}`} style={{ transform: CSS.Transform.toString(transform), transition }}>
-    <span className={`assignment ${isDragging ? 'dragging' : ''}`}>
-      <button type="button" className="assignment-drag-handle" {...listeners} {...attributes}>{column.name}{column.unit ? ` (${column.unit})` : ''}</button>
+    <span className={`assignment ${isDragging ? 'dragging' : ''}`} {...listeners}>
+      <button type="button" className="assignment-drag-handle" {...attributes}>{column.name}{column.unit ? ` (${column.unit})` : ''}</button>
       <button type="button" className="assignment-clear" onPointerDown={(event) => event.stopPropagation()} onClick={onClear} aria-label={`Remove ${column.name} from ${role}`}>×</button>
     </span>
   </span>

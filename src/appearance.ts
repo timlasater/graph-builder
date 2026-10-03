@@ -2,10 +2,27 @@ import type { AxisAppearance, CellValue, DataColumn, DataRow, GraphSpec } from '
 import { stableCategoryOrder } from './plotTransforms'
 
 export const palettes = {
-  standard: ['#0f6c75', '#ef8354', '#665191', '#2f4858', '#d45087', '#73a942'],
-  colorblind: ['#0072b2', '#e69f00', '#009e73', '#cc79a7', '#56b4e9', '#d55e00', '#f0e442'],
-  monochrome: ['#243746', '#466277', '#688298', '#91a5b4', '#b9c5ce'],
+  standard: ['#0f6c75', '#258aa6', '#2764a5', '#665191', '#3f8f83', '#5378b8', '#ef8354', '#d45087', '#b85c38', '#ad6a18', '#b84765', '#8760a7'],
+  colorblind: ['#0072b2', '#009e73', '#56b4e9', '#225ea8', '#43a2ca', '#238b45', '#e69f00', '#d55e00', '#cc79a7', '#a50f15', '#88419d', '#b8860b'],
+  monochrome: ['#243746', '#354c5e', '#466277', '#58758a', '#688298', '#7a91a5', '#91a5b4', '#a6b6c2', '#b9c5ce', '#cbd4dc'],
+  vibrant: ['#007f86', '#1687c9', '#515dc2', '#8752b7', '#22a483', '#2573a2', '#f07036', '#db4674', '#c34731', '#d29a11', '#ae4aa0', '#e16a56'],
+  earth: ['#246b62', '#527a4e', '#577084', '#75648b', '#398075', '#617a60', '#bd643e', '#af7935', '#a85354', '#946645', '#a86676', '#b58a42'],
 } as const
+
+const mixHex = (color: string, target: string, fraction: number) => `#${[0, 2, 4].map((offset) => {
+  const from = Number.parseInt(color.slice(offset + 1, offset + 3), 16)
+  const to = Number.parseInt(target.slice(offset + 1, offset + 3), 16)
+  return Math.round(from + (to - from) * fraction).toString(16).padStart(2, '0')
+}).join('')}`
+
+export const pairedYColor = (palette: readonly string[], yIndex: number, groupIndex: number) => {
+  const midpoint = Math.ceil(palette.length / 2)
+  const colors = yIndex === 0 ? palette.slice(0, midpoint) : palette.slice(midpoint)
+  const bank = colors.length ? colors : [palettes.standard[6]]
+  const base = bank[groupIndex % bank.length]
+  const cycle = Math.floor(groupIndex / bank.length)
+  return cycle === 0 ? base : mixHex(base, cycle % 2 ? '#ffffff' : '#000000', Math.min(0.12 + cycle * 0.08, 0.4))
+}
 
 export const themes = {
   light: { paper: '#ffffff', plot: '#fbfcfd', ink: '#24313a', grid: '#e5e9ed' },

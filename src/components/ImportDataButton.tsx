@@ -29,6 +29,19 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [fileDragging, setFileDragging] = useState(false)
+  const cancelImport = useCallback(() => { setPending(undefined); setError(undefined) }, [])
+
+  useEffect(() => {
+    if (!pending) return
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      cancelImport()
+    }
+    window.addEventListener('keydown', cancelOnEscape, true)
+    return () => window.removeEventListener('keydown', cancelOnEscape, true)
+  }, [pending, cancelImport])
 
   const readFile = useCallback(async (file?: File, handleId?: string, nativePath?: string) => {
     if (!file) return
@@ -161,15 +174,14 @@ export function ImportDataButton({ onImport, onProjectDrop, openRequest }: { onI
       {pending && (
         <div className="modal-backdrop" role="presentation">
           <section ref={sheetDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabIndex={-1}>
-            <span className="eyebrow">{pending.prepared.kind === 'workbook' ? 'EXCEL WORKBOOK' : 'DATA FILE'}</span>
-            <h2 id="sheet-title">{pending.prepared.sheets.length > 1 ? 'Choose a worksheet' : 'Import data'}</h2>
+            <div className="sheet-dialog-header"><div><span className="eyebrow">{pending.prepared.kind === 'workbook' ? 'EXCEL WORKBOOK' : 'DATA FILE'}</span><h2 id="sheet-title">{pending.prepared.sheets.length > 1 ? 'Choose a worksheet' : 'Import data'}</h2></div><button type="button" className="dialog-close" aria-label="Close import data" onClick={cancelImport}>×</button></div>
             {pending.prepared.sheets.length > 1 && <div className="sheet-list" role="group" aria-label="Worksheets">{pending.prepared.sheets.map((sheet) => <label key={sheet.name}><input type="radio" name="import-sheet" checked={selectedSheet === sheet.name} onChange={() => setSelectedSheet(sheet.name)} /><strong>{sheet.name}</strong></label>)}</div>}
             <label className="import-skip-rows">Rows to skip before header<input type="number" min="0" step="1" value={skipRows} onChange={(event) => setSkipRows(event.target.value === '' ? 0 : Number(event.target.value))} /></label>
             <p className="import-header-preview">{(() => { const matrix = pending.prepared.sheets.find((sheet) => sheet.name === selectedSheet)?.matrix ?? []; const header = matrix.slice(Math.max(0, skipRows)).find((row) => row.some((value) => value !== null && value !== undefined && String(value).trim() !== '')); return header ? `Header row: ${header.map((value) => String(value ?? '')).join(' · ')}` : 'No header row remains. Choose a smaller number.' })()}</p>
             {pending.prepared.kind === 'workbook' && <p>Graph Annotations are applied automatically; tagged rows are not counted as measurements.</p>}
             {error && <p className="import-dialog-error" role="alert">{error}</p>}
             <button className="import-confirm" onClick={finishImport}>Import selected data</button>
-            <button className="dialog-cancel" onClick={() => { setPending(undefined); setError(undefined) }}>Cancel</button>
+            <button className="dialog-cancel" onClick={cancelImport}>Cancel</button>
           </section>
         </div>
       )}

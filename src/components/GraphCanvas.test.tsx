@@ -12,6 +12,23 @@ const original = useBuilderStore.getState()
 afterEach(() => { cleanup(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
 
 describe('GraphCanvas panels', () => {
+  it('colors two Y variables differently, including with a Color grouping', () => {
+    const dataset = datasetFromMatrix([['X', 'Left', 'Right', 'Group'], [1, 10, 1000, 'A'], [2, 20, 2000, 'B'], [3, 30, 3000, 'A']], 'Dual colors')
+    const [x, left, right, group] = dataset.columns.map((column) => column.id)
+    const layer = { id: 'points', name: 'Points', element: 'points' as const }
+    const baseSpec = { ...original.spec, x: [x], y: [left, right], yDisplay: 'dual' as const, color: undefined, layers: [layer], activeLayerId: layer.id }
+    useBuilderStore.setState({ dataset, spec: baseSpec })
+    const view = render(<GraphCanvas />)
+    expect(chart.props!.data.map((trace) => trace.yaxis)).toEqual(['y', 'y2'])
+    expect((chart.props!.data[0].marker as { color: string }).color).not.toBe((chart.props!.data[1].marker as { color: string }).color)
+    view.unmount()
+    useBuilderStore.setState({ spec: { ...baseSpec, color: group } })
+    render(<GraphCanvas />)
+    const colors = chart.props!.data.map((trace) => (trace.marker as { color: string }).color)
+    expect(colors).toHaveLength(4)
+    expect(new Set(colors).size).toBe(4)
+  })
+
   it('splits assigned X and Y variables into a chosen number of columns', () => {
     useBuilderStore.setState({ spec: { ...original.spec, x: ['pressure', 'run'], y: ['dose', 'pressure'], xDisplay: 'subplots', yDisplay: 'subplots', subplotColumns: 1, color: undefined } })
     render(<GraphCanvas />)

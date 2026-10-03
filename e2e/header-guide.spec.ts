@@ -24,16 +24,18 @@ test('header and bottom links stay reachable', async ({ page }) => {
   await expect(guide).toBeHidden()
 })
 
-test('assigned variable label can be dragged without selecting text', async ({ page }) => {
+test('assigned variable chip can be dragged from its blank padding without selecting text', async ({ page }) => {
   await page.goto('/')
   const x = page.locator('.x-zone .assignment-drag-handle')
   await expect(x).toContainText('Input Setting')
   await expect(x).toHaveCSS('user-select', 'none')
-  const start = (await x.boundingBox())!
+  const chip = page.locator('.x-zone .assignment')
+  await expect(chip).toHaveCSS('user-select', 'none')
+  const start = (await chip.boundingBox())!
   const target = (await page.locator('.y-zone .drop-zone').boundingBox())!
-  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)
+  await page.mouse.move(start.x + 3, start.y + start.height / 2)
   await page.mouse.down()
-  await page.mouse.move(start.x + start.width / 2 + 10, start.y + start.height / 2, { steps: 4 })
+  await page.mouse.move(start.x + 13, start.y + start.height / 2, { steps: 4 })
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 })
   await page.mouse.up()
   await expect(page.locator('.y-zone .assignment-drag-handle')).toHaveCount(2)
