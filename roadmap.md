@@ -19,16 +19,21 @@ The primary supported workload is about 100–500 rows and 1,000–10,000 popula
 | Appearance and export | Complete | Axes, themes, legends, annotations, PNG/SVG/CSV export |
 | Projects and templates | Complete | Embedded/linked projects, multiple graphs, recovery, templates |
 | Browser validation | Complete | [Phase 9 validation](docs/phase-9-validation.md) and [manual checks](docs/phase-9-manual-checks.md) |
-| Windows packaging | 0.1.4 acceptance reported complete and release published; update and clean-install follow-up checks pending | [0.1.4 release test plan](docs/release-0.1.4-test-plan.md), [release notes](docs/release-0.1.4-notes.md) |
-| Public landing page and downloads | Browser app live; Windows installer links prepared for the next Pages deployment | `site/index.html`, Pages and desktop release workflows |
+| Windows packaging | 0.1.4 release published; candidate and post-publication Windows checks reported complete | [0.1.4 release test plan](docs/release-0.1.4-test-plan.md), [release notes](docs/release-0.1.4-notes.md) |
+| Public landing page and downloads | Browser app and Windows installer links live and checked | `site/index.html`, Pages and desktop release workflows |
+
+## Completed 0.1.4 release follow-up
+
+The user reports completing these checks after publication; detailed machine and test records were not supplied:
+
+1. Checked the live installer links and browser shortcut help. The browser app is available from [the Graph Builder page](https://timothylasater.com/graph-builder/) and directly at [the app](https://timothylasater.com/graph-builder/app/).
+2. Declined an available 0.1.4 update, then installed it after saving work.
+3. Checked a clean 0.1.4 installation, file association, offline use, and uninstall on Windows.
 
 ## Near-term work
 
-1. After this Pages deployment, check the published 0.1.4 installer links and browser shortcut help. The browser app is available from [the Graph Builder page](https://timothylasater.com/graph-builder/) and directly at [the app](https://timothylasater.com/graph-builder/app/).
-2. Verify the installed app's update choices: declining an available 0.1.4 update and installing it after saving work. The signed 0.1.2 → 0.1.3 install path was already tested.
-3. Check a clean 0.1.4 installation, file association, offline use, and uninstall on a Windows machine.
-4. Improve the desktop linked-project save flow: when a source path is missing, clearly explain that the file picker is asking for the original data file, not where to save the project. Make the picker purpose clear before it opens and in its title where supported.
-5. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
+1. Improve the desktop linked-project save flow: when a source path is missing, clearly explain that the file picker is asking for the original data file, not where to save the project. Make the picker purpose clear before it opens and in its title where supported.
+2. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
 
 ## Release and maintenance notes
 

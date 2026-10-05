@@ -77,7 +77,7 @@ Annotations can be supplied as tagged rows in a data table or in a `Graph Annota
 
 ## Project status
 
-Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The user reports completing the 0.1.4 acceptance tests, and the [0.1.4 Windows release](https://github.com/timlasater/graph-builder/releases/tag/desktop-v0.1.4) is published with its installer, update signature, and updater manifest. Post-publication update and clean-install checks remain open. See the [0.1.4 release notes](docs/release-0.1.4-notes.md) and [test plan](docs/release-0.1.4-test-plan.md). macOS and Linux releases await testing on those platforms.
+Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The [0.1.4 Windows release](https://github.com/timlasater/graph-builder/releases/tag/desktop-v0.1.4) is published with its installer, update signature, and updater manifest. The user reports completing the 0.1.4 candidate tests, live download and browser checks, installed update choices, and clean-install and uninstall checks. See the [0.1.4 release notes](docs/release-0.1.4-notes.md) and [test plan](docs/release-0.1.4-test-plan.md). macOS and Linux releases await testing on those platforms.
 
 ## Contributing
 

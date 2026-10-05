@@ -2,7 +2,7 @@
 
 Use this checklist on the Windows laptop with Node.js, Rust, Visual Studio C++ Build Tools, WebView2, Chrome, and the existing Graph Builder installation. It was written for the October 2, 2026 acceptance pass. Use the synthetic files in `test-data/` and `examples/`, never private research data. Mark each item **Pass**, **Fail**, or **Not run**, and record the app version, Windows version, and a short note or screenshot for any failure. A failed item in the **Before publishing** sections should be fixed and retested before the release is published.
 
-**Status, October 5, 2026:** The user reports completing all v0.1.4 candidate tests. The desktop release workflow ran, and the release is published with `Graph.Builder_0.1.4_x64-setup.exe`, its update signature, and `latest.json`. The item boxes and sign-off table remain available for detailed results; the user has not supplied those records here. Recheck the new landing-page links and browser shortcut help after the Pages deployment, then complete the after-publication update and clean-install checks.
+**Status, October 5, 2026:** The user reports completing all v0.1.4 candidate tests and the post-publication checks: live installer links and browser shortcut help, declining and installing the 0.1.4 update, and a clean Windows install with file association, offline use, and uninstall. The desktop release workflow ran, and the release is published with `Graph.Builder_0.1.4_x64-setup.exe`, its update signature, and `latest.json`. The candidate item boxes and sign-off table remain available for detailed machine and test records, which were not supplied here. The four post-publication boxes below reflect the user's completion report.
 
 ## Prepare the candidate
 
@@ -58,16 +58,16 @@ Use a 0.1.4 candidate installer for the checks below. Keep a separate backup of 
 
 ## Draft release review, then publishing
 
-- [ ] Confirm `0.1.4` is committed and pushed on `main`, and the browser Pages workflow is green. Run the manually triggered **Build signed Windows desktop release** workflow from `main`. It should produce a **draft** release, not publish automatically.
-- [ ] Inspect the draft release before publishing: correct `0.1.4` name/tag, Windows setup file, Tauri updater signature, and `latest.json`. The workflow must report success. Do not paste the private signing key into an issue, chat, or commit.
-- [ ] Publish only after the pre-publication checks pass. Keep the old 0.1.3 installer available for the update check below.
+- [x] Confirm `0.1.4` is committed and pushed on `main`, and the browser Pages workflow is green. Run the manually triggered **Build signed Windows desktop release** workflow from `main`. It should produce a **draft** release, not publish automatically.
+- [x] Inspect the draft release before publishing: correct `0.1.4` name/tag, Windows setup file, Tauri updater signature, and `latest.json`. The workflow must report success. Do not paste the private signing key into an issue, chat, or commit.
+- [x] Publish only after the pre-publication checks pass. Keep the old 0.1.3 installer available for the update check below.
 
 ## After publishing: update and clean install
 
-- [ ] Install or restore 0.1.3 and open a synthetic project with a visible edit. With Wi-Fi on, choose **Projects & export → Check for updates**. Expect 0.1.4. Cancel or decline once and confirm 0.1.3 and the current project remain usable.
-- [ ] Check again, choose the update, and save the full embedded project copy when asked. The signed update should install and restart Graph Builder as 0.1.4. Reopen the backup and verify data and graphs. If the update fails, keep the backup and record the message and workflow run.
-- [ ] On a clean Windows account or machine, download the published setup file, install, launch, open a `.graphbuilder` file by double-clicking, and repeat one offline import/save/export cycle. This catches file-association and installation problems that a development build may miss.
-- [ ] Uninstall Graph Builder through Windows **Installed apps**. Confirm it disappears from Installed apps and Start; separately saved `.graphbuilder`, PNG, SVG, and CSV files should remain. Reinstall if continued use is planned.
+- [x] Install or restore 0.1.3 and open a synthetic project with a visible edit. With Wi-Fi on, choose **Projects & export → Check for updates**. Expect 0.1.4. Cancel or decline once and confirm 0.1.3 and the current project remain usable.
+- [x] Check again, choose the update, and save the full embedded project copy when asked. The signed update should install and restart Graph Builder as 0.1.4. Reopen the backup and verify data and graphs. If the update fails, keep the backup and record the message and workflow run.
+- [x] On a clean Windows account or machine, download the published setup file, install, launch, open a `.graphbuilder` file by double-clicking, and repeat one offline import/save/export cycle. This catches file-association and installation problems that a development build may miss.
+- [x] Uninstall Graph Builder through Windows **Installed apps**. Confirm it disappears from Installed apps and Start; separately saved `.graphbuilder`, PNG, SVG, and CSV files should remain. Reinstall if continued use is planned.
 
 ## Sign-off record
 
