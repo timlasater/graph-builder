@@ -156,16 +156,16 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Left / Right Arrow | Reorder a focused legend series. |
 | Arrow keys on a resize handle | Resize the graph or a sidebar in small steps. |
 | Ctrl+click / Shift+click | Add or range-select data-table rows with a pointer. |
-| Ctrl+N | Create a new empty graph in the current project in the browser or Windows app. On macOS, use Command instead of Ctrl. |
-| Ctrl+D | Open the data table in the browser or Windows app. On macOS, use Command instead of Ctrl. |
-| Mouse Back / Forward | Undo / redo a graph change outside text fields and dialogs. |
+| Ctrl+N | In the Windows app, create a new empty graph in the current project. In the browser, use **Projects & export → New graph**. |
+| Ctrl+D | In the Windows app, open the data table. In the browser, use **View data table**. |
+| Mouse Back / Forward | In the Windows app, undo / redo a graph change outside text fields and dialogs. Browser mouse navigation varies by browser. |
 | Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 | Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
 | Ctrl+E | In the Windows app, open **Projects & export** when focus is outside an editable field or dialog. |
 | ? | Show a compact list of keyboard shortcuts in the browser or Windows app. The top bar also has a **Keyboard shortcuts** button. |
 
-**Undo** and **Redo** are also top-bar buttons. In a text field or data table, Ctrl+Z and Ctrl+Y remain available for that field's own editing behavior. Browser shortcuts, such as Ctrl+S, belong to the browser and do not save a Graph Builder project.
+**Undo** and **Redo** are also top-bar buttons. In a text field or data table, Ctrl+Z and Ctrl+Y remain available for that field's own editing behavior. Browser shortcuts such as Ctrl+N, Ctrl+D, and Ctrl+S belong to the browser; they do not create a graph, open the data table, or save a Graph Builder project.
 
 ## Keyboard only workflow
 

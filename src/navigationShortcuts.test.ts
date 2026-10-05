@@ -3,15 +3,16 @@ import { describe, expect, it } from 'vitest'
 import { navigationShortcut } from './navigationShortcuts'
 
 describe('navigation shortcuts', () => {
-  it('creates a graph with Ctrl+N or Command+N outside editors and dialogs', () => {
-    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }), false, false)).toBe('newGraph')
-    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'N', metaKey: true }), true, false)).toBe('newGraph')
-    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }), false, true)).toBeUndefined()
-    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, shiftKey: true }), false, false)).toBeUndefined()
+  it('creates a graph with Ctrl+N only in the desktop app', () => {
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }), true, false)).toBe('newGraph')
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }), false, false)).toBeUndefined()
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'N', metaKey: true }), true, false)).toBeUndefined()
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }), true, true)).toBeUndefined()
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, shiftKey: true }), true, false)).toBeUndefined()
   })
-  it('opens the data table with Ctrl+D or Command+D outside editors and dialogs', () => {
+  it('opens the data table with Ctrl+D only in the desktop app', () => {
     expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }), true, false)).toBe('dataTable')
-    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'D', metaKey: true }), false, false)).toBe('dataTable')
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }), false, false)).toBeUndefined()
     expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'd', ctrlKey: true }), true, true)).toBeUndefined()
     const input = document.createElement('input')
     let result: ReturnType<typeof navigationShortcut>

@@ -20,22 +20,24 @@ test('question mark opens compact keyboard help and returns focus on close', asy
   await expect(help).toHaveCount(0)
 })
 
-test('Ctrl+N adds an empty graph to the current project', async ({ page }) => {
+test('browser shortcut help omits browser-reserved shortcuts', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Variables' })).toBeVisible()
-  await page.getByRole('button', { name: 'Projects & export' }).focus()
-  await page.keyboard.press('Control+n')
-  await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('Build a graph')
-  await page.getByRole('button', { name: 'Projects & export' }).click()
-  await expect(page.getByRole('button', { name: 'New graph · open' })).toBeVisible()
-  await expect(page.locator('.project-graph-list').first().getByRole('button')).toHaveCount(4)
+  await page.getByRole('button', { name: 'Keyboard shortcuts' }).click()
+  const help = page.getByRole('dialog', { name: 'Keyboard shortcuts' })
+  await expect(help).toBeVisible()
+  await expect(help.getByText('Ctrl+N')).toHaveCount(0)
+  await expect(help.getByText('Ctrl+D')).toHaveCount(0)
+  await expect(help.getByText('Mouse Back / Forward')).toHaveCount(0)
+  await expect(help.getByText('Ctrl+Z / Ctrl+Y')).toBeVisible()
 })
 
 test('mouse Back and Forward undo and redo graph changes', async ({ page }) => {
   await page.goto('/')
   const projects = page.getByRole('button', { name: 'Projects & export' })
   await projects.focus()
-  await page.keyboard.press('Control+n')
+  await projects.click()
+  await page.getByRole('button', { name: /New graph/ }).first().click()
+  await page.getByRole('button', { name: 'Close projects' }).click()
   await expect(page.getByRole('region', { name: 'Graph preview' })).toContainText('Build a graph')
   const bounds = await projects.boundingBox()
   expect(bounds).not.toBeNull()
@@ -78,10 +80,9 @@ test('mouse Back over a graph point does not select it or start box selection', 
   await expect(page.locator('.graph-selection-bar')).toBeVisible()
 })
 
-test('Ctrl+D opens the data table and suggested-layer feedback fades away', async ({ page }) => {
+test('data table button opens the table and suggested-layer feedback fades away', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Projects & export' }).focus()
-  await page.keyboard.press('Control+d')
+  await page.getByRole('button', { name: 'View data table' }).click()
   await expect(page.getByRole('dialog', { name: 'Example measurements (synthetic data)' })).toBeVisible()
   await page.getByRole('button', { name: 'Close data table' }).click()
   await page.getByRole('button', { name: /Bars$/ }).first().click()

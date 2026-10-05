@@ -1,6 +1,8 @@
 # Graph Builder 0.1.4 release test plan
 
-Use this checklist on the Windows laptop with Node.js, Rust, Visual Studio C++ Build Tools, WebView2, Chrome, and the existing Graph Builder installation. It is written for the October 2, 2026 acceptance pass. Use the synthetic files in `test-data/` and `examples/`, never private research data. Mark each item **Pass**, **Fail**, or **Not run**, and record the app version, Windows version, and a short note or screenshot for any failure. A failed item in the **Before publishing** sections should be fixed and retested before the release is published.
+Use this checklist on the Windows laptop with Node.js, Rust, Visual Studio C++ Build Tools, WebView2, Chrome, and the existing Graph Builder installation. It was written for the October 2, 2026 acceptance pass. Use the synthetic files in `test-data/` and `examples/`, never private research data. Mark each item **Pass**, **Fail**, or **Not run**, and record the app version, Windows version, and a short note or screenshot for any failure. A failed item in the **Before publishing** sections should be fixed and retested before the release is published.
+
+**Status, October 5, 2026:** The user reports completing all v0.1.4 candidate tests. The desktop release workflow ran, and the release is published with `Graph.Builder_0.1.4_x64-setup.exe`, its update signature, and `latest.json`. The item boxes and sign-off table remain available for detailed results; the user has not supplied those records here. Recheck the new landing-page links and browser shortcut help after the Pages deployment, then complete the after-publication update and clean-install checks.
 
 ## Prepare the candidate
 
@@ -50,8 +52,8 @@ Use a 0.1.4 candidate installer for the checks below. Keep a separate backup of 
 
 ## Before publishing: browser and public page
 
-- [ ] Open `https://timothylasater.com/graph-builder/` at desktop and phone widths. Confirm the capability and engineering summaries are readable, the navigation matches the other site pages, and **Launch Graph Builder**, the user guide, repository, and problem-report links work.
-- [ ] Open `https://timothylasater.com/graph-builder/app/` and refresh it directly. Import a synthetic CSV, edit a graph, download an embedded project and PNG, reopen the project, and verify its data. The browser page should have the bottom-center GitHub icon, **Report a problem**, and **timothylasater.com** links.
+- [ ] Open `https://timothylasater.com/graph-builder/` at desktop and phone widths. Confirm the capability and engineering summaries are readable, the navigation matches the other site pages, and **Launch Graph Builder**, the user guide, repository, and problem-report links work. After 0.1.4 is published, verify the new Windows installer button downloads the 0.1.4 setup file.
+- [ ] Open `https://timothylasater.com/graph-builder/app/` and refresh it directly. Import a synthetic CSV, edit a graph, download an embedded project and PNG, reopen the project, and verify its data. The browser page should have the bottom-center GitHub icon, **Download Windows app**, **Report a problem**, and **timothylasater.com** links. Check that browser shortcut help omits Ctrl+N and Ctrl+D while the Windows app still lists them.
 - [ ] At 200% browser zoom, confirm key controls remain reachable by scrolling. Check the light, dark, and paper graph themes for readable text and visible focus.
 
 ## Draft release review, then publishing

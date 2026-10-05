@@ -19,17 +19,16 @@ The primary supported workload is about 100–500 rows and 1,000–10,000 popula
 | Appearance and export | Complete | Axes, themes, legends, annotations, PNG/SVG/CSV export |
 | Projects and templates | Complete | Embedded/linked projects, multiple graphs, recovery, templates |
 | Browser validation | Complete | [Phase 9 validation](docs/phase-9-validation.md) and [manual checks](docs/phase-9-manual-checks.md) |
-| Windows packaging | 0.1.4 acceptance in progress; earlier signed releases published | [0.1.4 release test plan](docs/release-0.1.4-test-plan.md), [prior validation](docs/phase-10-manual-checks.md) |
-| Public landing page and downloads | Browser app live; desktop download pending 0.1.4 acceptance | `site/index.html`, Pages and desktop release workflows |
+| Windows packaging | 0.1.4 acceptance reported complete and release published; update and clean-install follow-up checks pending | [0.1.4 release test plan](docs/release-0.1.4-test-plan.md), [release notes](docs/release-0.1.4-notes.md) |
+| Public landing page and downloads | Browser app live; Windows installer links prepared for the next Pages deployment | `site/index.html`, Pages and desktop release workflows |
 
 ## Near-term work
 
-1. Complete the [0.1.4 release test plan](docs/release-0.1.4-test-plan.md) on a Windows machine with the desktop prerequisites. This includes double-click project opening, save/cancel prompts, undo, invalid-file alerts, keyboard shortcuts, and the full import-to-export workflow.
-2. Verify offline use after installation: launch, import, graph, save, reopen, and export. Installing on a machine without WebView2 may require an initial download; ordinary use after installation must not.
-3. Verify the installed app's update choices: no update available, declining an available update, and installing an update after saving work. The signed 0.1.2 → 0.1.3 install path was already tested.
-4. Publish 0.1.4 after acceptance, then add a desktop download button and verified specifications to the public landing page. Check installer links from a clean device. The browser app is available from [the Graph Builder page](https://timothylasater.com/graph-builder/) and directly at [the app](https://timothylasater.com/graph-builder/app/).
-5. Improve the desktop linked-project save flow: when a source path is missing, clearly explain that the file picker is asking for the original data file, not where to save the project. Make the picker purpose clear before it opens and in its title where supported.
-6. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
+1. After this Pages deployment, check the published 0.1.4 installer links and browser shortcut help. The browser app is available from [the Graph Builder page](https://timothylasater.com/graph-builder/) and directly at [the app](https://timothylasater.com/graph-builder/app/).
+2. Verify the installed app's update choices: declining an available 0.1.4 update and installing it after saving work. The signed 0.1.2 → 0.1.3 install path was already tested.
+3. Check a clean 0.1.4 installation, file association, offline use, and uninstall on a Windows machine.
+4. Improve the desktop linked-project save flow: when a source path is missing, clearly explain that the file picker is asking for the original data file, not where to save the project. Make the picker purpose clear before it opens and in its title where supported.
+5. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
 
 ## Release and maintenance notes
 

@@ -47,6 +47,8 @@ try {
   assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundImage.includes('linear-gradient')), false)
   assert.ok(await hero.evaluate((element) => element.getBoundingClientRect().height) > await page.evaluate(() => innerHeight))
   assert.equal(await page.getByRole('link', { name: 'Read the user guide' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md')
+  const installerUrl = 'https://github.com/timlasater/graph-builder/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe'
+  assert.equal(await page.getByRole('link', { name: 'Download Windows installer' }).getAttribute('href'), installerUrl)
   assert.equal(await page.getByRole('link', { name: 'GitHub repository' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder')
   if (process.env.GB_CAPTURE_PAGES === '1') {
     await mkdir('test-results/pages', { recursive: true })
@@ -65,7 +67,10 @@ try {
   assert.equal(new URL(page.url()).pathname, '/graph-builder/app/')
   await page.getByRole('region', { name: 'Graph preview' }).waitFor()
   assert.equal(await page.getByRole('link', { name: 'GitHub repository' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder')
+  assert.equal(await page.getByRole('link', { name: 'Download Windows app' }).getAttribute('href'), installerUrl)
   assert.equal(await page.getByRole('link', { name: 'Report a problem' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder/issues')
+  const footerLinks = await page.locator('.site-links a').allTextContents()
+  assert.deepEqual(footerLinks.map((label) => label.trim()), ['', 'Download Windows app', 'Report a problem', 'timothylasater.com'])
   assert.equal(await page.getByRole('link', { name: 'timothylasater.com' }).getAttribute('href'), 'https://timothylasater.com/')
   if (process.env.GB_CAPTURE_PAGES === '1') await page.screenshot({ path: 'test-results/pages/app.png', fullPage: false })
   await page.reload()

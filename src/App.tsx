@@ -40,6 +40,7 @@ const graphElements: { id: GraphElement; label: string; icon: string }[] = [
 ]
 const UserGuide = lazy(() => import('./components/UserGuide'))
 const repositoryUrl = 'https://github.com/timlasater/graph-builder'
+const installerUrl = `${repositoryUrl}/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe`
 
 function GithubIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.07c-3.09.67-3.74-1.31-3.74-1.31-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.67.08-.67 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.53 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.08 1.14a10.7 10.7 0 0 1 5.6 0c2.14-1.44 3.08-1.14 3.08-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.3-2.6 5.25-5.08 5.52.4.35.75 1.03.75 2.08v3.08c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z"/></svg>
@@ -438,6 +439,7 @@ function App() {
             </div>
             <nav className="site-links" aria-label="External links">
               {desktop ? <button className="github-link" type="button" aria-label="GitHub repository" title="GitHub repository" onClick={() => void openRepository()}><GithubIcon /></button> : <a className="github-link" href={repositoryUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><GithubIcon /></a>}
+              {!desktop && <a href={installerUrl} title="Download Graph Builder 0.1.4 for Windows">Download Windows app</a>}
               {desktop ? <button type="button" onClick={() => void reportProblem()}>Report a problem</button> : <a href={`${repositoryUrl}/issues`} target="_blank" rel="noopener noreferrer">Report a problem</a>}
               {!desktop && <a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">timothylasater.com</a>}
             </nav>

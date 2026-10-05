@@ -3,7 +3,9 @@
 Graph Builder is a local-first scientific graphing application for Windows and modern desktop browsers. It lets users import tabular data, map columns to graph roles, combine plot layers, inspect and filter observations, and export figures or reusable projects. The bundled dataset is synthetic demonstration data; it is not research data.
 
 - [Try the browser app](https://timothylasater.com/graph-builder/app/)
+- [Download the Windows installer (0.1.4)](https://github.com/timlasater/graph-builder/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe)
 - [Read the complete user guide](docs/user-guide.md)
+- [Read the 0.1.4 release notes](docs/release-0.1.4-notes.md)
 - [0.1.4 Windows release test plan](docs/release-0.1.4-test-plan.md)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)
 
@@ -65,6 +67,8 @@ npm run test:pages
 
 `npm test` runs the source unit and workflow tests. `test:e2e` exercises browser workflows with Playwright; install its browser if prompted. `build` checks TypeScript and creates desktop-ready web assets. `build:pages` creates the landing page and the browser app under `/graph-builder/app/`; `test:pages` checks both entry points and asset paths. The Pages workflow publishes from `main`. The desktop release workflow builds a signed Windows release when run manually. See [phase 9 validation](docs/phase-9-validation.md) and [phase 10 checks](docs/phase-10-manual-checks.md) for historical validation details.
 
+To preview the public landing page and browser app together before publishing, run `npm run build:pages` and then `npm run preview:pages`. Open the two local addresses it prints. Stop the preview with **Ctrl+C**.
+
 ## Data formats and limits
 
 Imports accept CSV, TSV, TXT, XLSX, and XLS, with a worksheet selector when needed. Dates, numbers, text, and Boolean columns are inferred, then can be corrected in the UI. Typical workbooks have 100–500 rows and 1,000–10,000 populated cells; validation also covered a 5,000-row, 50,000-cell browser workflow. Performance depends on the machine and graph complexity.
@@ -73,7 +77,7 @@ Annotations can be supplied as tagged rows in a data table or in a `Graph Annota
 
 ## Project status
 
-Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The [0.1.4 release test plan](docs/release-0.1.4-test-plan.md) tracks the current acceptance checks, including file association, offline use, and update choices. macOS and Linux releases await testing on those platforms.
+Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The user reports completing the 0.1.4 acceptance tests, and the [0.1.4 Windows release](https://github.com/timlasater/graph-builder/releases/tag/desktop-v0.1.4) is published with its installer, update signature, and updater manifest. Post-publication update and clean-install checks remain open. See the [0.1.4 release notes](docs/release-0.1.4-notes.md) and [test plan](docs/release-0.1.4-test-plan.md). macOS and Linux releases await testing on those platforms.
 
 ## Contributing
 
