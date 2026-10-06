@@ -35,6 +35,14 @@ The user reports completing these checks after publication; detailed machine and
 1. Improve the desktop linked-project save flow: when a source path is missing, clearly explain that the file picker is asking for the original data file, not where to save the project. Make the picker purpose clear before it opens and in its title where supported.
 2. Consider macOS and Linux packages after each platform can be built and checked on physical machines.
 
+## Future features
+
+- Import multiple data files at once and concatenate their rows into one dataset, with checks for matching columns. Import currently opens one data file at a time.
+- Map numeric values to a continuous color gradient. Current palettes and series colors assign discrete colors.
+- Add freely positioned, editable text annotations on a graph. Current labels belong to titles, reference lines, acceptance regions, or generated plot elements.
+- Draw and edit arrows, free-positioned lines, rectangles, and highlights on a graph. Current reference lines and shaded acceptance regions are tied to an X or Y value or interval.
+- Save and reuse a visual theme independently of a graph's data, variables, and filters. Current built-in themes and reusable graph templates do not provide a dedicated appearance-only preset.
+
 ## Release and maintenance notes
 
 The Pages build produces a landing page at `/graph-builder/` and a separate application entry point at `/graph-builder/app/` so direct visits and refreshes work. The normal build remains suitable for Tauri. The Pages workflow publishes `main`; the desktop workflow is a manual, signed release process. The signing private key belongs outside Git and in release secrets; the public verification key is bundled with the app. A Windows installer certificate is separate from the free Tauri update signature.
