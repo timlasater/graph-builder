@@ -43,6 +43,8 @@ try {
   await page.getByRole('heading', { name: 'Engineering overview' }).waitFor()
   assert.ok((await page.getByText('5,000 rows and 50,000 cells').count()) > 0)
   const hero = page.locator('.hero')
+  assert.ok(await hero.evaluate((element) => getComputedStyle(element).backgroundImage.includes('/graph-builder/fit-lines.png')))
+  assert.equal(await page.getByRole('link', { name: 'Download Resume' }).count(), 0)
   assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundAttachment), 'fixed')
   assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundImage.includes('linear-gradient')), false)
   assert.ok(await hero.evaluate((element) => element.getBoundingClientRect().height) > await page.evaluate(() => innerHeight))
