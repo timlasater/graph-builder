@@ -1,0 +1,9 @@
+Subject,Visit,Response,Group
+A,Before,12,Treatment
+A,After,18,Treatment
+B,Before,15,Treatment
+B,After,20,Treatment
+C,Before,11,Control
+C,After,12,Control
+D,Before,14,Control
+D,After,13,Control

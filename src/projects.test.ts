@@ -69,6 +69,16 @@ describe('project files', () => {
     expect(embedded.data.mode === 'embedded' && embedded.data.dataset.source?.nativePath).toBeUndefined()
   })
 
+  it('round-trips a paired plot and validates its subject ID column', () => {
+    const savedGraph = graph()
+    savedGraph.spec.layers = [{ id: 'paired', name: 'Paired plot', element: 'paired', pairId: 'prototype' }]
+    savedGraph.spec.activeLayerId = 'paired'
+    const project = makeProject('Paired study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')
+    expect(parseProject(projectJson(project)).graphs[0].spec.layers[0].pairId).toBe('prototype')
+    savedGraph.spec.layers[0].pairId = 'missing-column'
+    expect(() => parseProject(projectJson(makeProject('Paired study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')))).toThrow('missing column')
+  })
+
   it('remembers skipped import rows in linked projects', () => {
     const dataset = { ...sampleDataset, source: { fileName: 'results.csv', skipRows: 2 } }
     const linked = parseProject(projectJson(makeProject('Linked', dataset, [graph()], 'one', 'linked')))

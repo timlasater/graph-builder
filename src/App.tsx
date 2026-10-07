@@ -30,6 +30,7 @@ import './App.css'
 const graphElements: { id: GraphElement; label: string; icon: string }[] = [
   { id: 'points', label: 'Points', icon: '⠿' },
   { id: 'line', label: 'Line', icon: '⌁' },
+  { id: 'paired', label: 'Paired plot', icon: '↗' },
   { id: 'bar', label: 'Bars', icon: '▥' },
   { id: 'histogram', label: 'Histogram', icon: '▥' },
   { id: 'box', label: 'Box plot', icon: '⊟' },
@@ -463,6 +464,7 @@ function App() {
               <div className="layer-list">{spec.layers.map((layer, index) => <div key={layer.id} className={layer.id === activeLayer?.id ? 'active' : ''}><button className="layer-select" onClick={() => setActiveLayer(layer.id)}><span>{index + 1}</span>{layer.name}</button><button className="layer-remove" onClick={() => removeLayer(layer.id)} aria-label={`Remove ${layer.name} layer`}>×</button></div>)}</div>
               {activeLayer && <div className="layer-settings">
                 <label>Element<select value={activeLayer.element} onChange={(event) => updateLayer(activeLayer.id, { element: event.target.value as GraphElement, name: event.target.selectedOptions[0].text })}>{graphElements.map((element) => <option value={element.id} key={element.id}>{element.label}</option>)}</select></label>
+                {activeLayer.element === 'paired' && <><label>Subject ID<select value={activeLayer.pairId ?? ''} onChange={(event) => updateLayer(activeLayer.id, { pairId: event.target.value || undefined })}><option value="">Choose a column</option>{dataset.columns.map((column) => <option value={column.id} key={column.id}>{column.name}</option>)}</select></label><small className="setting-help">Connects each subject's values across X categories. Use one row per subject and category.</small></>}
                 {(activeLayer.element === 'summary' || activeLayer.element === 'bar') && <>
                   <label>Input data<select value={activeLayer.summaryInput ?? 'raw'} onChange={(event) => updateLayer(activeLayer.id, { summaryInput: event.target.value as 'raw' | 'precomputed', showObservations: false, barAggregation: 'mean', summaryMeasure: 'mean', name: activeLayer.element === 'summary' ? 'Mean line' : activeLayer.name })}><option value="raw">Raw observations</option><option value="precomputed">Precomputed means and errors</option></select></label>
                   {activeLayer.summaryInput === 'precomputed' ? <>

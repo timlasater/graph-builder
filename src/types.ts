@@ -1,7 +1,7 @@
 export type DataType = 'number' | 'text' | 'date' | 'boolean'
 export type ModelingType = 'continuous' | 'nominal' | 'ordinal'
 export type GraphRole = 'x' | 'y' | 'color' | 'groupX' | 'groupY' | 'wrap' | 'overlay' | 'size' | 'shape' | 'weight' | 'page'
-export type GraphElement = 'points' | 'line' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit' | 'smooth'
+export type GraphElement = 'points' | 'line' | 'paired' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit' | 'smooth'
 export type ErrorBarType = 'none' | 'sd' | 'se' | 'ci' | 'range'
 export type BarAggregation = 'mean' | 'sum' | 'count' | 'median' | 'min' | 'max' | 'quantile' | 'sd' | 'se'
 export type SummaryMeasure = BarAggregation
@@ -151,6 +151,7 @@ export interface GraphLayer {
   element: GraphElement
   x?: string
   y?: string
+  pairId?: string
   color?: string
   colorHex?: string
   markerSize?: number

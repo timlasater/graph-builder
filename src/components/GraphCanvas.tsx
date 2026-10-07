@@ -4,6 +4,7 @@ import { canUseDualYAxis } from '../dualYAxis'
 import { axisConfiguration, categoryTickLayout, orderedCategories, pairedYColor, palettes, themes } from '../appearance'
 import { histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, smoothedTrend, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
 import { statisticalSeries } from '../statisticalSeries'
+import { pairedSeries } from '../pairedSeries'
 import { rowMatchesFilters, useBuilderStore } from '../store'
 import type { DataColumn, DataRow, GraphLayer } from '../types'
 import { PlotlyChart, type PlotTitleTarget } from './PlotlyChart'
@@ -113,6 +114,22 @@ export function GraphCanvas() {
       const xValues = [...new Set(rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id]))))]
       if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined })
       const base = { name: legendKey, legendgroup: legendId, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: dualY && yColumn.id === sharedY[1].id ? 'y2' : axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: layer.lineStyle ?? spec.lineStyle ?? (overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid') }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
+      if (layer.element === 'paired') {
+        const idColumn = columnFor(layer.pairId)
+        if (!idColumn) {
+          statisticsWarnings.add('Choose a Subject ID column for the paired plot.')
+          return { ...base, type: 'scatter', mode: 'markers', x: [], y: [] }
+        }
+        const result = pairedSeries(rows, xColumn, yColumn, idColumn, spec, includedRows)
+        result.warnings.forEach((warning) => statisticsWarnings.add(warning))
+        return result.trajectories.map((trajectory, index) => ({
+          ...base, showlegend: showlegend && index === 0, type: 'scatter', mode: 'lines+markers',
+          x: trajectory.points.map((point) => point.x), y: trajectory.points.map((point) => point.y),
+          text: trajectory.points.map(() => trajectory.subject), customdata: trajectory.points.map((point) => point.rowId),
+          marker: { color, size: layer.markerSize ?? spec.markerSize, symbol: layer.markerShape ?? spec.markerShape ?? 'circle', opacity: spec.markerOpacity ?? 0.82 },
+          hovertemplate: `<b>${legendKey}</b><br>${idColumn.name}: %{text}<br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>`,
+        }))
+      }
       if (layer.element === 'fit') {
         const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, layer.fixedIntercept)
         if (fit && (layer.showEquation || layer.showRSquared || layer.showSampleSize)) {

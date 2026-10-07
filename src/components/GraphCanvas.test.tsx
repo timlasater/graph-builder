@@ -12,6 +12,24 @@ const original = useBuilderStore.getState()
 afterEach(() => { cleanup(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
 
 describe('GraphCanvas panels', () => {
+  it('draws one connected trace per subject and preserves source-row selection IDs', () => {
+    const dataset = datasetFromMatrix([
+      ['Subject', 'Visit', 'Value', 'Group'],
+      ['A', 'Before', 2, 'Drug'], ['B', 'Before', 3, 'Drug'], ['A', 'After', 5, 'Drug'], ['B', 'After', 6, 'Drug'],
+    ], 'Paired')
+    const [id, x, y, group] = dataset.columns
+    x.modelingType = 'nominal'
+    const layer = { id: 'paired', name: 'Paired plot', element: 'paired' as const, pairId: id.id }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: group.id, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    const traces = chart.props!.data
+    expect(traces).toHaveLength(2)
+    expect(traces.map((trace) => trace.mode)).toEqual(['lines+markers', 'lines+markers'])
+    expect(traces.map((trace) => trace.y)).toEqual([[2, 5], [3, 6]])
+    expect(traces.map((trace) => trace.customdata)).toEqual([[dataset.rows[0].id, dataset.rows[2].id], [dataset.rows[1].id, dataset.rows[3].id]])
+    expect(traces.map((trace) => trace.showlegend)).toEqual([true, false])
+  })
+
   it('colors two Y variables differently, including with a Color grouping', () => {
     const dataset = datasetFromMatrix([['X', 'Left', 'Right', 'Group'], [1, 10, 1000, 'A'], [2, 20, 2000, 'B'], [3, 30, 3000, 'A']], 'Dual colors')
     const [x, left, right, group] = dataset.columns.map((column) => column.id)

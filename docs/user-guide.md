@@ -68,6 +68,7 @@ Each layer is one visual form drawn from the assigned variables. Use the **Add l
 | --- | --- | --- |
 | Points | Individual observations | Marker size, color, shape/size roles |
 | Line | Values connected across X | Line width and color |
+| Paired plot | Each subject's values connected across X categories | Subject ID, line width and color |
 | Bars | Summarized or supplied values by category | Summary, error bars, stacking |
 | Histogram | Distribution of numeric values | Number of bins |
 | Box plot | Median, quartiles, whiskers, and optional points | Show outliers, all points, or none |
@@ -81,6 +82,8 @@ For **Bars** or **Mean line**, choose **Raw observations** when each row is a me
 Choose **Precomputed means and errors** when each row already supplies a mean for an X category. Assign the supplied mean to Y, then choose its error column and optional sample-size column. Select whether the error is SD, SE, or a confidence-interval half-width. For a range, choose separate lower and upper bound columns. The app uses supplied values as entered; it does not infer raw observations or recalculate supplied confidence intervals. **Value scale** can use original values, percentage of a visible series total, or percentage of a chosen control X category. Error widths scale by the same factor; a total or control value must be positive.
 
 **Fit** can display an equation, sample size, and R², a measure of how closely a straight line follows the points. A fixed y-intercept forces the line through the entered y value. **Smooth trend** first averages repeated numeric X values, then uses the selected odd-sized window of neighboring distinct X positions. At plot edges, it uses the available neighbors. A box plot can use Y alone; clear X to show all Y observations in one box.
+
+For a **Paired plot**, assign a categorical X column (such as Before/After), a numeric Y measurement, and choose a **Subject ID** in **Properties → Layers**. Each row is one subject's measurement at one X category. The app connects only rows with the same Subject ID within the same visible series and panel. Subjects with one valid measurement show a single point. Rows without a Subject ID are omitted; a subject with repeated measurements at the same X category is omitted with a warning instead of averaging those measurements. Filters and excluded rows affect the plot. This plot does not run a statistical test.
 
 ## Filters and linked selection
 
