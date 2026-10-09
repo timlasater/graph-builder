@@ -34,6 +34,10 @@ test('nonlinear curve fit shows parameters and residuals', async ({ page }) => {
   await page.getByRole('combobox', { name: 'Element' }).selectOption('nonlinear')
   await expect(page.locator('.curve-fit-results')).toContainText('EC50')
   await expect(page.getByRole('img', { name: 'Residuals by X value' })).toBeVisible()
+  await page.getByRole('checkbox', { name: 'Show equation' }).check()
+  await page.getByRole('checkbox', { name: 'Show sample size' }).check()
+  await page.getByRole('checkbox', { name: 'Show R²' }).check()
+  await expect.poll(() => page.locator('.plotly-chart').evaluate((node) => (node as HTMLElement & { layout?: { annotations?: { text: string }[] } }).layout?.annotations?.some((annotation) => annotation.text.includes('ŷ =') && annotation.text.includes('n = 8') && annotation.text.includes('R² =')))).toBe(true)
   await expect.poll(() => page.locator('.plotly-chart').evaluate((node) => (node as HTMLElement & { data?: { mode?: string; x?: number[] }[] }).data?.[0]?.x?.length)).toBe(150)
 })
 

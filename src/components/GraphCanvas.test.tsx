@@ -24,12 +24,14 @@ describe('GraphCanvas panels', () => {
   it('draws a nonlinear dose–response curve from positive X values', () => {
     const dataset = datasetFromMatrix([['Dose', 'Response'], [0.25, 2.12], [0.5, 2.38], [1, 2.89], [2, 4.2], [4, 6.06], [8, 8.06], [16, 9.14], [32, 9.72]], 'Curve')
     const [x, y] = dataset.columns
-    const layer = { id: 'curve', name: 'Curve fit', element: 'nonlinear' as const, nonlinearModel: 'doseResponse' as const }
+    const layer = { id: 'curve', name: 'Curve fit', element: 'nonlinear' as const, nonlinearModel: 'doseResponse' as const, showEquation: true, showSampleSize: true, showRSquared: true }
     useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: undefined, layers: [layer], activeLayerId: layer.id } })
     render(<GraphCanvas />)
     expect(chart.props!.data[0].mode).toBe('lines')
     expect((chart.props!.data[0].x as number[]).length).toBe(150)
     expect((chart.props!.data[0].y as number[])[0]).toBeLessThan((chart.props!.data[0].y as number[]).at(-1)!)
+    const annotations = chart.props!.layout.annotations as { text: string }[]
+    expect(annotations.some((annotation) => annotation.text.includes('ŷ =') && annotation.text.includes('R² =') && annotation.text.includes('n = 8'))).toBe(true)
   })
 
   it('draws one connected trace per subject and preserves source-row selection IDs', () => {

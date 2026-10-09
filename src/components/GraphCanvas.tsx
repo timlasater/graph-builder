@@ -137,6 +137,19 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
       if (layer.element === 'nonlinear') {
         const outcome = nonlinearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), layer.nonlinearModel ?? 'doseResponse')
         if (outcome.error) statisticsWarnings.add(outcome.error)
+        const fit = outcome.fit
+        if (fit && (layer.showEquation || layer.showRSquared || layer.showSampleSize)) {
+          const parts: string[] = []
+          const values = fit.parameters.map((parameter) => Number(parameter.value.toPrecision(4)))
+          if (layer.showEquation) parts.push(fit.model === 'doseResponse'
+            ? `ŷ = ${values[0]} + (${values[1]} − ${values[0]}) / (1 + (${values[2]} / x)^${values[3]})`
+            : `ŷ = ${values[0]} + ${values[1]} · exp(−${values[2]} · (x − ${Number(Math.min(...fit.residuals.map((point) => point.x)).toPrecision(4))}))`)
+          if (layer.showRSquared) parts.push(`R² = ${Number(fit.rSquared.toPrecision(4))}`)
+          if (layer.showSampleSize) parts.push(`n = ${fit.n}`)
+          const position = fitAnnotationCounts.get(facetIndex) ?? 0
+          fitAnnotationCounts.set(facetIndex, position + 1)
+          fitAnnotations.push({ text: parts.join('<br>'), x: 0.02, y: 0.98 - position * 0.12, xref: axisNumber === 1 ? 'x domain' : `x${axisNumber} domain`, yref: axisNumber === 1 ? 'y domain' : `y${axisNumber} domain`, xanchor: 'left', yanchor: 'top', showarrow: false, align: 'left', bgcolor: '#ffffffdd', borderpad: 3, font: { size: 10, color } })
+        }
         return { ...base, type: 'scatter', mode: 'lines', x: outcome.fit?.curve.x ?? [], y: outcome.fit?.curve.y ?? [], hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x:.4g}<br>Fitted ${yColumn.name}: %{y:.4g}<extra></extra>` }
       }
       if (layer.element === 'fit') {
