@@ -1,7 +1,7 @@
 import { datasetSignature } from './datasetSignature'
 import { coerceValue } from './importData'
 import { recalculateFormulaColumns } from './formula'
-import type { DataColumn, Dataset, GraphDocument, GraphSpec, RowFilter } from './types'
+import type { DataColumn, Dataset, FigureLayout, GraphDocument, GraphSpec, RowFilter } from './types'
 
 export const PROJECT_FORMAT = 'graphbuilder-project'
 export const PROJECT_VERSION = 1
@@ -14,12 +14,13 @@ export interface ProjectFile {
   data: { mode: 'embedded'; dataset: Dataset } | { mode: 'linked'; source: { fileName: string; sheetName?: string; skipRows?: number; signature: string; nativePath?: string }; columns: DataColumn[] }
   graphs: GraphDocument[]
   activeGraphId: string
+  figureLayout?: FigureLayout
 }
 
 const record = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string')
 const cell = (value: unknown) => value === null || ['string', 'number', 'boolean'].includes(typeof value) && (typeof value !== 'number' || Number.isFinite(value))
-const elements = new Set(['points', 'line', 'paired', 'bar', 'histogram', 'box', 'area', 'summary', 'fit', 'smooth'])
+const elements = new Set(['points', 'line', 'paired', 'bar', 'histogram', 'box', 'area', 'summary', 'fit', 'nonlinear', 'smooth'])
 const operators = new Set(['equals', 'notEquals', 'contains', 'gt', 'gte', 'lt', 'lte', 'isMissing', 'isNotMissing', 'in', 'between', 'dateBetween'])
 const optionalString = (object: Record<string, unknown>, key: string) => object[key] === undefined || typeof object[key] === 'string'
 const optionalNumber = (object: Record<string, unknown>, key: string) => object[key] === undefined || typeof object[key] === 'number' && Number.isFinite(object[key])
@@ -30,7 +31,8 @@ const validLine = (value: unknown) => record(value) && typeof value.id === 'stri
 const validRegion = (value: unknown) => record(value) && typeof value.id === 'string' && ['x', 'y'].includes(String(value.axis)) && typeof value.min === 'number' && Number.isFinite(value.min) && typeof value.max === 'number' && Number.isFinite(value.max) && value.min < value.max && typeof value.color === 'string' && optionalString(value, 'label')
 const optionalItems = (object: Record<string, unknown>, key: string, check: (value: unknown) => boolean) => object[key] === undefined || Array.isArray(object[key]) && object[key].every(check)
 const validAxis = (value: unknown) => value === undefined || record(value) && ['scale', 'title'].every((key) => optionalString(value, key)) && ['min', 'max', 'tickInterval'].every((key) => optionalNumber(value, key)) && ['reversed', 'forceZero'].every((key) => value[key] === undefined || typeof value[key] === 'boolean')
-const validLayer = (value: unknown) => record(value) && typeof value.id === 'string' && typeof value.name === 'string' && elements.has(String(value.element)) && ['x', 'y', 'pairId', 'color', 'colorHex', 'lineStyle', 'markerShape', 'errorColor', 'boxPoints', 'precomputedErrorColumn', 'precomputedNColumn', 'precomputedLowerColumn', 'precomputedUpperColumn', 'controlCategory'].every((key) => optionalString(value, key)) && ['markerSize', 'lineWidth', 'errorCap', 'errorThickness', 'confidenceLevel', 'binCount', 'fixedIntercept', 'quantile', 'smoothWindow'].every((key) => optionalNumber(value, key)) && ['showObservations', 'stack', 'showEquation', 'showRSquared', 'showSampleSize'].every((key) => value[key] === undefined || typeof value[key] === 'boolean') && (value.errorBar === undefined || ['none', 'sd', 'se', 'ci', 'range'].includes(String(value.errorBar))) && ['barAggregation', 'summaryMeasure'].every((key) => value[key] === undefined || ['mean', 'sum', 'count', 'median', 'min', 'max', 'quantile', 'sd', 'se'].includes(String(value[key]))) && (value.summaryInput === undefined || ['raw', 'precomputed'].includes(String(value.summaryInput))) && (value.valueTransform === undefined || ['none', 'percentTotal', 'control'].includes(String(value.valueTransform))) && (value.quantile === undefined || typeof value.quantile === 'number' && value.quantile >= 0 && value.quantile <= 1) && (value.smoothWindow === undefined || typeof value.smoothWindow === 'number' && Number.isInteger(value.smoothWindow) && value.smoothWindow >= 1 && value.smoothWindow % 2 === 1)
+const validComparison = (value: unknown) => value === undefined || record(value) && ['welch', 'paired'].includes(String(value.method)) && typeof value.categoryA === 'string' && typeof value.categoryB === 'string' && optionalString(value, 'pairId') && typeof value.confidenceLevel === 'number' && value.confidenceLevel > 0 && value.confidenceLevel < 1
+const validLayer = (value: unknown) => record(value) && typeof value.id === 'string' && typeof value.name === 'string' && elements.has(String(value.element)) && ['x', 'y', 'pairId', 'color', 'colorHex', 'lineStyle', 'markerShape', 'errorColor', 'boxPoints', 'precomputedErrorColumn', 'precomputedNColumn', 'precomputedLowerColumn', 'precomputedUpperColumn', 'controlCategory'].every((key) => optionalString(value, key)) && ['markerSize', 'lineWidth', 'errorCap', 'errorThickness', 'confidenceLevel', 'binCount', 'fixedIntercept', 'quantile', 'smoothWindow'].every((key) => optionalNumber(value, key)) && ['showObservations', 'stack', 'showEquation', 'showRSquared', 'showSampleSize'].every((key) => value[key] === undefined || typeof value[key] === 'boolean') && (value.nonlinearModel === undefined || ['doseResponse', 'exponentialDecay'].includes(String(value.nonlinearModel))) && (value.errorBar === undefined || ['none', 'sd', 'se', 'ci', 'range'].includes(String(value.errorBar))) && ['barAggregation', 'summaryMeasure'].every((key) => value[key] === undefined || ['mean', 'sum', 'count', 'median', 'min', 'max', 'quantile', 'sd', 'se'].includes(String(value[key]))) && (value.summaryInput === undefined || ['raw', 'precomputed'].includes(String(value.summaryInput))) && (value.valueTransform === undefined || ['none', 'percentTotal', 'control'].includes(String(value.valueTransform))) && (value.quantile === undefined || typeof value.quantile === 'number' && value.quantile >= 0 && value.quantile <= 1) && (value.smoothWindow === undefined || typeof value.smoothWindow === 'number' && Number.isInteger(value.smoothWindow) && value.smoothWindow >= 1 && value.smoothWindow % 2 === 1)
 const validColumns = (value: unknown): value is DataColumn[] => Array.isArray(value) && value.length > 0 && value.every((column) => record(column) && typeof column.id === 'string' && column.id.length > 0 && typeof column.name === 'string' && ['number', 'text', 'date', 'boolean'].includes(String(column.dataType)) && ['continuous', 'nominal', 'ordinal'].includes(String(column.modelingType)) && optionalString(column, 'unit') && optionalString(column, 'formula') && optionalStringMap(column, 'valueLabels')) && new Set(value.map((column) => column.id)).size === value.length
 
 const validDataset = (value: unknown): value is Dataset => {
@@ -54,18 +56,19 @@ const validSpec = (value: unknown): value is GraphSpec => {
   if (!['fontSize', 'graphWidth', 'graphHeight', 'aspectRatio', 'markerOpacity', 'markerJitter', 'barGap', 'barWidth', 'errorCap', 'errorThickness'].every((key) => optionalNumber(value, key))) return false
   if (value.subplotColumns !== undefined && (typeof value.subplotColumns !== 'number' || !Number.isInteger(value.subplotColumns) || value.subplotColumns < 1)) return false
   if (!['manualCategories', 'palette', 'legendOrder', 'hiddenSeries'].every((key) => optionalStrings(value, key)) || !['seriesNames', 'seriesColors'].every((key) => optionalStringMap(value, key))) return false
-  if (!validAxis(value.xAxis) || !validAxis(value.yAxis) || !validAxis(value.y2Axis) || !optionalItems(value, 'referenceLines', validLine) || !optionalItems(value, 'referenceRegions', validRegion)) return false
+  if (!validAxis(value.xAxis) || !validAxis(value.yAxis) || !validAxis(value.y2Axis) || !validComparison(value.comparison) || !optionalItems(value, 'referenceLines', validLine) || !optionalItems(value, 'referenceRegions', validRegion)) return false
   if (value.pageValue !== undefined && !cell(value.pageValue)) return false
   return value.panels === undefined || Array.isArray(value.panels) && value.panels.every((panel) => record(panel) && typeof panel.id === 'string' && typeof panel.title === 'string' && optionalString(panel, 'x') && optionalString(panel, 'y') && optionalString(panel, 'xAxisTitle') && optionalString(panel, 'yAxisTitle'))
 }
 
 const validFilters = (value: unknown): value is RowFilter[] => Array.isArray(value) && value.every((filter) => record(filter) && typeof filter.id === 'string' && typeof filter.columnId === 'string' && operators.has(String(filter.operator)) && (filter.value === undefined || cell(filter.value)) && (filter.values === undefined || Array.isArray(filter.values) && filter.values.every(cell)) && ['min', 'max'].every((key) => optionalNumber(filter, key)) && ['start', 'end'].every((key) => optionalString(filter, key)))
 const validGraphs = (value: unknown): value is GraphDocument[] => Array.isArray(value) && value.length > 0 && value.every((graph) => record(graph) && typeof graph.id === 'string' && graph.id.length > 0 && typeof graph.name === 'string' && graph.name.trim().length > 0 && validSpec(graph.spec) && validFilters(graph.filters)) && new Set(value.map((graph) => graph.id)).size === value.length
+const validFigureLayout = (value: unknown, graphs: GraphDocument[]) => value === undefined || record(value) && typeof value.title === 'string' && strings(value.graphIds) && value.graphIds.length <= 4 && new Set(value.graphIds).size === value.graphIds.length && value.graphIds.every((id) => graphs.some((graph) => graph.id === id)) && (value.columns === 1 || value.columns === 2) && typeof value.width === 'number' && Number.isInteger(value.width) && value.width >= 320 && value.width <= 6000 && typeof value.height === 'number' && Number.isInteger(value.height) && value.height >= 240 && value.height <= 6000
 const graphsFitColumns = (graphs: GraphDocument[], columns: DataColumn[]) => {
   const ids = new Set(columns.map((column) => column.id))
   return graphs.every((graph) => {
     const spec = graph.spec
-    const assigned = [...spec.x, ...spec.y, spec.color, spec.groupX, spec.groupY, spec.wrap, spec.overlay, spec.size, spec.shape, spec.weight, spec.page, ...spec.layers.flatMap((layer) => [layer.x, layer.y, layer.pairId, layer.color, layer.precomputedErrorColumn, layer.precomputedNColumn, layer.precomputedLowerColumn, layer.precomputedUpperColumn]), ...(spec.panels ?? []).flatMap((panel) => [panel.x, panel.y]), ...graph.filters.map((filter) => filter.columnId)]
+    const assigned = [...spec.x, ...spec.y, spec.color, spec.groupX, spec.groupY, spec.wrap, spec.overlay, spec.size, spec.shape, spec.weight, spec.page, spec.comparison?.pairId, ...spec.layers.flatMap((layer) => [layer.x, layer.y, layer.pairId, layer.color, layer.precomputedErrorColumn, layer.precomputedNColumn, layer.precomputedLowerColumn, layer.precomputedUpperColumn]), ...(spec.panels ?? []).flatMap((panel) => [panel.x, panel.y]), ...graph.filters.map((filter) => filter.columnId)]
     return assigned.every((id) => !id || ids.has(id))
   })
 }
@@ -82,7 +85,7 @@ export const parseProject = (content: string): ProjectFile => {
   if (!record(value) || value.format !== PROJECT_FORMAT) throw new Error('This is not a Graph Builder project file. The current project was not changed.')
   if (value.version === 0) value = migrateV0(value)
   if (!record(value) || value.version !== PROJECT_VERSION) throw new Error('This project uses an unsupported version. The current project was not changed.')
-  if (typeof value.name !== 'string' || !value.name.trim() || typeof value.savedAt !== 'string' || !validGraphs(value.graphs) || typeof value.activeGraphId !== 'string' || !value.graphs.some((graph) => graph.id === value.activeGraphId)) throw new Error('This project is incomplete or damaged. The current project was not changed.')
+  if (typeof value.name !== 'string' || !value.name.trim() || typeof value.savedAt !== 'string' || !validGraphs(value.graphs) || typeof value.activeGraphId !== 'string' || !value.graphs.some((graph) => graph.id === value.activeGraphId) || !validFigureLayout(value.figureLayout, value.graphs)) throw new Error('This project is incomplete or damaged. The current project was not changed.')
   const data = value.data
   if (!record(data) || data.mode === 'embedded' && !validDataset(data.dataset) || data.mode === 'linked' && (!record(data.source) || typeof data.source.fileName !== 'string' || typeof data.source.signature !== 'string' || !optionalString(data.source, 'sheetName') || !optionalString(data.source, 'nativePath') || !optionalSkipRows(data.source) || data.columns !== undefined && !validColumns(data.columns)) || data.mode !== 'embedded' && data.mode !== 'linked') throw new Error('This project has invalid data information. The current project was not changed.')
   const columns = data.mode === 'embedded' ? (data.dataset as Dataset).columns : data.columns as DataColumn[] | undefined
@@ -90,13 +93,14 @@ export const parseProject = (content: string): ProjectFile => {
   return structuredClone(value) as unknown as ProjectFile
 }
 
-export const makeProject = (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, mode: 'embedded' | 'linked'): ProjectFile => {
+export const makeProject = (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, mode: 'embedded' | 'linked', figureLayout?: FigureLayout): ProjectFile => {
   if (!name.trim() || !validGraphs(graphs) || !graphs.some((graph) => graph.id === activeGraphId)) throw new Error('The project needs a name and at least one valid graph.')
   if (!graphsFitColumns(graphs, dataset.columns)) throw new Error('A graph or filter refers to a missing column. Fix it before saving the project.')
+  if (!validFigureLayout(figureLayout, graphs)) throw new Error('The figure layout has missing graphs or invalid page settings.')
   if (mode === 'linked' && !dataset.source?.fileName) throw new Error('Linked projects need an imported source file. Use embedded data for the built-in example.')
   const data: ProjectFile['data'] = mode === 'embedded' ? { mode, dataset: structuredClone(dataset) } : { mode, source: { fileName: dataset.source!.fileName, sheetName: dataset.source?.sheetName, signature: dataset.source?.signature ?? datasetSignature({ columns: dataset.columns.filter((column) => !column.formula) }), ...(dataset.source?.nativePath ? { nativePath: dataset.source.nativePath } : {}), ...(dataset.source?.skipRows ? { skipRows: dataset.source.skipRows } : {}) }, columns: structuredClone(dataset.columns) }
   if (data.mode === 'embedded' && data.dataset.source) { delete data.dataset.source.handleId; delete data.dataset.source.nativePath }
-  return { format: PROJECT_FORMAT, version: PROJECT_VERSION, name: name.trim(), savedAt: new Date().toISOString(), data, graphs: structuredClone(graphs), activeGraphId }
+  return { format: PROJECT_FORMAT, version: PROJECT_VERSION, name: name.trim(), savedAt: new Date().toISOString(), data, graphs: structuredClone(graphs), activeGraphId, ...(figureLayout ? { figureLayout: structuredClone(figureLayout) } : {}) }
 }
 
 export const projectJson = (project: ProjectFile) => JSON.stringify(project, null, 2)

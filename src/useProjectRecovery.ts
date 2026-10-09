@@ -29,21 +29,21 @@ export function useProjectRecovery() {
       timer = setTimeout(() => {
         const state = useBuilderStore.getState()
         try {
-          const project = makeProject(state.projectName, state.dataset, projectGraphs(state), state.activeGraphId, 'embedded')
+          const project = makeProject(state.projectName, state.dataset, projectGraphs(state), state.activeGraphId, 'embedded', state.figureLayout)
           queue = queue.catch(() => undefined).then(() => saveRecovery(project))
           void queue.then(() => setStatus(`Autosaved locally at ${new Date().toLocaleTimeString()}.`)).catch(() => setStatus('Autosave is unavailable. Download an embedded project to protect your work.'))
         } catch { setStatus('Autosave is unavailable. Download an embedded project to protect your work.') }
       }, 1200)
     }
     const unsubscribe = useBuilderStore.subscribe((state, previous) => {
-      if (state.dataset !== previous.dataset || state.spec !== previous.spec || state.filters !== previous.filters || state.projectName !== previous.projectName || state.activeGraphName !== previous.activeGraphName || state.activeGraphId !== previous.activeGraphId || state.otherGraphs !== previous.otherGraphs) schedule()
+      if (state.dataset !== previous.dataset || state.spec !== previous.spec || state.filters !== previous.filters || state.projectName !== previous.projectName || state.activeGraphName !== previous.activeGraphName || state.activeGraphId !== previous.activeGraphId || state.otherGraphs !== previous.otherGraphs || state.figureLayout !== previous.figureLayout) schedule()
     })
     return () => { unsubscribe(); if (timer) clearTimeout(timer) }
   }, [checked, recovery])
 
   const restore = () => {
     if (!recovery || recovery.data.mode !== 'embedded') return
-    useBuilderStore.getState().openProject(recovery.name, recovery.data.dataset, recovery.graphs, recovery.activeGraphId)
+    useBuilderStore.getState().openProject(recovery.name, recovery.data.dataset, recovery.graphs, recovery.activeGraphId, undefined, 'embedded', recovery.figureLayout)
     useBuilderStore.getState().markProjectSaved(undefined)
     setRecovery(undefined); setChecked(true); setStatus('Autosaved project restored.')
   }

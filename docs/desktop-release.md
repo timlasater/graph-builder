@@ -18,7 +18,7 @@ If Tauri asks for a password to decrypt the private key and the key was created 
 ## Prepare a release
 
 1. Set the same new version in `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml`.
-2. Complete the current [0.1.4 release test plan](release-0.1.4-test-plan.md) on a Windows machine with the desktop prerequisites. Record any failing checks and fix them. Commit and push the tested source on `main`.
+2. Complete the current [0.1.4 release test plan](release-0.1.4-test-plan.md) on a Windows machine with the desktop prerequisites. Record any failing checks and fix them. Commit and push the tested source on a side branch for review.
 3. Run **Desktop Release** from the repository's GitHub Actions page. The workflow runs checks and creates a **draft** GitHub Release with a Windows NSIS installer, a Tauri update signature, and `latest.json`.
 4. Inspect the draft version, installer, signature, and `latest.json`. Publish the draft only after the assets and test results are correct. Publishing makes the new version available to installed apps through the configured GitHub Releases endpoint.
 5. On a machine with the preceding release installed, test **Projects & export → Check for updates**. Save current work, accept the update, and confirm that the app restarts and the saved project reopens. Also verify the installer and file association on a clean Windows machine.

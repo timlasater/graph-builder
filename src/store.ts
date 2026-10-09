@@ -3,7 +3,7 @@ import { sampleDataset } from './sampleData'
 import { coerceValue } from './importData'
 import { calculateColumn, recalculateFormulaColumns } from './formula'
 import { elementLabel, resolveAssignment, sameAssignments, suggestElement } from './compatibility'
-import type { CellValue, DataColumn, Dataset, DatasetSource, GraphDocument, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
+import type { CellValue, DataColumn, Dataset, DatasetSource, FigureLayout, GraphDocument, GraphElement, GraphLayer, GraphRole, GraphSpec, RowFilter } from './types'
 
 const initialSpec: GraphSpec = {
   title: 'Measured Result by Input Setting',
@@ -45,6 +45,7 @@ interface BuilderState {
   activeGraphId: string
   activeGraphName: string
   otherGraphs: GraphDocument[]
+  figureLayout?: FigureLayout
   past: HistoryEntry[]
   future: HistoryEntry[]
   filters: RowFilter[]
@@ -70,7 +71,7 @@ interface BuilderState {
   setDataset: (dataset: Dataset) => void
   setDatasetSource: (source: DatasetSource) => void
   applyGraphTemplate: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
-  openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, projectPath?: string, projectMode?: 'embedded' | 'linked') => void
+  openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, projectPath?: string, projectMode?: 'embedded' | 'linked', figureLayout?: FigureLayout) => void
   setProjectPath: (path?: string) => void
   setProjectMode: (mode: 'embedded' | 'linked') => void
   markProjectSaved: (fingerprint?: string) => void
@@ -80,6 +81,7 @@ interface BuilderState {
   deleteGraph: (id: string) => void
   renameGraph: (name: string) => void
   renameProject: (name: string) => void
+  setFigureLayout: (layout?: FigureLayout) => void
   updateColumn: (columnId: string, patch: Partial<Pick<DataColumn, 'name' | 'dataType' | 'modelingType' | 'unit'>>) => void
   updateCell: (rowId: string, columnId: string, value: CellValue) => void
   setRowExcluded: (rowId: string, excluded: boolean) => void
@@ -94,12 +96,12 @@ interface BuilderState {
   reset: () => void
 }
 
-interface HistoryEntry { dataset: Dataset; spec: GraphSpec; filters: RowFilter[]; projectName: string; projectPath?: string; projectMode: 'embedded' | 'linked'; activeGraphId: string; activeGraphName: string; otherGraphs: GraphDocument[] }
-const snapshot = (state: Pick<BuilderState, keyof HistoryEntry>): HistoryEntry => structuredClone({ dataset: state.dataset, spec: state.spec, filters: state.filters, projectName: state.projectName, projectPath: state.projectPath, projectMode: state.projectMode, activeGraphId: state.activeGraphId, activeGraphName: state.activeGraphName, otherGraphs: state.otherGraphs })
+interface HistoryEntry { dataset: Dataset; spec: GraphSpec; filters: RowFilter[]; projectName: string; projectPath?: string; projectMode: 'embedded' | 'linked'; activeGraphId: string; activeGraphName: string; otherGraphs: GraphDocument[]; figureLayout?: FigureLayout }
+const snapshot = (state: Pick<BuilderState, keyof HistoryEntry>): HistoryEntry => structuredClone({ dataset: state.dataset, spec: state.spec, filters: state.filters, projectName: state.projectName, projectPath: state.projectPath, projectMode: state.projectMode, activeGraphId: state.activeGraphId, activeGraphName: state.activeGraphName, otherGraphs: state.otherGraphs, figureLayout: state.figureLayout })
 const withHistory = (state: BuilderState, patch: Partial<BuilderState>) => ({ ...patch, past: [...state.past, snapshot(state)], future: [] })
 export const projectGraphs = (state: Pick<BuilderState, 'activeGraphId' | 'activeGraphName' | 'spec' | 'filters' | 'otherGraphs'>): GraphDocument[] => [{ id: state.activeGraphId, name: state.activeGraphName, spec: state.spec, filters: state.filters }, ...state.otherGraphs]
-export const projectFingerprint = (state: Pick<BuilderState, 'projectName' | 'projectMode' | 'dataset' | 'activeGraphId' | 'activeGraphName' | 'spec' | 'filters' | 'otherGraphs'>): string => JSON.stringify([state.projectName, state.projectMode, state.dataset, projectGraphs(state), state.activeGraphId])
-const exampleProjectFingerprint = projectFingerprint({ projectName: sampleDataset.name, projectMode: 'embedded', dataset: sampleDataset, activeGraphId: 'graph-1', activeGraphName: initialSpec.title, spec: initialSpec, filters: [], otherGraphs: [] })
+export const projectFingerprint = (state: Pick<BuilderState, 'projectName' | 'projectMode' | 'dataset' | 'activeGraphId' | 'activeGraphName' | 'spec' | 'filters' | 'otherGraphs' | 'figureLayout'>): string => JSON.stringify([state.projectName, state.projectMode, state.dataset, projectGraphs(state), state.activeGraphId, state.figureLayout])
+const exampleProjectFingerprint = projectFingerprint({ projectName: sampleDataset.name, projectMode: 'embedded', dataset: sampleDataset, activeGraphId: 'graph-1', activeGraphName: initialSpec.title, spec: initialSpec, filters: [], otherGraphs: [], figureLayout: undefined })
 export const hasUnsavedProjectChanges = (state: BuilderState): boolean => {
   const fingerprint = projectFingerprint(state)
   return fingerprint !== state.savedProjectFingerprint && fingerprint !== exampleProjectFingerprint
@@ -148,6 +150,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   activeGraphId: 'graph-1',
   activeGraphName: initialSpec.title,
   otherGraphs: [],
+  figureLayout: undefined,
   past: [],
   future: [],
   filters: [],
@@ -213,12 +216,12 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   setSelectedColumn: (selectedColumn) => set({ selectedColumn }),
   setSelectedRowIds: (selectedRowIds) => set({ selectedRowIds: [...new Set(selectedRowIds)] }),
   clearRowSelection: () => set({ selectedRowIds: [] }),
-  setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, projectPath: undefined, projectMode: 'embedded', savedProjectFingerprint: undefined, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
+  setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, projectPath: undefined, projectMode: 'embedded', savedProjectFingerprint: undefined, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], figureLayout: undefined, filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
   setDatasetSource: (source) => set((state) => withHistory(state, { dataset: { ...state.dataset, source } })),
   applyGraphTemplate: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, compatibilityMessageTransient: false, selectedColumn: undefined })),
-  openProject: (projectName, dataset, graphs, activeGraphId, projectPath, projectMode = 'embedded') => set((state) => {
+  openProject: (projectName, dataset, graphs, activeGraphId, projectPath, projectMode = 'embedded', figureLayout) => set((state) => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]
-    const opened = { projectName, projectPath, projectMode, dataset: structuredClone(dataset), spec: structuredClone(active.spec), filters: structuredClone(active.filters), activeGraphId: active.id, activeGraphName: active.name, otherGraphs: structuredClone(graphs.filter((graph) => graph.id !== active.id)), selectedColumn: undefined, selectedRowIds: [], compatibilityMessage: undefined, compatibilityMessageTransient: false }
+    const opened = { projectName, projectPath, projectMode, dataset: structuredClone(dataset), spec: structuredClone(active.spec), filters: structuredClone(active.filters), activeGraphId: active.id, activeGraphName: active.name, otherGraphs: structuredClone(graphs.filter((graph) => graph.id !== active.id)), figureLayout: figureLayout ? structuredClone(figureLayout) : undefined, selectedColumn: undefined, selectedRowIds: [], compatibilityMessage: undefined, compatibilityMessageTransient: false }
     return withHistory(state, { ...opened, savedProjectFingerprint: projectFingerprint(opened) })
   }),
   setProjectPath: (projectPath) => set({ projectPath }),
@@ -235,13 +238,14 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     if (!state.otherGraphs.length) return state
     if (id === state.activeGraphId) {
       const [next, ...remaining] = state.otherGraphs
-      return withHistory(state, { activeGraphId: next.id, activeGraphName: next.name, spec: structuredClone(next.spec), filters: structuredClone(next.filters), otherGraphs: remaining, selectedRowIds: [] })
+      return withHistory(state, { activeGraphId: next.id, activeGraphName: next.name, spec: structuredClone(next.spec), filters: structuredClone(next.filters), otherGraphs: remaining, figureLayout: state.figureLayout && { ...state.figureLayout, graphIds: state.figureLayout.graphIds.filter((graphId) => graphId !== id) }, selectedRowIds: [] })
     }
     if (!state.otherGraphs.some((graph) => graph.id === id)) return state
-    return withHistory(state, { otherGraphs: state.otherGraphs.filter((graph) => graph.id !== id) })
+    return withHistory(state, { otherGraphs: state.otherGraphs.filter((graph) => graph.id !== id), figureLayout: state.figureLayout && { ...state.figureLayout, graphIds: state.figureLayout.graphIds.filter((graphId) => graphId !== id) } })
   }),
   renameGraph: (name) => set((state) => name.trim() ? withHistory(state, { activeGraphName: name.trim() }) : state),
   renameProject: (name) => set((state) => name.trim() ? withHistory(state, { projectName: name.trim() }) : state),
+  setFigureLayout: (figureLayout) => set((state) => withHistory(state, { figureLayout: figureLayout ? structuredClone(figureLayout) : undefined })),
   updateColumn: (columnId, patch) => set((state) => {
     const previousColumn = state.dataset.columns.find((column) => column.id === columnId)
     if (!previousColumn) return state
@@ -304,6 +308,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     activeGraphId: 'graph-1',
     activeGraphName: initialSpec.title,
     otherGraphs: [],
+    figureLayout: undefined,
     filters: [],
     selectedColumn: undefined,
     selectedRowIds: [],
@@ -320,6 +325,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     activeGraphId: 'graph-1',
     activeGraphName: initialSpec.title,
     otherGraphs: [],
+    figureLayout: undefined,
     past: [],
     future: [],
     filters: [],

@@ -45,7 +45,7 @@ export const sameAssignments = (left: GraphSpec, right: GraphSpec) =>
 
 export interface ElementSuggestion { element: GraphElement; reason: string }
 
-export const elementLabel = (element: GraphElement) => element === 'summary' ? 'Mean line' : element === 'bar' ? 'Bars' : element === 'box' ? 'Box plot' : element === 'smooth' ? 'Smooth trend' : element === 'paired' ? 'Paired plot' : element[0].toUpperCase() + element.slice(1)
+export const elementLabel = (element: GraphElement) => element === 'summary' ? 'Mean line' : element === 'bar' ? 'Bars' : element === 'box' ? 'Box plot' : element === 'smooth' ? 'Smooth trend' : element === 'paired' ? 'Paired plot' : element === 'nonlinear' ? 'Curve fit' : element[0].toUpperCase() + element.slice(1)
 
 export const suggestElement = (x: DataColumn[], y: DataColumn[], rows: DataRow[] = []): ElementSuggestion => {
   if (!x.length || !y.length) return { element: 'points', reason: 'Assign both X and Y before choosing a specialized chart.' }

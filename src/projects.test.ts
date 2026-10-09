@@ -79,6 +79,13 @@ describe('project files', () => {
     expect(() => parseProject(projectJson(makeProject('Paired study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')))).toThrow('missing column')
   })
 
+  it('preserves a figure layout and rejects missing graph references', () => {
+    const layout = { title: 'Results figure', graphIds: ['one'], columns: 1 as const, width: 1200, height: 800 }
+    const project = makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', layout)
+    expect(parseProject(projectJson(project)).figureLayout).toEqual(layout)
+    expect(() => makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', { ...layout, graphIds: ['missing'] })).toThrow('figure layout')
+  })
+
   it('remembers skipped import rows in linked projects', () => {
     const dataset = { ...sampleDataset, source: { fileName: 'results.csv', skipRows: 2 } }
     const linked = parseProject(projectJson(makeProject('Linked', dataset, [graph()], 'one', 'linked')))

@@ -9,6 +9,7 @@ Graph Builder makes graphs from a table of measurements. It runs as a Windows ap
 - [Inspect and edit the data table](#inspect-and-edit-the-data-table)
 - [Variables and graph roles](#variables-and-graph-roles)
 - [Layers and statistical summaries](#layers-and-statistical-summaries)
+- [Compare two groups](#compare-two-groups)
 - [Filters and linked selection](#filters-and-linked-selection)
 - [Graph layout and appearance](#graph-layout-and-appearance)
 - [Projects templates and exports](#projects-templates-and-exports)
@@ -75,6 +76,7 @@ Each layer is one visual form drawn from the assigned variables. Use the **Add l
 | Area | Values filled below a line | Compatible series may be stacked |
 | Mean line | A summary at each X value | Summary measure, error bars, observations |
 | Fit | A fitted straight line | Equation, sample size, R², fixed intercept |
+| Curve fit | A nonlinear dose–response or exponential decay curve | Model, parameter estimates, residuals |
 | Smooth trend | A centered moving average | Odd-numbered window size |
 
 For **Bars** or **Mean line**, choose **Raw observations** when each row is a measurement. Available summaries include mean, count, sum, median, minimum, maximum, quantile, sample standard deviation (SD), and standard error (SE). A quantile is a requested percentile. Frequency weights count repeated observations. Raw SD uses `n − 1`; SE is SD divided by the square root of `n`. Confidence intervals use a two-sided Student's t calculation around a mean. A group with only one observation has no calculated uncertainty; the app shows a warning. Error bars apply to means, and stacked bars cannot have error bars.
@@ -84,6 +86,14 @@ Choose **Precomputed means and errors** when each row already supplies a mean fo
 **Fit** can display an equation, sample size, and R², a measure of how closely a straight line follows the points. A fixed y-intercept forces the line through the entered y value. **Smooth trend** first averages repeated numeric X values, then uses the selected odd-sized window of neighboring distinct X positions. At plot edges, it uses the available neighbors. A box plot can use Y alone; clear X to show all Y observations in one box.
 
 For a **Paired plot**, assign a categorical X column (such as Before/After), a numeric Y measurement, and choose a **Subject ID** in **Properties → Layers**. Each row is one subject's measurement at one X category. The app connects only rows with the same Subject ID within the same visible series and panel. Subjects with one valid measurement show a single point. Rows without a Subject ID are omitted; a subject with repeated measurements at the same X category is omitted with a warning instead of averaging those measurements. Filters and excluded rows affect the plot. This plot does not run a statistical test.
+
+For **Curve fit**, assign numeric X and Y columns and select **Curve fit** as the layer. In **Properties → Layers**, choose a four-parameter dose–response curve or exponential decay. Dose–response requires positive X values and at least six valid observations at four X values; exponential decay requires at least five valid observations at three X values. Add a **Points** layer if you want to see the observations alongside the fitted curve. The results show parameter estimates, approximate 95% confidence intervals, R² (how closely the curve follows the data), and a residual plot. Residuals are observed values minus fitted values; a pattern in them can signal a poor model choice. The fitted curve updates when you filter or exclude rows. A separate curve is fitted for each visible series and panel. Confidence intervals may be unavailable when the parameters cannot be estimated precisely.
+
+## Compare two groups
+
+Assign a categorical X column and a numeric Y column. Open **Properties → Compare groups**, choose **Add comparison**, then choose categories A and B. **Independent (Welch t test)** compares measurements from separate groups, including groups with different spreads. **Paired t test** matches observations by a **Subject ID** column; each subject needs one valid measurement in each selected category. Repeated measurements for the same subject and category are omitted rather than averaged.
+
+The result shows the mean difference **B minus A**, a confidence interval (a range of plausible differences), a two-sided p value, and the sample sizes. It also appears on the graph and its image export. The calculation uses only visible, included rows and updates with filters. With grouping or multiple panels, the comparison describes all visible rows for the first shared X and Y variables. Choose the comparison before interpreting the result; this tool compares one pair of categories at a time and does not adjust p values for multiple tests.
 
 ## Filters and linked selection
 
@@ -112,6 +122,8 @@ For a target value or acceptable interval, use **Properties → Graph → Refere
 ## Projects templates and exports
 
 Open **Projects & export**. One project contains one dataset and one or more named graphs. Choose **New graph**, **Duplicate open graph**, or another graph name to switch graphs; **Rename** changes a graph name, and **Delete** asks for confirmation. The final graph cannot be deleted. Undo can restore a deletion while the project remains open.
+
+Under **Figure layout**, choose **Open layout** to arrange up to four saved graphs on one page. Select the graphs, use ↑ to change their order, choose one or two columns, and set the page title and size. **Download figure PNG** (or **Save figure PNG** in Windows) exports the combined page with each graph's legend. The layout arrangement is saved in the project file; graph edits appear in the page preview when you reopen it. Removing a graph from the project also removes it from the layout.
 
 The Project file section shows whether the current project is embedded or linked, and **Data in saved file** starts with that mode selected. Give the project a name and choose a save mode. Press Enter in **Project name** to start saving, or choose **Save project…**. In the Windows app, a Save project dialog lets you confirm **Embedded** or **Linked** before opening the Windows file-location picker.
 

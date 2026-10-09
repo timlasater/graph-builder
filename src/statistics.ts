@@ -32,7 +32,7 @@ const regularizedBeta = (x: number, a: number, b: number) => {
   return x < (a + 1) / (a + b + 2) ? factor * betaFraction(x, a, b) / a : 1 - factor * betaFraction(1 - x, b, a) / b
 }
 
-const studentTCdf = (value: number, degreesOfFreedom: number) => {
+export const studentTCdf = (value: number, degreesOfFreedom: number) => {
   const beta = regularizedBeta(degreesOfFreedom / (degreesOfFreedom + value * value), degreesOfFreedom / 2, 0.5)
   return value >= 0 ? 1 - beta / 2 : beta / 2
 }

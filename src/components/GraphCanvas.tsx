@@ -4,9 +4,11 @@ import { canUseDualYAxis } from '../dualYAxis'
 import { axisConfiguration, categoryTickLayout, orderedCategories, pairedYColor, palettes, themes } from '../appearance'
 import { histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, smoothedTrend, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
 import { statisticalSeries } from '../statisticalSeries'
+import { compareCategories } from '../comparisons'
 import { pairedSeries } from '../pairedSeries'
+import { nonlinearFit } from '../nonlinearFit'
 import { rowMatchesFilters, useBuilderStore } from '../store'
-import type { DataColumn, DataRow, GraphLayer } from '../types'
+import type { DataColumn, DataRow, GraphLayer, GraphSpec, RowFilter } from '../types'
 import { PlotlyChart, type PlotTitleTarget } from './PlotlyChart'
 
 const symbols = ['circle', 'square', 'diamond', 'cross', 'triangle-up', 'star', 'hexagon', 'triangle-down']
@@ -38,8 +40,10 @@ function LegendEntry({ item, index, items, hidden, highlighted, dimmed, onToggle
   </div>
 }
 
-export function GraphCanvas() {
-  const { dataset, spec, filters, selectedRowIds, updateSpec, setSelectedRowIds, clearRowSelection, setRowsExcluded } = useBuilderStore()
+export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters: RowFilter[] } } = {}) {
+  const { dataset, spec: currentSpec, filters: currentFilters, selectedRowIds, updateSpec, setSelectedRowIds, clearRowSelection, setRowsExcluded } = useBuilderStore()
+  const spec = preview?.spec ?? currentSpec
+  const filters = preview?.filters ?? currentFilters
   const chartRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const cancelTitleBlur = useRef(false)
@@ -129,6 +133,11 @@ export function GraphCanvas() {
           marker: { color, size: layer.markerSize ?? spec.markerSize, symbol: layer.markerShape ?? spec.markerShape ?? 'circle', opacity: spec.markerOpacity ?? 0.82 },
           hovertemplate: `<b>${legendKey}</b><br>${idColumn.name}: %{text}<br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>`,
         }))
+      }
+      if (layer.element === 'nonlinear') {
+        const outcome = nonlinearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), layer.nonlinearModel ?? 'doseResponse')
+        if (outcome.error) statisticsWarnings.add(outcome.error)
+        return { ...base, type: 'scatter', mode: 'lines', x: outcome.fit?.curve.x ?? [], y: outcome.fit?.curve.y ?? [], hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x:.4g}<br>Fitted ${yColumn.name}: %{y:.4g}<extra></extra>` }
       }
       if (layer.element === 'fit') {
         const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, layer.fixedIntercept)
@@ -256,6 +265,15 @@ export function GraphCanvas() {
   })
   if (!axisSubplots && !wrapColumn && groupXColumn) groupXValues.forEach((value, column) => annotations.push({ text: `<b>${value}</b>`, x: column * (cellWidth + horizontalGap) + cellWidth / 2, y: 1.035, xref: 'paper', yref: 'paper', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
   if (!axisSubplots && !wrapColumn && groupYColumn) groupYValues.forEach((value, row) => annotations.push({ text: `<b>${value}</b>`, x: -0.075, y: 1 - row * (cellHeight + verticalGap) - cellHeight / 2, xref: 'paper', yref: 'paper', xanchor: 'right', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
+  if (spec.comparison && sharedX[0] && sharedY[0]) {
+    const comparison = compareCategories(includedRows, sharedX[0], sharedY[0], spec.comparison, columnFor(spec.comparison.pairId))
+    if (comparison.result) {
+      const result = comparison.result
+      const fmt = (value: number) => Number(value.toPrecision(3))
+      const p = result.pValue < 0.0001 ? '&lt; 0.0001' : String(fmt(result.pValue))
+      annotations.push({ text: `<b>${spec.comparison.categoryB} − ${spec.comparison.categoryA}: ${fmt(result.difference)}</b><br>${Math.round(spec.comparison.confidenceLevel * 100)}% CI ${fmt(result.lower)} to ${fmt(result.upper)} · p ${p}`, x: 0.99, y: 0.98, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'top', showarrow: false, align: 'right', bgcolor: '#ffffffdd', bordercolor: '#bdd5d7', borderpad: 4, font: { size: 10, color: theme.ink } })
+    }
+  }
   const stackedBars = spec.yDisplay !== 'collate' && spec.layers.some((layer) => layer.element === 'bar' && layer.stack && stackCompatibility(includedRows, layer.x ?? spec.x[0], layer.color ?? spec.color ?? spec.overlay).compatible)
   const beginTitleEdit = ({ kind, axisNumber, annotationIndex, text, rect }: PlotTitleTarget) => {
     const panelId = kind === 'annotation' ? panelTitleAnnotations.get(annotationIndex ?? -1) : axisNumber ? spec.panels?.[axisNumber - 1]?.id : undefined
@@ -291,10 +309,10 @@ export function GraphCanvas() {
   }
   const statisticsWarningText = [...statisticsWarnings].join(' ')
   const statisticsWarningDismissed = dismissedWarningsFor?.dataset === dataset && dismissedWarningsFor.spec === spec && dismissedWarningsFor.filters === filters && dismissedWarningsFor.message === statisticsWarningText
-  return <div ref={chartRef} className={`chart-with-legend legend-${spec.legendPlacement ?? 'bottom'} theme-${spec.theme ?? 'light'}`} style={{ background: theme.paper }}>
+  return <div ref={chartRef} className={`chart-with-legend legend-${spec.legendPlacement ?? 'bottom'} theme-${spec.theme ?? 'light'}${preview ? ' figure-preview' : ''}`} style={{ background: theme.paper }}>
     {axisError && <div className="axis-error" role="alert">{axisError}</div>}
     {statisticsWarnings.size > 0 && !statisticsWarningDismissed && <div className="statistics-warnings" role="status"><span>{statisticsWarningText}</span><button aria-label="Dismiss graph warning" onClick={() => setDismissedWarningsFor({ dataset, spec, filters, message: statisticsWarningText })}>×</button></div>}
-    {!axisError && <PlotlyChart data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: dualY ? 88 : 24, t: groupXColumn && !spec.panels?.length ? 126 : 100, b: hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
+    {!axisError && <PlotlyChart registerExport={!preview} data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: dualY ? 88 : 24, t: groupXColumn && !spec.panels?.length ? 126 : 100, b: hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
     {editingTitle && <input ref={titleInputRef} className="chart-title-editor" aria-label={editingTitle.kind === 'subtitle' ? 'Edit graph subtitle' : `Edit ${editingTitle.kind === 'panel' ? 'subplot' : editingTitle.kind === 'graph' ? 'graph' : editingTitle.kind === 'xAxis' ? 'X axis' : editingTitle.kind === 'y2Axis' ? 'right Y axis' : 'Y axis'} title`} style={{ left: editingTitle.left, top: editingTitle.top }} value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} onBlur={commitTitle} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelTitleBlur.current = true; setEditingTitle(undefined) } }} />}
     {selectedRowIds.length > 0 && <div className="graph-selection-bar"><strong>{selectedRowIds.length} source row{selectedRowIds.length === 1 ? '' : 's'} selected</strong><span>{selectedRowIds.slice(0, 4).join(', ')}{selectedRowIds.length > 4 ? '…' : ''}</span><button onClick={() => setRowsExcluded(selectedRowIds, true)}>Exclude</button><button onClick={() => setRowsExcluded(selectedRowIds, false)}>Include</button><button onClick={clearRowSelection}>Clear</button></div>}
     <div className="interactive-legend" style={{ background: theme.paper, color: theme.ink }} role="list" aria-label="Graph series; drag to reorder"><span className="legend-help">Drag to reorder · Double-click a name to rename</span>{orderedLegendItems.map((item, index) => <LegendEntry key={item.id} item={item} index={index} items={orderedLegendItems} hidden={spec.hiddenSeries?.includes(item.id) ?? false} highlighted={spec.highlightedSeries === item.id} dimmed={Boolean(spec.highlightedSeries && spec.highlightedSeries !== item.id)} onToggle={() => toggleSeries(item.id)} onReorder={reorderLegend} onRecolor={(color) => recolorLegend(item.id, color)} onHighlight={() => updateSpec({ highlightedSeries: spec.highlightedSeries === item.id ? undefined : item.id })} onRename={(name) => renameSeries(item.id, name)} />)}</div>

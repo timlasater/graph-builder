@@ -22,7 +22,10 @@ const exportLayout = (figure: Figure, width: number, height: number) => {
 
 export const renderGraphImage = async (format: ImageFormat, width: number, height: number, scale = 1): Promise<string> => {
   if (!currentFigure) throw new Error('Build a graph before exporting it.')
-  const figure = currentFigure
+  return renderFigureDataImage(currentFigure, format, width, height, scale)
+}
+
+export const renderFigureDataImage = async (figure: Figure, format: ImageFormat, width: number, height: number, scale = 1): Promise<string> => {
   const container = document.createElement('div')
   container.style.position = 'fixed'
   container.style.left = '-10000px'
