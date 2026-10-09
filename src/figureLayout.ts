@@ -25,7 +25,7 @@ export async function renderFigureLayout(layout: FigureLayout, previewRoot: HTML
   const rows = Math.ceil(panels.length / columns)
   const panelWidth = Math.floor((layout.width - 48 - gap * (columns - 1)) / columns)
   const panelHeight = Math.floor((layout.height - top - 24 - gap * (rows - 1)) / rows)
-  if (panelWidth < 220 || panelHeight < 180) throw new Error('Increase the page size or reduce the number of graphs.')
+  if (panelWidth < 220 || panelHeight < 280) throw new Error('Increase the page size or reduce the number of graphs so each plot has room for its axes.')
   for (let index = 0; index < panels.length; index++) {
     const plot = panels[index].querySelector<PlotElement>('.plotly-chart')
     if (!plot?.data || !plot.layout) throw new Error('A graph preview is still loading. Try exporting again in a moment.')
@@ -33,7 +33,7 @@ export async function renderFigureLayout(layout: FigureLayout, previewRoot: HTML
     const y = top + Math.floor(index / columns) * (panelHeight + gap)
     context.fillStyle = '#294b52'; context.font = '600 15px Segoe UI, Arial, sans-serif'
     context.fillText(graphNames[index], x + 4, y + 18, panelWidth - 8)
-    const url = await renderFigureDataImage({ data: plot.data, layout: plot.layout, legendPlacement: (panels[index].dataset.legendPlacement as LegendPlacement) ?? 'bottom' }, 'png', panelWidth, panelHeight - 27)
+    const url = await renderFigureDataImage({ data: plot.data, layout: plot.layout, legendPlacement: (panels[index].dataset.legendPlacement as LegendPlacement) ?? 'bottom' }, 'png', panelWidth, panelHeight - 27, 1, true)
     context.drawImage(await loadImage(url), x, y + 27, panelWidth, panelHeight - 27)
   }
   return canvas.toDataURL('image/png')

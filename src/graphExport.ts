@@ -8,7 +8,7 @@ let currentFigure: Figure | undefined
 export const setExportFigure = (figure?: Figure) => { currentFigure = figure }
 export const hasExportFigure = () => Boolean(currentFigure)
 
-const exportLayout = (figure: Figure, width: number, height: number) => {
+const exportLayout = (figure: Figure, width: number, height: number, compact: boolean) => {
   const placement = figure.legendPlacement
   const originalMargin = figure.layout.margin as Record<string, number> | undefined
   return {
@@ -16,7 +16,9 @@ const exportLayout = (figure: Figure, width: number, height: number) => {
     width, height, autosize: false,
     showlegend: placement !== 'hidden',
     legend: placement === 'right' ? { orientation: 'v', x: 1.02, y: 1, xanchor: 'left', yanchor: 'top' } : placement === 'top' ? { orientation: 'h', x: 0, y: 1.12, xanchor: 'left', yanchor: 'bottom' } : { orientation: 'h', x: 0, y: -0.18, xanchor: 'left', yanchor: 'top' },
-    margin: { ...originalMargin, b: placement === 'bottom' ? Math.max(originalMargin?.b ?? 54, 130) : originalMargin?.b ?? 54, r: placement === 'right' ? Math.max(originalMargin?.r ?? 24, 160) : originalMargin?.r ?? 24, t: placement === 'top' ? Math.max(originalMargin?.t ?? 100, 145) : originalMargin?.t ?? 100 },
+    margin: compact
+      ? { ...originalMargin, b: placement === 'bottom' ? 78 : originalMargin?.b ?? 44, r: placement === 'right' ? 120 : originalMargin?.r ?? 24, t: placement === 'top' ? 86 : originalMargin?.t ?? 58 }
+      : { ...originalMargin, b: placement === 'bottom' ? Math.max(originalMargin?.b ?? 54, 130) : originalMargin?.b ?? 54, r: placement === 'right' ? Math.max(originalMargin?.r ?? 24, 160) : originalMargin?.r ?? 24, t: placement === 'top' ? Math.max(originalMargin?.t ?? 100, 145) : originalMargin?.t ?? 100 },
   }
 }
 
@@ -25,7 +27,7 @@ export const renderGraphImage = async (format: ImageFormat, width: number, heigh
   return renderFigureDataImage(currentFigure, format, width, height, scale)
 }
 
-export const renderFigureDataImage = async (figure: Figure, format: ImageFormat, width: number, height: number, scale = 1): Promise<string> => {
+export const renderFigureDataImage = async (figure: Figure, format: ImageFormat, width: number, height: number, scale = 1, compact = false): Promise<string> => {
   const container = document.createElement('div')
   container.style.position = 'fixed'
   container.style.left = '-10000px'
@@ -34,7 +36,7 @@ export const renderFigureDataImage = async (figure: Figure, format: ImageFormat,
   container.style.height = `${height}px`
   document.body.appendChild(container)
   try {
-    await Plotly.newPlot(container, figure.data, exportLayout(figure, width, height), { staticPlot: true, displayModeBar: false })
+    await Plotly.newPlot(container, figure.data, exportLayout(figure, width, height, compact), { staticPlot: true, displayModeBar: false })
     return await Plotly.toImage(container, { format, width, height, scale: format === 'svg' ? 1 : scale })
   } finally {
     Plotly.purge(container)

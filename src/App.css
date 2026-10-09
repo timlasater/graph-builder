@@ -240,7 +240,7 @@
 .figure-layout-choices label { display: flex; align-items: center; gap: 5px; flex: 1; font-size: 11px; }
 .figure-layout-choices button { border: 1px solid #cbd9db; border-radius: 4px; background: white; cursor: pointer; }
 .figure-layout-preview { display: grid; gap: 8px; min-height: 0; margin: 7px 0; }
-.figure-layout-panel { height: 240px; min-width: 0; overflow: hidden; border: 1px solid #d6e0e2; border-radius: 4px; background: white; }
+.figure-layout-panel { height: 300px; min-width: 0; overflow: hidden; border: 1px solid #d6e0e2; border-radius: 4px; background: white; }
 .figure-layout-panel > strong { display: block; padding: 3px 5px; font-size: 10px; color: #294b52; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .figure-layout-panel .chart-with-legend { height: calc(100% - 21px); }
 .project-decision-backdrop { z-index: 140; background: #17272fc9; }
