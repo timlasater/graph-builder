@@ -48,10 +48,17 @@ test('figure layout combines saved graphs in a PNG and project file', async ({ p
   await page.getByRole('button', { name: 'Open layout' }).click()
   const choices = page.locator('.figure-layout-choices input[type="checkbox"]')
   await expect(choices).toHaveCount(4)
-  for (let index = 0; index < 3; index++) await page.locator('.figure-layout-choices input[type="checkbox"]:not(:checked)').first().check()
+  for (let index = 0; index < 3; index++) {
+    await page.locator('.figure-layout-choices input[type="checkbox"]:not(:checked)').first().click()
+    await expect(page.locator('.figure-layout-choices input[type="checkbox"]:checked')).toHaveCount(index + 2)
+  }
   await expect(page.locator('.figure-layout-panel .plotly-chart')).toHaveCount(4)
   await expect.poll(() => page.locator('.figure-layout-panel .plotly-chart').evaluateAll((nodes) => nodes.every((node) => Boolean((node as HTMLElement & { data?: unknown[] }).data?.length)))).toBe(true)
   await expect.poll(() => page.locator('.figure-layout-panel .plotly-chart').evaluateAll((nodes) => nodes.every((node) => ((node as HTMLElement & { _fullLayout?: { _size?: { h?: number } } })._fullLayout?._size?.h ?? 0) > 120))).toBe(true)
+  const originalOrder = await page.locator('.figure-layout-panel').evaluateAll((panels) => panels.map((panel) => (panel as HTMLElement).dataset.graphId))
+  const handles = page.locator('.figure-layout-drag-handle')
+  await handles.nth(3).dragTo(handles.first())
+  await expect(page.locator('.figure-layout-panel').first()).toHaveAttribute('data-graph-id', originalOrder[3]!)
   const pngDownload = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download figure PNG' }).click()
   const png = await pngDownload
@@ -60,4 +67,5 @@ test('figure layout combines saved graphs in a PNG and project file', async ({ p
   await page.getByRole('button', { name: 'Download project' }).click()
   const saved = JSON.parse(await readFile(await (await projectDownload).path(), 'utf8'))
   expect(saved.figureLayout.graphIds).toHaveLength(4)
+  expect(saved.figureLayout.graphIds[0]).toBe(originalOrder[3])
 })

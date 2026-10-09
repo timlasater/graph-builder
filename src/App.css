@@ -237,8 +237,13 @@
 .project-dialog > .project-message { margin: 10px 0 0; }
 .figure-layout-choices { display: grid; gap: 4px; margin: 7px 0; }
 .figure-layout-choices > div { display: flex; align-items: center; gap: 5px; }
+.figure-layout-choice { min-height: 28px; padding: 2px 4px; border: 1px solid transparent; border-radius: 4px; background: white; }
+.figure-layout-choice.dragging { z-index: 1; border-color: #84b5b8; box-shadow: 0 3px 10px #263f4833; }
 .figure-layout-choices label { display: flex; align-items: center; gap: 5px; flex: 1; font-size: 11px; }
 .figure-layout-choices button { border: 1px solid #cbd9db; border-radius: 4px; background: white; cursor: pointer; }
+.figure-layout-choices .figure-layout-drag-handle { width: 24px; height: 24px; padding: 0; border: 0; color: #526a73; cursor: grab; touch-action: none; font-size: 14px; line-height: 1; }
+.figure-layout-choices .figure-layout-drag-handle:active { cursor: grabbing; }
+.figure-layout-choices .figure-layout-drag-handle:focus-visible { outline: 2px solid #0f6c75; outline-offset: 2px; }
 .figure-layout-preview { display: grid; gap: 8px; min-height: 0; margin: 7px 0; }
 .figure-layout-panel { height: 300px; min-width: 0; overflow: hidden; border: 1px solid #d6e0e2; border-radius: 4px; background: white; }
 .figure-layout-panel > strong { display: block; padding: 3px 5px; font-size: 10px; color: #294b52; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
