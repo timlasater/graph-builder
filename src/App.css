@@ -248,6 +248,9 @@
 .figure-layout-panel { height: 300px; min-width: 0; overflow: hidden; border: 1px solid #d6e0e2; border-radius: 4px; background: white; }
 .figure-layout-panel > strong { display: block; padding: 3px 5px; font-size: 10px; color: #294b52; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .figure-layout-panel .chart-with-legend { height: calc(100% - 21px); }
+.figure-layout-panel.without-names .chart-with-legend { height: 100%; }
+.project-section .figure-layout-name-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 10px; }
+.project-section .figure-layout-name-toggle input[type="checkbox"] { width: 15px; height: 15px; min-width: 15px; padding: 0; margin: 0; accent-color: #0f6c75; }
 .project-decision-backdrop { z-index: 140; background: #17272fc9; }
 .project-decision { width: min(500px, calc(100vw - 32px)); padding: 24px; border: 2px solid #6eafb2; border-radius: 10px; background: #fff; color: var(--ink); box-shadow: 0 24px 75px #111d27a8; }
 .project-decision h2 { margin: 8px 0 10px; font-size: 20px; line-height: 1.3; }

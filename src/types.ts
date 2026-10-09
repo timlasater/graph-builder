@@ -137,6 +137,8 @@ export interface FigureLayout {
   columns: 1 | 2
   width: number
   height: number
+  includeGraphNames?: boolean
+  pngScale?: 1 | 2 | 3
 }
 
 export interface GraphComparison {

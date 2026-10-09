@@ -80,10 +80,11 @@ describe('project files', () => {
   })
 
   it('preserves a figure layout and rejects missing graph references', () => {
-    const layout = { title: 'Results figure', graphIds: ['one'], columns: 1 as const, width: 1200, height: 800 }
+    const layout = { title: 'Results figure', graphIds: ['one'], columns: 1 as const, width: 1200, height: 800, includeGraphNames: false, pngScale: 2 as const }
     const project = makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', layout)
     expect(parseProject(projectJson(project)).figureLayout).toEqual(layout)
     expect(() => makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', { ...layout, graphIds: ['missing'] })).toThrow('figure layout')
+    expect(() => makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', { ...layout, pngScale: 4 as 1 })).toThrow('figure layout')
   })
 
   it('remembers skipped import rows in linked projects', () => {
