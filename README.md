@@ -93,3 +93,5 @@ Legend corrections: In Windows desktop, drag a legend name onto another name to 
 On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. Project files and exports are unchanged.
 
 In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.
+
+The desktop **Project saved** banner fades and disappears after four seconds. Save errors stay visible until dismissed. This only changes the notification; saving and exports work as before.

@@ -100,6 +100,12 @@ function App() {
   const nextOpenRequestId = useRef(0)
   const openPickerInProgress = useRef(false)
   const [projectSaveStatus, setProjectSaveStatus] = useState<string>()
+  const projectSaveSucceeded = projectSaveStatus?.startsWith('Project saved:') ?? false
+  useEffect(() => {
+    if (!projectSaveSucceeded) return
+    const timer = setTimeout(() => setProjectSaveStatus(undefined), 4000)
+    return () => clearTimeout(timer)
+  }, [projectSaveStatus, projectSaveSucceeded])
   const projectSaveInProgress = useRef(false)
   const [savingPng, setSavingPng] = useState(false)
   const [pngError, setPngError] = useState<string>()
@@ -536,7 +542,7 @@ function App() {
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className={`compatibility-message${compatibilityMessageTransient ? ' transient' : ''}`} role="alert"><span>{compatibilityMessage}</span><button aria-label="Dismiss message" onClick={clearCompatibilityMessage}>×</button></div>}
-      {projectSaveStatus && <div className="compatibility-message" role="status"><span>{projectSaveStatus}</span><button aria-label="Dismiss save message" onClick={() => setProjectSaveStatus(undefined)}>×</button></div>}
+      {projectSaveStatus && <div className={`compatibility-message${projectSaveSucceeded ? ' project-save-success' : ''}`} role="status"><span>{projectSaveStatus}</span><button aria-label="Dismiss save message" onClick={() => setProjectSaveStatus(undefined)}>×</button></div>}
       {pngError && <div className="compatibility-message" role="alert"><span>{pngError}</span><button aria-label="Dismiss PNG error" onClick={() => setPngError(undefined)}>×</button></div>}
       {linkError && <div className="compatibility-message" role="alert"><span>{linkError}</span><button aria-label="Dismiss link error" onClick={() => setLinkError(undefined)}>×</button></div>}
       {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size requires numeric data · Frequency requires whole-number counts</span></div>}

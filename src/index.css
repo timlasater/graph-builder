@@ -47,3 +47,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .graph-selection-bar { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; padding: 4px 12px; border-top: 1px solid #dce5e8; background: #edf7f7; color: #35515b; font-size: 10px; }
 .graph-selection-bar span { max-width: 240px; overflow: hidden; color: #708088; text-overflow: ellipsis; white-space: nowrap; }
 .graph-selection-bar button { padding: 4px 8px; border: 1px solid #b7c9ce; border-radius: 4px; background: white; color: #315d65; cursor: pointer; font-size: 10px; }
+
+.project-save-success { animation: project-save-fade 0.5s ease 3.5s forwards; }
+@keyframes project-save-fade { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .project-save-success { animation: none; } }
