@@ -252,6 +252,36 @@ describe('GraphCanvas panels', () => {
     expect(dataset.rows[0].values[x.id]).toBe('A')
   })
 
+  it.each([
+    { side: 'left', dropX: 10, expected: ['B', 'A', 'C'] },
+    { side: 'right', dropX: 590, expected: ['A', 'C', 'B'] },
+    { side: 'left blank space', dropX: 150, expected: ['B', 'A', 'C'] },
+    { side: 'right blank space', dropX: 450, expected: ['A', 'C', 'B'] },
+    { side: 'outside the legend', dropX: 650, expected: ['A', 'B', 'C'] },
+  ])('moves a desktop label to the $side edge without an item under the pointer', ({ dropX, expected }) => {
+    desktop.enabled = true
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 2], ['C', 3]], 'Boxes')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [{ id: 'box', name: 'Box', element: 'box' }] } })
+    render(<GraphCanvas />)
+    const source = screen.getByRole('button', { name: 'B' })
+    const legend = screen.getByRole('list', { name: 'Graph series; drag to reorder' })
+    vi.spyOn(legend, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 600, top: 0, bottom: 50 } as DOMRect)
+    legend.querySelectorAll('[data-legend-id]').forEach((entry, index) => {
+      vi.spyOn(entry, 'getBoundingClientRect').mockReturnValue({ left: 200 + index * 50, right: 250 + index * 50 } as DOMRect)
+    })
+    Object.defineProperty(source, 'setPointerCapture', { value: vi.fn(), configurable: true })
+    Object.defineProperty(document, 'elementFromPoint', { value: vi.fn(() => dropX > 600 ? null : legend), configurable: true })
+    vi.stubGlobal('PointerEvent', MouseEvent)
+    fireEvent.pointerDown(source, { button: 0, clientX: 275, clientY: 25 })
+    fireEvent.pointerMove(source, { clientX: dropX, clientY: 25 })
+    fireEvent.pointerUp(source, { clientX: dropX, clientY: 25 })
+    fireEvent.click(source)
+    expect(chart.props!.layout.xaxis).toMatchObject({ categoryarray: expected })
+    expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
+    vi.unstubAllGlobals()
+  })
+
   it('reorders desktop box categories with pointer dragging without hiding a series', () => {
     desktop.enabled = true
     const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 2]], 'Boxes')

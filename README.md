@@ -91,3 +91,5 @@ Open an issue with steps to reproduce, an expected result, and the observed resu
 Legend corrections: In Windows desktop, drag a legend name onto another name to reorder it; Left/Right Arrow also works when the name is focused. When X and Color use the same category column, renaming a legend item also changes its X-axis label. Renames affect display labels, not source data, and identical names keep separate groups. With an Overlay or a different X variable, renaming changes the series name only. Legend names and order are saved with the graph and included in exports.
 
 On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. Project files and exports are unchanged.
+
+In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.

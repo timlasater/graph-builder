@@ -53,7 +53,15 @@ function LegendEntry({ item, index, items, hidden, highlighted, dimmed, onToggle
       if (!drag?.moved) return
       suppressClick.current = true
       clearClick()
-      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-legend-id]')?.getAttribute('data-legend-id')
+      const legend = event.currentTarget.closest('.interactive-legend')
+      const bounds = legend?.getBoundingClientRect()
+      const entries = legend ? Array.from(legend.querySelectorAll<HTMLElement>('[data-legend-id]')) : []
+      const left = entries.length ? Math.min(...entries.map((entry) => entry.getBoundingClientRect().left)) : 0
+      const right = entries.length ? Math.max(...entries.map((entry) => entry.getBoundingClientRect().right)) : 0
+      const inside = bounds && event.clientY >= bounds.top && event.clientY <= bounds.bottom && event.clientX >= bounds.left && event.clientX <= bounds.right
+      const edgeTarget = inside && event.clientX <= Math.max(bounds.left + 32, left) ? items[0]?.id
+        : inside && event.clientX >= Math.min(bounds.right - 32, right) ? items.at(-1)?.id : undefined
+      const target = edgeTarget ?? document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-legend-id]')?.getAttribute('data-legend-id')
       if (target) onReorder(item.id, target)
     }} onPointerCancel={() => { pointerDrag.current = null }} aria-pressed={!hidden} title={`${hidden ? 'Show' : 'Hide'} ${item.label}; double-click to rename; drag to reorder`} onDragStart={(event) => { clearClick(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onKeyDown={(event) => { if (event.key === 'F2') { event.preventDefault(); skipBlur.current = false; setDraft(item.label); return }; const targetIndex = event.key === 'ArrowLeft' ? index - 1 : event.key === 'ArrowRight' ? index + 1 : index; if (targetIndex !== index && items[targetIndex]) { event.preventDefault(); onReorder(item.id, items[targetIndex].id) } }} onClick={(event) => { clearClick(); if (suppressClick.current) { suppressClick.current = false; return }; if (event.detail === 0) onToggle(); else if (event.detail === 1) clickTimer.current = setTimeout(onToggle, 350) }} onDoubleClick={(event) => { event.preventDefault(); clearClick(); skipBlur.current = false; setDraft(item.label) }}>{item.label}</button>}
   </div>
