@@ -1,16 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
+import { isDesktop } from '../desktopFiles'
 import { requiresYAssignment } from '../compatibility'
 import { canUseDualYAxis } from '../dualYAxis'
 import { axisConfiguration, categoryTickLayout, orderedCategories, pairedYColor, palettes, themes } from '../appearance'
 import { histogramBins, linearFit, moveOrderedValue, numericOrNaN, orderByPreference, smoothedTrend, sortedSeries, stableCategoryOrder, stackCompatibility } from '../plotTransforms'
 import { statisticalSeries } from '../statisticalSeries'
+import { compareCategories } from '../comparisons'
+import { pairedSeries } from '../pairedSeries'
+import { nonlinearFit } from '../nonlinearFit'
 import { rowMatchesFilters, useBuilderStore } from '../store'
-import type { DataColumn, DataRow, GraphLayer } from '../types'
+import type { DataColumn, DataRow, GraphLayer, GraphSpec, RowFilter } from '../types'
 import { PlotlyChart, type PlotTitleTarget } from './PlotlyChart'
 
 const symbols = ['circle', 'square', 'diamond', 'cross', 'triangle-up', 'star', 'hexagon', 'triangle-down']
 interface Facet { label?: string; row: number; column: number; rows: DataRow[]; x?: DataColumn; y?: DataColumn; custom?: boolean; axisSplit?: boolean }
-interface LegendItem { id: string; label: string; color: string; xColumnId: string; xCategory?: string }
+interface LegendItem { id: string; label: string; color: string; xColumnId: string; xCategory?: string; xCategoryLabel?: string }
 const uniqueValues = (rows: DataRow[], columnId?: string) => columnId ? [...new Set(rows.map((row) => String(row.values[columnId])))] : ['']
 const scaleMarkerSizes = (values: unknown[], fallback: number) => {
   const numeric = values.map(Number); if (!numeric.every(Number.isFinite)) return values.map(() => fallback)
@@ -27,18 +31,46 @@ function LegendEntry({ item, index, items, hidden, highlighted, dimmed, onToggle
   const [draft, setDraft] = useState<string | null>(null)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipBlur = useRef(false)
+  const pointerDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const suppressClick = useRef(false)
   const clearClick = () => { if (clickTimer.current) clearTimeout(clickTimer.current); clickTimer.current = null }
   useEffect(() => clearClick, [])
   const commitRename = () => { if (skipBlur.current) { skipBlur.current = false; return }; if (draft !== null && draft.trim() !== item.label) onRename(draft.trim()); setDraft(null) }
-  return <div className={`interactive-legend-item ${hidden ? 'hidden' : ''} ${dimmed ? 'deemphasized' : ''}`} role="listitem" onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onDrop={(event) => { event.preventDefault(); onReorder(event.dataTransfer.getData('text/plain'), item.id) }}>
+  return <div className={`interactive-legend-item ${hidden ? 'hidden' : ''} ${dimmed ? 'deemphasized' : ''}`} role="listitem" data-legend-id={item.id} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onDrop={(event) => { event.preventDefault(); onReorder(event.dataTransfer.getData('text/plain'), item.id) }}>
     <button className={`legend-highlight ${highlighted ? 'active' : ''}`} aria-label={`${highlighted ? 'Stop highlighting' : 'Highlight'} ${item.label}`} aria-pressed={highlighted} onClick={onHighlight}>●</button>
     <input className="legend-color" type="color" value={item.color} aria-label={`Change color for ${item.label}`} title={`Change color for ${item.label}`} onChange={(event) => onRecolor(event.currentTarget.value)} onBlur={(event) => onRecolor(event.currentTarget.value)} onClick={(event) => event.stopPropagation()} draggable={false} />
-    {draft !== null ? <input className="legend-rename" aria-label={`Rename ${item.label}`} title="Press Enter to save or Escape to cancel" value={draft} autoFocus onChange={(event) => setDraft(event.target.value)} onBlur={commitRename} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { skipBlur.current = true; setDraft(null) } }} /> : <button className="legend-label" draggable aria-pressed={!hidden} title={`${hidden ? 'Show' : 'Hide'} ${item.label}; double-click to rename; drag to reorder`} onDragStart={(event) => { clearClick(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onKeyDown={(event) => { if (event.key === 'F2') { event.preventDefault(); skipBlur.current = false; setDraft(item.label); return }; const targetIndex = event.key === 'ArrowLeft' ? index - 1 : event.key === 'ArrowRight' ? index + 1 : index; if (targetIndex !== index && items[targetIndex]) { event.preventDefault(); onReorder(item.id, items[targetIndex].id) } }} onClick={(event) => { clearClick(); if (event.detail === 0) onToggle(); else if (event.detail === 1) clickTimer.current = setTimeout(onToggle, 350) }} onDoubleClick={(event) => { event.preventDefault(); clearClick(); skipBlur.current = false; setDraft(item.label) }}>{item.label}</button>}
+    {draft !== null ? <input className="legend-rename" aria-label={`Rename ${item.label}`} title="Press Enter to save or Escape to cancel" value={draft} autoFocus onChange={(event) => setDraft(event.target.value)} onBlur={commitRename} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { skipBlur.current = true; setDraft(null) } }} /> : <button className="legend-label" draggable={!isDesktop()} onPointerDown={(event) => {
+      if (!isDesktop() || event.button !== 0) return
+      suppressClick.current = false
+      pointerDrag.current = { x: event.clientX, y: event.clientY, moved: false }
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }} onPointerMove={(event) => {
+      const drag = pointerDrag.current
+      if (drag && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 5) { drag.moved = true; clearClick() }
+    }} onPointerUp={(event) => {
+      const drag = pointerDrag.current
+      pointerDrag.current = null
+      if (!drag?.moved) return
+      suppressClick.current = true
+      clearClick()
+      const legend = event.currentTarget.closest('.interactive-legend')
+      const bounds = legend?.getBoundingClientRect()
+      const entries = legend ? Array.from(legend.querySelectorAll<HTMLElement>('[data-legend-id]')) : []
+      const left = entries.length ? Math.min(...entries.map((entry) => entry.getBoundingClientRect().left)) : 0
+      const right = entries.length ? Math.max(...entries.map((entry) => entry.getBoundingClientRect().right)) : 0
+      const inside = bounds && event.clientY >= bounds.top && event.clientY <= bounds.bottom && event.clientX >= bounds.left && event.clientX <= bounds.right
+      const edgeTarget = inside && event.clientX <= Math.max(bounds.left + 32, left) ? items[0]?.id
+        : inside && event.clientX >= Math.min(bounds.right - 32, right) ? items.at(-1)?.id : undefined
+      const target = edgeTarget ?? document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-legend-id]')?.getAttribute('data-legend-id')
+      if (target) onReorder(item.id, target)
+    }} onPointerCancel={() => { pointerDrag.current = null }} aria-pressed={!hidden} title={`${hidden ? 'Show' : 'Hide'} ${item.label}; double-click to rename; drag to reorder`} onDragStart={(event) => { clearClick(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onKeyDown={(event) => { if (event.key === 'F2') { event.preventDefault(); skipBlur.current = false; setDraft(item.label); return }; const targetIndex = event.key === 'ArrowLeft' ? index - 1 : event.key === 'ArrowRight' ? index + 1 : index; if (targetIndex !== index && items[targetIndex]) { event.preventDefault(); onReorder(item.id, items[targetIndex].id) } }} onClick={(event) => { clearClick(); if (suppressClick.current) { suppressClick.current = false; return }; if (event.detail === 0) onToggle(); else if (event.detail === 1) clickTimer.current = setTimeout(onToggle, 350) }} onDoubleClick={(event) => { event.preventDefault(); clearClick(); skipBlur.current = false; setDraft(item.label) }}>{item.label}</button>}
   </div>
 }
 
-export function GraphCanvas() {
-  const { dataset, spec, filters, selectedRowIds, updateSpec, setSelectedRowIds, clearRowSelection, setRowsExcluded } = useBuilderStore()
+export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters: RowFilter[] } } = {}) {
+  const { dataset, spec: currentSpec, filters: currentFilters, selectedRowIds, updateSpec, setSelectedRowIds, clearRowSelection, setRowsExcluded } = useBuilderStore()
+  const spec = preview?.spec ?? currentSpec
+  const filters = preview?.filters ?? currentFilters
   const chartRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const cancelTitleBlur = useRef(false)
@@ -89,13 +121,16 @@ export function GraphCanvas() {
   if (!facets.some((facet) => spec.layers.some((layer) => pairsFor(layer, facet).length))) return <div className="empty-canvas"><div className="empty-illustration">↗</div><h2>Build a graph</h2><p>{requiresYAssignment(spec.layers) ? 'Assign Y, and X for plots other than a Y-only box plot.' : 'Assign a numeric variable to X.'}</p></div>
   const legendEntries = new Set<string>()
   const legendItems = new Map<string, LegendItem>()
+  const sharedStyles = new Map<string, { color: string; name: string; customName?: string }>()
   const fitAnnotations: unknown[] = []
   const statisticsWarnings = new Set<string>()
   const fitAnnotationCounts = new Map<number, number>()
   const data = facets.flatMap((facet, facetIndex) => spec.layers.flatMap((layer, layerIndex) => pairsFor(layer, facet).flatMap(({ xColumn, yColumn }) => {
     const colorColumn = columnFor(layer.color ?? spec.color); const overlayColumn = columnFor(spec.overlay)
     const availableKeys = [...new Set(facet.rows.map((row) => [colorColumn && String(row.values[colorColumn.id]), overlayColumn && String(row.values[overlayColumn.id])].filter(Boolean).join(' · ') || 'All observations'))]
-    const legendIdFor = (key: string) => [layer.id, xColumn.id, yColumn.id, key].join('::')
+    const sharedLegend = spec.layers.length > 1 && spec.sharedLayerLegend !== false && Boolean(colorColumn || overlayColumn)
+    const legacyLegendIdFor = (key: string) => [layer.id, xColumn.id, yColumn.id, key].join('::')
+    const legendIdFor = (key: string) => sharedLegend ? `group::${JSON.stringify([colorColumn?.id ?? '', overlayColumn?.id ?? '', key])}` : legacyLegendIdFor(key)
     const keyByLegendId = new Map(availableKeys.map((key) => [legendIdFor(key), key]))
     const keys = orderByPreference([...keyByLegendId.keys()], spec.legendOrder).map((id) => keyByLegendId.get(id)!)
     return keys.flatMap<unknown>((key) => {
@@ -107,12 +142,52 @@ export function GraphCanvas() {
       const yIndex = sharedY.findIndex((column) => column.id === yColumn.id)
       const pairedY = sharedY.length === 2 && yIndex >= 0 && !layer.y && !splitY && !spec.panels?.length
       const paletteIndex = colorColumn ? colorIndex : collated ? sharedY.findIndex((column) => column.id === yColumn.id) : layerIndex + Math.max(0, availableKeys.indexOf(key))
-      const color = spec.seriesColors?.[legendId] ?? (pairedY ? pairedYColor(palette, yIndex, colorColumn ? colorIndex : Math.max(0, availableKeys.indexOf(key))) : (collated ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length])
+      const legacyId = legacyLegendIdFor(key)
+      const previousStyle = sharedStyles.get(legendId)
+      const sharedColorIndex = colorColumn ? colorIndex : uniqueValues(includedRows, overlayColumn?.id).indexOf(key)
+      const color = sharedLegend ? previousStyle?.color ?? spec.seriesColors?.[legendId] ?? spec.seriesColors?.[legacyId] ?? palette[Math.max(0, sharedColorIndex) % palette.length] : spec.seriesColors?.[legendId] ?? (pairedY ? pairedYColor(palette, yIndex, colorColumn ? colorIndex : Math.max(0, availableKeys.indexOf(key))) : (collated ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length])
       const nameParts = [facet.custom && facet.label, spec.layers.length > 1 && layer.name, (facet.custom || sharedX.length > 1 || sharedY.length > 1) && `${yColumn.name} vs ${xColumn.name}`, key].filter(Boolean)
-      const legendKey = spec.seriesNames?.[legendId] || nameParts.join(' · '); const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
+      const customName = sharedLegend ? previousStyle?.customName ?? spec.seriesNames?.[legendId] ?? spec.seriesNames?.[legacyId] : spec.seriesNames?.[legendId]
+      const legendKey = sharedLegend ? previousStyle?.name ?? (customName || key) : customName || nameParts.join(' · ')
+      if (sharedLegend && !previousStyle) sharedStyles.set(legendId, { color, name: legendKey, customName })
+      const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
       const xValues = [...new Set(rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id]))))]
-      if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined })
+      if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined, xCategoryLabel: colorColumn?.id === xColumn.id && !overlayColumn ? customName : undefined })
       const base = { name: legendKey, legendgroup: legendId, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: dualY && yColumn.id === sharedY[1].id ? 'y2' : axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: layer.lineStyle ?? spec.lineStyle ?? (overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid') }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
+      if (layer.element === 'paired') {
+        const idColumn = columnFor(layer.pairId)
+        if (!idColumn) {
+          statisticsWarnings.add('Choose a Subject ID column for the paired plot.')
+          return { ...base, type: 'scatter', mode: 'markers', x: [], y: [] }
+        }
+        const result = pairedSeries(rows, xColumn, yColumn, idColumn, spec, includedRows)
+        result.warnings.forEach((warning) => statisticsWarnings.add(warning))
+        return result.trajectories.map((trajectory, index) => ({
+          ...base, showlegend: showlegend && index === 0, type: 'scatter', mode: 'lines+markers',
+          x: trajectory.points.map((point) => point.x), y: trajectory.points.map((point) => point.y),
+          text: trajectory.points.map(() => trajectory.subject), customdata: trajectory.points.map((point) => point.rowId),
+          marker: { color, size: layer.markerSize ?? spec.markerSize, symbol: layer.markerShape ?? spec.markerShape ?? 'circle', opacity: spec.markerOpacity ?? 0.82 },
+          hovertemplate: `<b>${legendKey}</b><br>${idColumn.name}: %{text}<br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>`,
+        }))
+      }
+      if (layer.element === 'nonlinear') {
+        const outcome = nonlinearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), layer.nonlinearModel ?? 'doseResponse')
+        if (outcome.error) statisticsWarnings.add(outcome.error)
+        const fit = outcome.fit
+        if (fit && (layer.showEquation || layer.showRSquared || layer.showSampleSize)) {
+          const parts: string[] = []
+          const values = fit.parameters.map((parameter) => Number(parameter.value.toPrecision(4)))
+          if (layer.showEquation) parts.push(fit.model === 'doseResponse'
+            ? `ŷ = ${values[0]} + (${values[1]} − ${values[0]}) / (1 + (${values[2]} / x)^${values[3]})`
+            : `ŷ = ${values[0]} + ${values[1]} · exp(−${values[2]} · (x − ${Number(Math.min(...fit.residuals.map((point) => point.x)).toPrecision(4))}))`)
+          if (layer.showRSquared) parts.push(`R² = ${Number(fit.rSquared.toPrecision(4))}`)
+          if (layer.showSampleSize) parts.push(`n = ${fit.n}`)
+          const position = fitAnnotationCounts.get(facetIndex) ?? 0
+          fitAnnotationCounts.set(facetIndex, position + 1)
+          fitAnnotations.push({ text: parts.join('<br>'), x: 0.02, y: 0.98 - position * 0.12, xref: axisNumber === 1 ? 'x domain' : `x${axisNumber} domain`, yref: axisNumber === 1 ? 'y domain' : `y${axisNumber} domain`, xanchor: 'left', yanchor: 'top', showarrow: false, align: 'left', bgcolor: '#ffffffdd', borderpad: 3, font: { size: 10, color } })
+        }
+        return { ...base, type: 'scatter', mode: 'lines', x: outcome.fit?.curve.x ?? [], y: outcome.fit?.curve.y ?? [], hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x:.4g}<br>Fitted ${yColumn.name}: %{y:.4g}<extra></extra>` }
+      }
       if (layer.element === 'fit') {
         const fit = linearFit(rows.map((row) => numericOrNaN(row.values[xColumn.id])), rows.map((row) => numericOrNaN(row.values[yColumn.id])), weightColumn ? rows.map((row) => numericOrNaN(row.values[weightColumn.id])) : undefined, layer.fixedIntercept)
         if (fit && (layer.showEquation || layer.showRSquared || layer.showSampleSize)) {
@@ -205,6 +280,9 @@ export function GraphCanvas() {
     const naturalXCategories = categoricalX ? [boxCategoryColumn.name] : xColumn && (xColumn.modelingType !== 'continuous' || spec.layers.some((layer) => layer.element === 'box' || layer.element === 'bar')) ? stableCategoryOrder(includedRows.map((row) => row.values[xColumn.id]), xColumn).map(String) : undefined
     const preferredXCategories = xColumn ? orderedLegendItems.filter((item) => item.xColumnId === xColumn.id && item.xCategory !== undefined).map((item) => item.xCategory!) : []
     const xCategories = naturalXCategories && xColumn ? orderedCategories(includedRows, xColumn, spec, preferredXCategories, yColumn?.id) : naturalXCategories
+    // Keep category identities intact: duplicate display names must not merge boxes.
+    const categoryLabels = new Map(orderedLegendItems.filter((item) => item.xColumnId === xColumn?.id && item.xCategory !== undefined && item.xCategoryLabel).map((item) => [item.xCategory!, item.xCategoryLabel!]))
+    const categoryTicks = xCategories && categoryLabels.size ? { tickmode: 'array', tickvals: collateMeasures ? collateCategories.map((_, categoryIndex) => categoryIndex) : xCategories, ticktext: (collateMeasures ? collateCategories : xCategories).map((category) => categoryLabels.get(category) ?? category) } : {}
     const yCategories = yColumn && yColumn.modelingType !== 'continuous' ? stableCategoryOrder(includedRows.map((row) => row.values[yColumn.id]), yColumn).map(String) : undefined
     hasCategoricalX ||= Boolean(xCategories)
     const panelTraces = (data as { xaxis?: string; yaxis?: string; x?: unknown[]; y?: unknown[] }[]).filter((trace) => (trace.xaxis ?? 'x') === (number === 1 ? 'x' : `x${number}`))
@@ -217,7 +295,7 @@ export function GraphCanvas() {
     axisError ??= rightYAxis?.error ? `Right Y axis: ${rightYAxis.error}` : undefined
     const xTitle = (facet.custom ? spec.panels?.[index]?.xAxisTitle : undefined) || spec.xAxis?.title || (facet.custom || facet.axisSplit && splitX ? xColumn ? columnLabel(xColumn) : boxCategoryColumn.name : sharedX.length ? sharedX.map(columnLabel).join(' / ') : boxCategoryColumn.name)
     const yTitle = (facet.custom ? spec.panels?.[index]?.yAxisTitle : undefined) || spec.yAxis?.title || (dualY ? columnLabel(sharedY[0]) : facet.custom || facet.axisSplit && splitY ? yColumn ? columnLabel(yColumn) : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : '' : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / '))
-    axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), type: collatedAxis ? 'linear' : xAxis.axis?.type, ...(collatedAxis ? { tickmode: 'array', tickvals: collateCategories.map((_, categoryIndex) => categoryIndex), ticktext: collateCategories, range: spec.xAxis?.reversed ? [collateCategories.length - 0.5, -0.5] : [-0.5, collateCategories.length - 0.5], autorange: false } : {}), domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && !splitX && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.axisSplit || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
+    axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), type: collatedAxis ? 'linear' : xAxis.axis?.type, ...(collatedAxis ? { tickmode: 'array', tickvals: collateCategories.map((_, categoryIndex) => categoryIndex), ticktext: collateCategories, range: spec.xAxis?.reversed ? [collateCategories.length - 0.5, -0.5] : [-0.5, collateCategories.length - 0.5], autorange: false } : {}), ...categoryTicks, domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && !splitX && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.axisSplit || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
     axes[yKey] = { ...yAxis.axis, domain: [yTop - cellHeight, yTop], anchor: number === 1 ? 'x' : `x${number}`, matches: !facet.custom && !splitY && spec.facetScale !== 'independent' && number > 1 ? 'y' : undefined, title: { text: facet.custom || facet.axisSplit || (!groupYColumn && facet.column === 0) ? yTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
     if (dualY) axes.yaxis2 = { ...rightYAxis?.axis, overlaying: 'y', side: 'right', anchor: 'x', title: { text: spec.y2Axis?.title || columnLabel(sharedY[1]), standoff: 12 }, showgrid: false, zeroline: false }
     if (facet.label) { if (facet.custom) panelTitleAnnotations.set(annotations.length, spec.panels![index].id); annotations.push({ text: `<b>${facet.label}</b>`, x: 0.5, y: 1.04, xref: number === 1 ? 'x domain' : `x${number} domain`, yref: number === 1 ? 'y domain' : `y${number} domain`, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 10, color: '#53656e' } }) }
@@ -239,6 +317,15 @@ export function GraphCanvas() {
   })
   if (!axisSubplots && !wrapColumn && groupXColumn) groupXValues.forEach((value, column) => annotations.push({ text: `<b>${value}</b>`, x: column * (cellWidth + horizontalGap) + cellWidth / 2, y: 1.035, xref: 'paper', yref: 'paper', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
   if (!axisSubplots && !wrapColumn && groupYColumn) groupYValues.forEach((value, row) => annotations.push({ text: `<b>${value}</b>`, x: -0.075, y: 1 - row * (cellHeight + verticalGap) - cellHeight / 2, xref: 'paper', yref: 'paper', xanchor: 'right', showarrow: false, bgcolor: '#eef3f4', bordercolor: '#d7e0e3', borderpad: 4, font: { size: 11, color: '#40545e' } }))
+  if (spec.comparison && sharedX[0] && sharedY[0]) {
+    const comparison = compareCategories(includedRows, sharedX[0], sharedY[0], spec.comparison, columnFor(spec.comparison.pairId))
+    if (comparison.result) {
+      const result = comparison.result
+      const fmt = (value: number) => Number(value.toPrecision(3))
+      const p = result.pValue < 0.0001 ? '&lt; 0.0001' : String(fmt(result.pValue))
+      annotations.push({ text: `<b>${spec.comparison.categoryB} − ${spec.comparison.categoryA}: ${fmt(result.difference)}</b><br>${Math.round(spec.comparison.confidenceLevel * 100)}% CI ${fmt(result.lower)} to ${fmt(result.upper)} · p ${p}`, x: 0.99, y: 0.98, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'top', showarrow: false, align: 'right', bgcolor: '#ffffffdd', bordercolor: '#bdd5d7', borderpad: 4, font: { size: 10, color: theme.ink } })
+    }
+  }
   const stackedBars = spec.yDisplay !== 'collate' && spec.layers.some((layer) => layer.element === 'bar' && layer.stack && stackCompatibility(includedRows, layer.x ?? spec.x[0], layer.color ?? spec.color ?? spec.overlay).compatible)
   const beginTitleEdit = ({ kind, axisNumber, annotationIndex, text, rect }: PlotTitleTarget) => {
     const panelId = kind === 'annotation' ? panelTitleAnnotations.get(annotationIndex ?? -1) : axisNumber ? spec.panels?.[axisNumber - 1]?.id : undefined
@@ -274,10 +361,10 @@ export function GraphCanvas() {
   }
   const statisticsWarningText = [...statisticsWarnings].join(' ')
   const statisticsWarningDismissed = dismissedWarningsFor?.dataset === dataset && dismissedWarningsFor.spec === spec && dismissedWarningsFor.filters === filters && dismissedWarningsFor.message === statisticsWarningText
-  return <div ref={chartRef} className={`chart-with-legend legend-${spec.legendPlacement ?? 'bottom'} theme-${spec.theme ?? 'light'}`} style={{ background: theme.paper }}>
+  return <div ref={chartRef} className={`chart-with-legend legend-${spec.legendPlacement ?? 'bottom'} theme-${spec.theme ?? 'light'}${preview ? ' figure-preview' : ''}`} style={{ background: theme.paper }}>
     {axisError && <div className="axis-error" role="alert">{axisError}</div>}
     {statisticsWarnings.size > 0 && !statisticsWarningDismissed && <div className="statistics-warnings" role="status"><span>{statisticsWarningText}</span><button aria-label="Dismiss graph warning" onClick={() => setDismissedWarningsFor({ dataset, spec, filters, message: statisticsWarningText })}>×</button></div>}
-    {!axisError && <PlotlyChart data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: dualY ? 88 : 24, t: groupXColumn && !spec.panels?.length ? 126 : 100, b: hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
+    {!axisError && <PlotlyChart registerExport={!preview} data={interactiveData} layout={{ ...axes, autosize: true, dragmode: 'select', clickmode: 'event+select', title: { text: `<b>${spec.title}</b><br><span style="font-size:12px">${spec.subtitle}${pageColumn ? ` · ${pageColumn.name}: ${String(spec.pageValue ?? pageValues[0] ?? '')}` : ''}</span>`, x: 0.04, xanchor: 'left' }, annotations, shapes, paper_bgcolor: theme.paper, plot_bgcolor: theme.plot, font: { family: spec.fontFamily ?? 'Segoe UI, sans-serif', color: theme.ink, size: spec.fontSize ?? 12 }, margin: { l: groupYColumn && !spec.panels?.length ? 148 : 66, r: dualY ? 88 : 24, t: preview ? groupXColumn && !spec.panels?.length ? 78 : 58 : groupXColumn && !spec.panels?.length ? 126 : 100, b: preview ? hasCategoricalX ? 58 : 44 : hasCategoricalX ? 72 : 54, autoexpand: true }, showlegend: false, hovermode: 'closest', barmode: stackedBars ? 'stack' : 'group', bargap: spec.barGap ?? 0.18 }} config={{ responsive: true, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud'] }} legendPlacement={spec.legendPlacement ?? 'bottom'} onTitleDoubleClick={beginTitleEdit} suspendRender={Boolean(editingTitle)} onPointClick={(value, additive) => selectCustomData([value], additive)} onSelection={(values) => selectCustomData(values)} onDeselect={clearRowSelection} />}
     {editingTitle && <input ref={titleInputRef} className="chart-title-editor" aria-label={editingTitle.kind === 'subtitle' ? 'Edit graph subtitle' : `Edit ${editingTitle.kind === 'panel' ? 'subplot' : editingTitle.kind === 'graph' ? 'graph' : editingTitle.kind === 'xAxis' ? 'X axis' : editingTitle.kind === 'y2Axis' ? 'right Y axis' : 'Y axis'} title`} style={{ left: editingTitle.left, top: editingTitle.top }} value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} onBlur={commitTitle} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelTitleBlur.current = true; setEditingTitle(undefined) } }} />}
     {selectedRowIds.length > 0 && <div className="graph-selection-bar"><strong>{selectedRowIds.length} source row{selectedRowIds.length === 1 ? '' : 's'} selected</strong><span>{selectedRowIds.slice(0, 4).join(', ')}{selectedRowIds.length > 4 ? '…' : ''}</span><button onClick={() => setRowsExcluded(selectedRowIds, true)}>Exclude</button><button onClick={() => setRowsExcluded(selectedRowIds, false)}>Include</button><button onClick={clearRowSelection}>Clear</button></div>}
     <div className="interactive-legend" style={{ background: theme.paper, color: theme.ink }} role="list" aria-label="Graph series; drag to reorder"><span className="legend-help">Drag to reorder · Double-click a name to rename</span>{orderedLegendItems.map((item, index) => <LegendEntry key={item.id} item={item} index={index} items={orderedLegendItems} hidden={spec.hiddenSeries?.includes(item.id) ?? false} highlighted={spec.highlightedSeries === item.id} dimmed={Boolean(spec.highlightedSeries && spec.highlightedSeries !== item.id)} onToggle={() => toggleSeries(item.id)} onReorder={reorderLegend} onRecolor={(color) => recolorLegend(item.id, color)} onHighlight={() => updateSpec({ highlightedSeries: spec.highlightedSeries === item.id ? undefined : item.id })} onRename={(name) => renameSeries(item.id, name)} />)}</div>

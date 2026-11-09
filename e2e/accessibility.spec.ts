@@ -26,7 +26,7 @@ test('workspace and main dialogs have no detectable WCAG A or AA issues', async 
   await page.getByRole('button', { name: 'Projects & export' }).click()
   await expect(page.getByRole('button', { name: 'Close projects' })).toBeFocused()
   await page.keyboard.press('Shift+Tab')
-  await expect(page.getByRole('button', { name: 'Export plotted data CSV' })).toBeFocused()
+  await expect(page.getByRole('button', { name: 'Open template…' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(page.getByRole('button', { name: 'Close projects' })).toBeFocused()
   const projects = await new AxeBuilder({ page }).withTags(wcagTags).analyze()

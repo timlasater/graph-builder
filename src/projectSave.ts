@@ -6,7 +6,7 @@ import { projectFingerprint, projectGraphs, useBuilderStore } from './store'
 export async function saveCurrentDesktopProject(saveAs: boolean, forbiddenPath?: string): Promise<string | undefined> {
   const current = useBuilderStore.getState()
   const fingerprint = projectFingerprint({ ...current, projectMode: 'embedded' })
-  const project = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded')
+  const project = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded', current.figureLayout)
   const content = projectJson(project)
   let path = current.projectPath
   if (saveAs || !path) path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, content, 'graphbuilder', forbiddenPath)

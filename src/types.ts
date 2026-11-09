@@ -1,7 +1,7 @@
 export type DataType = 'number' | 'text' | 'date' | 'boolean'
 export type ModelingType = 'continuous' | 'nominal' | 'ordinal'
 export type GraphRole = 'x' | 'y' | 'color' | 'groupX' | 'groupY' | 'wrap' | 'overlay' | 'size' | 'shape' | 'weight' | 'page'
-export type GraphElement = 'points' | 'line' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit' | 'smooth'
+export type GraphElement = 'points' | 'line' | 'paired' | 'bar' | 'histogram' | 'box' | 'area' | 'summary' | 'fit' | 'nonlinear' | 'smooth'
 export type ErrorBarType = 'none' | 'sd' | 'se' | 'ci' | 'range'
 export type BarAggregation = 'mean' | 'sum' | 'count' | 'median' | 'min' | 'max' | 'quantile' | 'sd' | 'se'
 export type SummaryMeasure = BarAggregation
@@ -91,6 +91,7 @@ export interface GraphSpec {
   page?: string
   pageValue?: CellValue
   layers: GraphLayer[]
+  comparison?: GraphComparison
   activeLayerId: string
   showGrid: boolean
   markerSize: number
@@ -116,6 +117,7 @@ export interface GraphSpec {
   palette?: string[]
   theme?: 'light' | 'dark' | 'paper'
   legendPlacement?: 'bottom' | 'top' | 'right' | 'hidden'
+  sharedLayerLegend?: boolean
   seriesNames?: Record<string, string>
   legendOrder?: string[]
   seriesColors?: Record<string, string>
@@ -128,6 +130,24 @@ export interface GraphSpec {
   panels?: GraphPanel[]
   referenceLines?: ReferenceLine[]
   referenceRegions?: ReferenceRegion[]
+}
+
+export interface FigureLayout {
+  title: string
+  graphIds: string[]
+  columns: 1 | 2
+  width: number
+  height: number
+  includeGraphNames?: boolean
+  pngScale?: 1 | 2 | 3
+}
+
+export interface GraphComparison {
+  method: 'welch' | 'paired'
+  categoryA: string
+  categoryB: string
+  pairId?: string
+  confidenceLevel: number
 }
 
 export interface GraphPanel { id: string; title: string; x?: string; y?: string; xAxisTitle?: string; yAxisTitle?: string }
@@ -151,6 +171,7 @@ export interface GraphLayer {
   element: GraphElement
   x?: string
   y?: string
+  pairId?: string
   color?: string
   colorHex?: string
   markerSize?: number
@@ -181,4 +202,5 @@ export interface GraphLayer {
   showRSquared?: boolean
   showSampleSize?: boolean
   fixedIntercept?: number
+  nonlinearModel?: 'doseResponse' | 'exponentialDecay'
 }

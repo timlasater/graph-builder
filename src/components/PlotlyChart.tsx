@@ -13,13 +13,14 @@ interface PlotlyChartProps {
   legendPlacement?: LegendPlacement
   onTitleDoubleClick?: (target: PlotTitleTarget) => void
   suspendRender?: boolean
+  registerExport?: boolean
 }
 
 interface PlotlyEventPoint { customdata?: unknown }
 interface PlotlyEvent { event?: MouseEvent; points?: PlotlyEventPoint[] }
 type PlotlyElement = HTMLDivElement & { on: (name: string, handler: (event: PlotlyEvent) => void) => void; removeListener: (name: string, handler: (event: PlotlyEvent) => void) => void }
 
-export function PlotlyChart({ data, layout, config, onPointClick, onSelection, onDeselect, onTitleDoubleClick, suspendRender = false, legendPlacement = 'bottom' }: PlotlyChartProps) {
+export function PlotlyChart({ data, layout, config, onPointClick, onSelection, onDeselect, onTitleDoubleClick, suspendRender = false, registerExport = true, legendPlacement = 'bottom' }: PlotlyChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const titleDoubleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -37,9 +38,10 @@ export function PlotlyChart({ data, layout, config, onPointClick, onSelection, o
   }
 
   useEffect(() => {
+    if (!registerExport) return
     setExportFigure({ data, layout, legendPlacement })
     return () => setExportFigure(undefined)
-  }, [data, layout, legendPlacement])
+  }, [data, layout, legendPlacement, registerExport])
 
   useEffect(() => {
     const container = containerRef.current as PlotlyElement | null

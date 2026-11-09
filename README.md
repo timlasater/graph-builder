@@ -3,15 +3,20 @@
 Graph Builder is a local-first scientific graphing application for Windows and modern desktop browsers. It lets users import tabular data, map columns to graph roles, combine plot layers, inspect and filter observations, and export figures or reusable projects. The bundled dataset is synthetic demonstration data; it is not research data.
 
 - [Try the browser app](https://timothylasater.com/graph-builder/app/)
-- [Download the Windows installer (0.1.4)](https://github.com/timlasater/graph-builder/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe)
+- [Download the latest Windows release](https://github.com/timlasater/graph-builder/releases/latest)
 - [Read the complete user guide](docs/user-guide.md)
-- [Read the 0.1.4 release notes](docs/release-0.1.4-notes.md)
-- [0.1.4 Windows release test plan](docs/release-0.1.4-test-plan.md)
+- [Read the v0.2.0 feature workflows](docs/v0.2.0-feature-guide.md)
+- [Read the 0.2.0 release notes](docs/release-0.2.0-notes.md)
+- [0.2.0 Windows release checks](docs/release-0.2.0-notes.md#release-checks)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)
 
 ![Graph Builder workspace with synthetic example measurements and a scatter graph](docs/screenshots/workspace.png)
 
 *The workspace with the built-in synthetic example data.*
+
+## Version 0.2.0
+
+Version 0.2.0 adds paired plots, two-group comparisons, nonlinear dose–response and exponential decay fits, and a page layout for combining saved graphs. The browser workflow deploys main; the signed Windows workflow creates a draft release for asset inspection before publication. See the [v0.2.0 feature guide](docs/v0.2.0-feature-guide.md) for sample data, steps, and current limits.
 
 ## Architecture
 
@@ -25,10 +30,10 @@ Key source locations:
 | --- | --- |
 | `src/store.ts`, `src/types.ts` | Dataset and graph state; undo and redo |
 | `src/importData.ts`, `src/importAnnotations.ts` | CSV/TSV/Excel parsing and annotations |
-| `src/plotTransforms.ts`, `src/statistics.ts`, `src/statisticalSeries.ts` | Plot preparation and statistical calculations |
+| `src/plotTransforms.ts`, `src/statistics.ts`, `src/statisticalSeries.ts`, `src/comparisons.ts`, `src/nonlinearFit.ts` | Plot preparation, comparisons, and curve fitting |
 | `src/components/GraphCanvas.tsx` | Interactive graph and legend |
 | `src/components/DataTableModal.tsx` | Data inspection and editing |
-| `src/projects.ts`, `src/graphTemplates.ts`, `src/graphExport.ts` | Persistence, templates, and exports |
+| `src/projects.ts`, `src/graphTemplates.ts`, `src/graphExport.ts`, `src/figureLayout.ts` | Persistence, templates, and exports |
 | `src/desktopFiles.ts`, `src-tauri/` | Desktop file dialogs, shell, and updater |
 | `docs/user-guide.md` | User-facing instructions bundled into the app |
 | `site/index.html`, `scripts/prepare-pages.mjs` | Public landing page and Pages output |
@@ -81,4 +86,22 @@ Browser graphing and the Windows desktop application are implemented. The signed
 
 ## Contributing
 
-Open an issue with steps to reproduce, an expected result, and the observed result. Keep private datasets out of issues; a small synthetic file is best. Before a change is merged, run the relevant commands above and update the guide when user behavior changes. The project is developed on `main` by default; see [AGENTS.md](AGENTS.md) for repository handoff policy.
+Open an issue with steps to reproduce, an expected result, and the observed result. Keep private datasets out of issues; a small synthetic file is best. Before a change is merged, run the relevant commands above and update the project documentation and user guide for every new feature. Development is committed and pushed on side branches; see [AGENTS.md](AGENTS.md) for repository handoff policy.
+
+Legend corrections: In Windows desktop, drag a legend name onto another name to reorder it; Left/Right Arrow also works when the name is focused. When X and Color use the same category column, renaming a legend item also changes its X-axis label. Renames affect display labels, not source data, and identical names keep separate groups. With an Overlay or a different X variable, renaming changes the series name only. Legend names and order are saved with the graph and included in exports.
+
+On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. Project files and exports are unchanged.
+
+In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.
+
+The desktop **Project saved** banner fades and disappears after four seconds. Save errors stay visible until dismissed. This only changes the notification; saving and exports work as before.
+
+Image exports reserve space between a bottom legend and the X-axis title, including angled category labels and legends that wrap onto multiple rows. This applies to PNG, SVG, copied images, and figure-layout images. At small output sizes the plot area becomes smaller to fit the labels; increase the figure dimensions for more plotting space. Project saving is unchanged.
+
+**Projects & export** sections appear in this order: Project file, Graphs in this project, Recent projects (when available), Export open graph, Figure layout, Reusable graph template, and Desktop updates (Windows only). Older saved graphs appear beside the template section when available.
+
+With multiple layers, **Properties → Marks and colors → One legend entry per group across layers** is enabled by default, including for older projects. Layers using the same Color and Overlay variables share one entry per group and matching palette colors. Rename, recolor, hide/show, highlight, and reorder that entry to affect the group across layers. Shared colors override individual layer colors; when existing entries disagree, the first layer’s custom group name and color are used. Turn the option off for separate layer entries and colors. Different grouping variables and layers without Color or Overlay stay separate. The setting is stored in projects and graph templates, and shared legends are included in PNG, SVG, clipboard, and figure-layout exports.
+
+Appearance controls are consolidated: **Marks and colors** includes the marker size slider, and **Axes and categories** includes **Show grid lines**. The shared-layer legend checkbox and its text are left-aligned on one row.
+
+**Figure size and theme** is the final section at the bottom of the Properties panel, after **Axes and categories** and **Marks and colors**.

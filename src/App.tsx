@@ -6,6 +6,8 @@ import { DataTableModal } from './components/DataTableModal'
 import { DropZone } from './components/DropZone'
 import { GraphCanvas } from './components/GraphCanvas'
 import { AppearanceControls } from './components/AppearanceControls'
+import { ComparisonControls } from './components/ComparisonControls'
+import { CurveFitControls } from './components/CurveFitControls'
 import { CollapsibleSection } from './components/CollapsibleSection'
 import { ActiveFiltersPopup, FilterDropZone, FilterPopup } from './components/FilterDropZone'
 import { ImportDataButton } from './components/ImportDataButton'
@@ -30,17 +32,19 @@ import './App.css'
 const graphElements: { id: GraphElement; label: string; icon: string }[] = [
   { id: 'points', label: 'Points', icon: '⠿' },
   { id: 'line', label: 'Line', icon: '⌁' },
+  { id: 'paired', label: 'Paired plot', icon: '↗' },
   { id: 'bar', label: 'Bars', icon: '▥' },
   { id: 'histogram', label: 'Histogram', icon: '▥' },
   { id: 'box', label: 'Box plot', icon: '⊟' },
   { id: 'area', label: 'Area', icon: '◩' },
   { id: 'summary', label: 'Mean line', icon: 'x̄' },
   { id: 'fit', label: 'Fit', icon: '⌿' },
+  { id: 'nonlinear', label: 'Curve fit', icon: '∿' },
   { id: 'smooth', label: 'Smooth trend', icon: '〰' },
 ]
 const UserGuide = lazy(() => import('./components/UserGuide'))
 const repositoryUrl = 'https://github.com/timlasater/graph-builder'
-const installerUrl = `${repositoryUrl}/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe`
+const installerUrl = `${repositoryUrl}/releases/latest`
 
 function GithubIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .8a11.2 11.2 0 0 0-3.54 21.83c.56.1.76-.24.76-.54v-2.07c-3.09.67-3.74-1.31-3.74-1.31-.5-1.28-1.23-1.62-1.23-1.62-1.01-.69.08-.67.08-.67 1.12.08 1.71 1.15 1.71 1.15.99 1.7 2.6 1.21 3.23.92.1-.72.39-1.21.7-1.49-2.47-.28-5.07-1.24-5.07-5.53 0-1.22.44-2.21 1.15-2.99-.12-.28-.5-1.42.11-2.95 0 0 .94-.3 3.08 1.14a10.7 10.7 0 0 1 5.6 0c2.14-1.44 3.08-1.14 3.08-1.14.61 1.53.23 2.67.11 2.95.72.78 1.15 1.77 1.15 2.99 0 4.3-2.6 5.25-5.08 5.52.4.35.75 1.03.75 2.08v3.08c0 .3.2.65.77.54A11.2 11.2 0 0 0 12 .8Z"/></svg>
@@ -96,6 +100,12 @@ function App() {
   const nextOpenRequestId = useRef(0)
   const openPickerInProgress = useRef(false)
   const [projectSaveStatus, setProjectSaveStatus] = useState<string>()
+  const projectSaveSucceeded = projectSaveStatus?.startsWith('Project saved:') ?? false
+  useEffect(() => {
+    if (!projectSaveSucceeded) return
+    const timer = setTimeout(() => setProjectSaveStatus(undefined), 4000)
+    return () => clearTimeout(timer)
+  }, [projectSaveStatus, projectSaveSucceeded])
   const projectSaveInProgress = useRef(false)
   const [savingPng, setSavingPng] = useState(false)
   const [pngError, setPngError] = useState<string>()
@@ -439,7 +449,7 @@ function App() {
             </div>
             <nav className="site-links" aria-label="External links">
               {desktop ? <button className="github-link" type="button" aria-label="GitHub repository" title="GitHub repository" onClick={() => void openRepository()}><GithubIcon /></button> : <a className="github-link" href={repositoryUrl} target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository"><GithubIcon /></a>}
-              {!desktop && <a href={installerUrl} title="Download Graph Builder 0.1.4 for Windows">Download Windows app</a>}
+              {!desktop && <a href={installerUrl} title="Download the latest published Graph Builder release for Windows">Download Windows app</a>}
               {desktop ? <button type="button" onClick={() => void reportProblem()}>Report a problem</button> : <a href={`${repositoryUrl}/issues`} target="_blank" rel="noopener noreferrer">Report a problem</a>}
               {!desktop && <a href="https://timothylasater.com/" target="_blank" rel="noopener noreferrer">timothylasater.com</a>}
             </nav>
@@ -463,6 +473,7 @@ function App() {
               <div className="layer-list">{spec.layers.map((layer, index) => <div key={layer.id} className={layer.id === activeLayer?.id ? 'active' : ''}><button className="layer-select" onClick={() => setActiveLayer(layer.id)}><span>{index + 1}</span>{layer.name}</button><button className="layer-remove" onClick={() => removeLayer(layer.id)} aria-label={`Remove ${layer.name} layer`}>×</button></div>)}</div>
               {activeLayer && <div className="layer-settings">
                 <label>Element<select value={activeLayer.element} onChange={(event) => updateLayer(activeLayer.id, { element: event.target.value as GraphElement, name: event.target.selectedOptions[0].text })}>{graphElements.map((element) => <option value={element.id} key={element.id}>{element.label}</option>)}</select></label>
+                {activeLayer.element === 'paired' && <><label>Subject ID<select value={activeLayer.pairId ?? ''} onChange={(event) => updateLayer(activeLayer.id, { pairId: event.target.value || undefined })}><option value="">Choose a column</option>{dataset.columns.map((column) => <option value={column.id} key={column.id}>{column.name}</option>)}</select></label><small className="setting-help">Connects each subject's values across X categories. Use one row per subject and category.</small></>}
                 {(activeLayer.element === 'summary' || activeLayer.element === 'bar') && <>
                   <label>Input data<select value={activeLayer.summaryInput ?? 'raw'} onChange={(event) => updateLayer(activeLayer.id, { summaryInput: event.target.value as 'raw' | 'precomputed', showObservations: false, barAggregation: 'mean', summaryMeasure: 'mean', name: activeLayer.element === 'summary' ? 'Mean line' : activeLayer.name })}><option value="raw">Raw observations</option><option value="precomputed">Precomputed means and errors</option></select></label>
                   {activeLayer.summaryInput === 'precomputed' ? <>
@@ -481,6 +492,7 @@ function App() {
                 </>}
                 {activeLayer.element === 'summary' && <><label>Error bars<select value={activeLayer.errorBar ?? 'sd'} disabled={activeLayer.summaryInput !== 'precomputed' && (activeLayer.summaryMeasure ?? 'mean') !== 'mean'} onChange={(event) => updateLayer(activeLayer.id, { errorBar: event.target.value as ErrorBarType })}><option value="sd">Sample SD</option><option value="se">Standard error</option><option value="ci">Confidence interval</option><option value="range">Range</option><option value="none">None</option></select></label>{activeLayer.errorBar === 'ci' && (activeLayer.summaryInput === 'precomputed' || (activeLayer.summaryMeasure ?? 'mean') === 'mean') && <label>Confidence level<select value={activeLayer.confidenceLevel ?? 0.95} onChange={(event) => updateLayer(activeLayer.id, { confidenceLevel: Number(event.target.value) })}><option value="0.8">80%</option><option value="0.9">90%</option><option value="0.95">95%</option><option value="0.99">99%</option></select></label>}<label className="toggle-row"><span>Show individual observations</span><input type="checkbox" disabled={activeLayer.summaryInput === 'precomputed'} checked={activeLayer.showObservations ?? false} onChange={(event) => updateLayer(activeLayer.id, { showObservations: event.target.checked })} /></label><small className="setting-help">Raw SD uses n − 1. Raw confidence intervals are two-sided Student's t intervals. Groups with n = 1 show no calculated uncertainty.</small></>}
                 {activeLayer.element === 'fit' && <><label className="toggle-row"><span>Show equation</span><input type="checkbox" checked={activeLayer.showEquation ?? false} onChange={(event) => updateLayer(activeLayer.id, { showEquation: event.target.checked })} /></label><label className="toggle-row"><span>Show sample size</span><input type="checkbox" checked={activeLayer.showSampleSize ?? false} onChange={(event) => updateLayer(activeLayer.id, { showSampleSize: event.target.checked })} /></label><label className="toggle-row"><span>Show R²</span><input type="checkbox" checked={activeLayer.showRSquared ?? false} onChange={(event) => updateLayer(activeLayer.id, { showRSquared: event.target.checked })} /></label><label>Set y-intercept<input type="number" step="any" placeholder="Automatic" value={activeLayer.fixedIntercept ?? ''} onChange={(event) => updateLayer(activeLayer.id, { fixedIntercept: event.target.value === '' ? undefined : Number(event.target.value) })} /></label><small className="fit-intercept-help">When set, the fit line passes through this y value and recalculates its slope.</small></>}
+                {activeLayer.element === 'nonlinear' && <CurveFitControls dataset={dataset} spec={spec} filters={filters} layer={activeLayer} updateLayer={updateLayer} />}
                 {activeLayer.element === 'smooth' && <><label>Moving average window<MovingAverageWindow key={`${activeLayer.id}:${activeLayer.smoothWindow ?? 3}`} value={activeLayer.smoothWindow ?? 3} onChange={(smoothWindow) => updateLayer(activeLayer.id, { smoothWindow })} /></label><small className="setting-help">Centered moving average of consecutive unique numeric X values. Repeated X values are averaged first; edges use available neighbors. Use an odd window size.</small></>}
                 {activeLayer.element === 'histogram' && <label>Number of bins<input type="number" min="1" max="100" value={activeLayer.binCount ?? 10} onChange={(event) => updateLayer(activeLayer.id, { binCount: Math.max(1, Number(event.target.value)) })} /></label>}
                 {activeLayer.element === 'box' && <label>Show points<select value={activeLayer.boxPoints ?? 'outliers'} onChange={(event) => updateLayer(activeLayer.id, { boxPoints: event.target.value as BoxPointMode })}><option value="outliers">Outliers only</option><option value="all">All observations</option><option value="none">None</option></select><small>Outliers use Tukey's 1.5 × IQR rule.</small></label>}
@@ -490,6 +502,9 @@ function App() {
                 <label>Color override<select value={activeLayer.color ?? ''} onChange={(event) => updateLayer(activeLayer.id, { color: event.target.value || undefined })}><option value="">Shared</option>{dataset.columns.map((column) => <option value={column.id} key={column.id}>{column.name}</option>)}</select></label>
                 <div className="property-grid"><label>Mark color<input type="color" value={activeLayer.colorHex ?? '#0f6c75'} onChange={(event) => updateLayer(activeLayer.id, { colorHex: event.target.value })} /></label><label>Marker size<input type="number" min="2" max="30" value={activeLayer.markerSize ?? spec.markerSize} onChange={(event) => updateLayer(activeLayer.id, { markerSize: Number(event.target.value) })} /></label><label>Line width<input type="number" min="1" max="8" value={activeLayer.lineWidth ?? 2.5} onChange={(event) => updateLayer(activeLayer.id, { lineWidth: Number(event.target.value) })} /></label></div>
               </div>}
+            </CollapsibleSection>
+            <CollapsibleSection title="Compare groups">
+              <ComparisonControls dataset={dataset} spec={spec} filters={filters} updateSpec={updateSpec} />
             </CollapsibleSection>
             <CollapsibleSection title="Graph">
               <label>Title<input value={spec.title} onChange={(event) => updateSpec({ title: event.target.value })} /></label>
@@ -509,12 +524,6 @@ function App() {
               </div>)}</>}
               <ReferenceControls spec={spec} updateSpec={updateSpec} />
             </CollapsibleSection>
-            <CollapsibleSection title="Marks">
-              <label className="range-label"><span>Marker size</span><output>{spec.markerSize}px</output><input type="range" min="4" max="18" value={spec.markerSize} onChange={(event) => updateSpec({ markerSize: Number(event.target.value) })} /></label>
-            </CollapsibleSection>
-            <CollapsibleSection title="Axes">
-              <label className="toggle-row"><span>Show grid lines</span><input type="checkbox" checked={spec.showGrid} onChange={(event) => updateSpec({ showGrid: event.target.checked })} /></label>
-            </CollapsibleSection>
             <AppearanceControls />
           </aside>}
         </main>
@@ -527,7 +536,7 @@ function App() {
       {filterColumnId && columnFor(filterColumnId) && <FilterPopup column={columnFor(filterColumnId)!} onClose={() => setFilterColumnId(undefined)} />}
       {showActiveFilters && <ActiveFiltersPopup onClose={() => setShowActiveFilters(false)} onEdit={(columnId) => { setShowActiveFilters(false); setFilterColumnId(columnId) }} />}
       {compatibilityMessage && <div className={`compatibility-message${compatibilityMessageTransient ? ' transient' : ''}`} role="alert"><span>{compatibilityMessage}</span><button aria-label="Dismiss message" onClick={clearCompatibilityMessage}>×</button></div>}
-      {projectSaveStatus && <div className="compatibility-message" role="status"><span>{projectSaveStatus}</span><button aria-label="Dismiss save message" onClick={() => setProjectSaveStatus(undefined)}>×</button></div>}
+      {projectSaveStatus && <div className={`compatibility-message${projectSaveSucceeded ? ' project-save-success' : ''}`} role="status"><span>{projectSaveStatus}</span><button aria-label="Dismiss save message" onClick={() => setProjectSaveStatus(undefined)}>×</button></div>}
       {pngError && <div className="compatibility-message" role="alert"><span>{pngError}</span><button aria-label="Dismiss PNG error" onClick={() => setPngError(undefined)}>×</button></div>}
       {linkError && <div className="compatibility-message" role="alert"><span>{linkError}</span><button aria-label="Dismiss link error" onClick={() => setLinkError(undefined)}>×</button></div>}
       {dragColumnId && <div className="drag-preview" role="status"><strong>{columnFor(dragColumnId)?.name}</strong><span>Drop on a role to assign · X and Y accept multiple variables · Size requires numeric data · Frequency requires whole-number counts</span></div>}

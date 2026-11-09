@@ -1,5 +1,7 @@
 # Graph Builder user guide
 
+Version 0.2.0 includes paired plots, group comparisons, nonlinear curves, figure layouts, and shared legends across layers. See the [release notes](release-0.2.0-notes.md) and [feature guide](v0.2.0-feature-guide.md).
+
 Graph Builder makes graphs from a table of measurements. It runs as a Windows app or in a desktop browser. Imported data stays on your computer. The built-in example is **synthetic practice data**, made for learning the controls and unrelated to a research study. Save an embedded project before importing new data or choosing **Reset example** if you want to keep your work.
 
 ## Contents
@@ -9,6 +11,7 @@ Graph Builder makes graphs from a table of measurements. It runs as a Windows ap
 - [Inspect and edit the data table](#inspect-and-edit-the-data-table)
 - [Variables and graph roles](#variables-and-graph-roles)
 - [Layers and statistical summaries](#layers-and-statistical-summaries)
+- [Compare two groups](#compare-two-groups)
 - [Filters and linked selection](#filters-and-linked-selection)
 - [Graph layout and appearance](#graph-layout-and-appearance)
 - [Projects templates and exports](#projects-templates-and-exports)
@@ -68,12 +71,14 @@ Each layer is one visual form drawn from the assigned variables. Use the **Add l
 | --- | --- | --- |
 | Points | Individual observations | Marker size, color, shape/size roles |
 | Line | Values connected across X | Line width and color |
+| Paired plot | Each subject's values connected across X categories | Subject ID, line width and color |
 | Bars | Summarized or supplied values by category | Summary, error bars, stacking |
 | Histogram | Distribution of numeric values | Number of bins |
 | Box plot | Median, quartiles, whiskers, and optional points | Show outliers, all points, or none |
 | Area | Values filled below a line | Compatible series may be stacked |
 | Mean line | A summary at each X value | Summary measure, error bars, observations |
 | Fit | A fitted straight line | Equation, sample size, R², fixed intercept |
+| Curve fit | A nonlinear dose–response or exponential decay curve | Model, equation, sample size, R², parameter estimates, residuals |
 | Smooth trend | A centered moving average | Odd-numbered window size |
 
 For **Bars** or **Mean line**, choose **Raw observations** when each row is a measurement. Available summaries include mean, count, sum, median, minimum, maximum, quantile, sample standard deviation (SD), and standard error (SE). A quantile is a requested percentile. Frequency weights count repeated observations. Raw SD uses `n − 1`; SE is SD divided by the square root of `n`. Confidence intervals use a two-sided Student's t calculation around a mean. A group with only one observation has no calculated uncertainty; the app shows a warning. Error bars apply to means, and stacked bars cannot have error bars.
@@ -81,6 +86,16 @@ For **Bars** or **Mean line**, choose **Raw observations** when each row is a me
 Choose **Precomputed means and errors** when each row already supplies a mean for an X category. Assign the supplied mean to Y, then choose its error column and optional sample-size column. Select whether the error is SD, SE, or a confidence-interval half-width. For a range, choose separate lower and upper bound columns. The app uses supplied values as entered; it does not infer raw observations or recalculate supplied confidence intervals. **Value scale** can use original values, percentage of a visible series total, or percentage of a chosen control X category. Error widths scale by the same factor; a total or control value must be positive.
 
 **Fit** can display an equation, sample size, and R², a measure of how closely a straight line follows the points. A fixed y-intercept forces the line through the entered y value. **Smooth trend** first averages repeated numeric X values, then uses the selected odd-sized window of neighboring distinct X positions. At plot edges, it uses the available neighbors. A box plot can use Y alone; clear X to show all Y observations in one box.
+
+For a **Paired plot**, assign a categorical X column (such as Before/After), a numeric Y measurement, and choose a **Subject ID** in **Properties → Layers**. Each row is one subject's measurement at one X category. The app connects only rows with the same Subject ID within the same visible series and panel. Subjects with one valid measurement show a single point. Rows without a Subject ID are omitted; a subject with repeated measurements at the same X category is omitted with a warning instead of averaging those measurements. Filters and excluded rows affect the plot. This plot does not run a statistical test.
+
+For **Curve fit**, assign numeric X and Y columns and select **Curve fit** as the layer. In **Properties → Layers**, choose a four-parameter dose–response curve or exponential decay. Use the **Show equation**, **Show sample size**, and **Show R²** checkboxes to place those details on the graph and its image export; they are off by default. Dose–response requires positive X values and at least six valid observations at four X values; exponential decay requires at least five valid observations at three X values. Add a **Points** layer if you want to see the observations alongside the fitted curve. The results show parameter estimates, approximate 95% confidence intervals, R² (how closely the curve follows the data), and a residual plot. Residuals are observed values minus fitted values; a pattern in them can signal a poor model choice. The fitted curve updates when you filter or exclude rows. A separate curve is fitted for each visible series and panel. Confidence intervals may be unavailable when the parameters cannot be estimated precisely.
+
+## Compare two groups
+
+Assign a categorical X column and a numeric Y column. Open **Properties → Compare groups**, choose **Add comparison**, then choose categories A and B. **Independent (Welch t test)** compares measurements from separate groups, including groups with different spreads. **Paired t test** matches observations by a **Subject ID** column; each subject needs one valid measurement in each selected category. Repeated measurements for the same subject and category are omitted rather than averaged.
+
+The result shows the mean difference **B minus A**, a confidence interval (a range of plausible differences), a two-sided p value, and the sample sizes. It also appears on the graph and its image export. The calculation uses only visible, included rows and updates with filters. With grouping or multiple panels, the comparison describes all visible rows for the first shared X and Y variables. Choose the comparison before interpreting the result; this tool compares one pair of categories at a time and does not adjust p values for multiple tests.
 
 ## Filters and linked selection
 
@@ -94,7 +109,7 @@ Open **Properties → Graph** to edit title and subtitle, choose whether multipl
 
 Choose **+ Panel** under Custom panels to build panels with different X and Y choices. Each panel can have its own title and axis titles. Leave a panel's X empty for a Y-only box plot. Group X, Group Y, Wrap, and layer X/Y overrides pause while custom panels or axis subplots are shown; removing those panels restores the earlier assignments. Double-click a displayed graph title, subtitle, panel title, or axis title to edit it directly; Enter saves, Escape cancels.
 
-Use **Properties → Graph** for graph grid controls, **Figure size and theme** for width, height, aspect ratio, theme, and font, **Axes and categories** for scale, limits, titles, and category order, and **Marks and colors** for symbols, opacity, line style, bars, error bars, palettes, and legend placement. The legend can hide/show a series with a click. Double-click a legend name to rename it; drag names to reorder them. Each legend entry has a color control. Click a data point to locate its source row when possible.
+Use **Properties → Graph** for titles and graph setup, **Figure size and theme** for width, height, aspect ratio, theme, and font, **Axes and categories** for grid lines, scale, limits, titles, and category order, and **Marks and colors** for the marker size slider, symbols, opacity, line style, bars, error bars, palettes, and legend placement. The legend can hide/show a series with a click. Double-click a legend name to rename it; drag names to reorder them. Each legend entry has a color control. Click a data point to locate its source row when possible.
 
 In **Figure size and theme**, choose Light, Print ready, or Dark. Enter width and height in pixels to use a fixed canvas, or leave them blank to fit the workspace. An aspect ratio sets width relative to height. Choose Segoe UI, Arial, or Georgia and set the graph font size. These choices are saved with the graph and used in exports.
 
@@ -109,6 +124,8 @@ For a target value or acceptable interval, use **Properties → Graph → Refere
 ## Projects templates and exports
 
 Open **Projects & export**. One project contains one dataset and one or more named graphs. Choose **New graph**, **Duplicate open graph**, or another graph name to switch graphs; **Rename** changes a graph name, and **Delete** asks for confirmation. The final graph cannot be deleted. Undo can restore a deletion while the project remains open.
+
+Under **Figure layout**, choose **Open layout** to arrange up to four saved graphs on one page. Select the graphs, drag the ⋮⋮ handle to reorder them, or use ↑ to move a graph earlier with a mouse or keyboard. Choose one or two columns and set the page title and size. **Include graph names above graphs** adds each saved graph name as a separate heading; the graph's own title remains visible when this box is cleared. Choose **PNG resolution** from 1×, 2×, or 3×, then download or save the figure PNG. Higher settings produce more pixels and larger files; very large pages may need a smaller size or resolution. **Download figure SVG** (or **Save figure SVG** in Windows) exports a vector page that stays sharp when resized and does not use the PNG resolution setting. Both formats include each graph's legend. If the page is too short for the selected number of graphs, increase its height or use fewer graphs so their axes remain readable. The layout arrangement, graph-name choice, and PNG resolution are saved in the project file; graph edits appear in the page preview when you reopen it. Removing a graph from the project also removes it from the layout.
 
 The Project file section shows whether the current project is embedded or linked, and **Data in saved file** starts with that mode selected. Give the project a name and choose a save mode. Press Enter in **Project name** to start saving, or choose **Save project…**. In the Windows app, a Save project dialog lets you confirm **Embedded** or **Linked** before opening the Windows file-location picker.
 
@@ -185,3 +202,19 @@ Native drag-and-drop has no general keyboard equivalent, so the selected-column 
 If import fails, the current dataset remains in place. Check the source file's headers, separators, quoting, and worksheet selection. If a linked project cannot reconnect, choose the original source file or save an embedded copy from a working session. If you replace data unexpectedly, use **Undo** before closing the app. A display failure offers **Reload Graph Builder**; reopen your last embedded project afterward if needed.
 
 The browser app needs a connection to load its code, but row data and local recovery stay on your device. The installed Windows app can run its core graphing workflow offline. Update checks require a connection and can be declined. Exported files go only where you choose. When reporting an issue, provide a small synthetic dataset rather than private research data.
+
+Legend corrections: In Windows desktop, drag a legend name onto another name to reorder it; Left/Right Arrow also works when the name is focused. When X and Color use the same category column, renaming a legend item also changes its X-axis label. Renames affect display labels, not source data, and identical names keep separate groups. With an Overlay or a different X variable, renaming changes the series name only. Legend names and order are saved with the graph and included in exports.
+
+On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. Project files and exports are unchanged.
+
+In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.
+
+The desktop **Project saved** banner fades and disappears after four seconds. Save errors stay visible until dismissed. This only changes the notification; saving and exports work as before.
+
+Image exports reserve space between a bottom legend and the X-axis title, including angled category labels and legends that wrap onto multiple rows. This applies to PNG, SVG, copied images, and figure-layout images. At small output sizes the plot area becomes smaller to fit the labels; increase the figure dimensions for more plotting space. Project saving is unchanged.
+
+**Projects & export** sections appear in this order: Project file, Graphs in this project, Recent projects (when available), Export open graph, Figure layout, Reusable graph template, and Desktop updates (Windows only). Older saved graphs appear beside the template section when available.
+
+With multiple layers, **Properties → Marks and colors → One legend entry per group across layers** is enabled by default, including for older projects. Layers using the same Color and Overlay variables share one entry per group and matching palette colors. Rename, recolor, hide/show, highlight, and reorder that entry to affect the group across layers. Shared colors override individual layer colors; when existing entries disagree, the first layer’s custom group name and color are used. Turn the option off for separate layer entries and colors. Different grouping variables and layers without Color or Overlay stay separate. The setting is stored in projects and graph templates, and shared legends are included in PNG, SVG, clipboard, and figure-layout exports.
+
+**Figure size and theme** is the final section at the bottom of the Properties panel, after **Axes and categories** and **Marks and colors**.

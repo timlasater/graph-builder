@@ -22,6 +22,10 @@ The primary supported workload is about 100–500 rows and 1,000–10,000 popula
 | Windows packaging | 0.1.4 release published; candidate and post-publication Windows checks reported complete | [0.1.4 release test plan](docs/release-0.1.4-test-plan.md), [release notes](docs/release-0.1.4-notes.md) |
 | Public landing page and downloads | Browser app and Windows installer links live and checked | `site/index.html`, Pages and desktop release workflows |
 
+## Version 0.2.0 release preparation
+
+Version 0.2.0 includes paired plots, two-group comparisons, nonlinear fits, multi-graph figure exports, and legend/interface fixes. See the [release notes and candidate checks](docs/release-0.2.0-notes.md). The signed workflow prepares a draft release; installed Windows validation remains separate from automated checks.
+
 ## Completed 0.1.4 release follow-up
 
 The user reports completing these checks after publication; detailed machine and test records were not supplied:

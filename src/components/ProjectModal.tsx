@@ -7,13 +7,35 @@ import { importTabularFile } from '../importData'
 import { datasetSignature } from '../datasetSignature'
 import { makeProject, parseProject, projectJson, rebuildLinkedDataset, type ProjectFile } from '../projects'
 import { saveCurrentDesktopProject } from '../projectSave'
+import { renderFigureLayout } from '../figureLayout'
 import { chooseSourceDataset } from '../sourceData'
 import { DesktopUpdater } from './DesktopUpdater'
+import { GraphCanvas } from './GraphCanvas'
 import { hasUnsavedProjectChanges, projectFingerprint, projectGraphs, useBuilderStore } from '../store'
 import { useDialogFocus } from '../useDialogFocus'
-import type { Dataset } from '../types'
+import type { Dataset, FigureLayout, GraphDocument } from '../types'
 
 interface PendingOpen { project: ProjectFile; dataset: Dataset; nativePath?: string }
+
+function DimensionInput({ value, min, max, onCommit }: { value: number; min: number; max: number; onCommit: (value: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const commit = () => {
+    const entered = draft ?? String(value)
+    const parsed = Number(entered)
+    const next = entered.trim() && Number.isFinite(parsed) ? Math.max(min, Math.min(max, Math.round(parsed))) : value
+    setDraft(null)
+    if (next !== value) onCommit(next)
+  }
+  return <input type="number" min={min} max={max} step="1" value={draft ?? String(value)} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} />
+}
+
+function DraggableFigureGraph({ graph, index, draggingId, onDragStart, onDragEnd, onDrop, onToggle, onMoveEarlier }: { graph: GraphDocument; index: number; draggingId?: string; onDragStart: (id: string) => void; onDragEnd: () => void; onDrop: (sourceId: string, targetId: string) => void; onToggle: () => void; onMoveEarlier: () => void }) {
+  return <div className={`figure-layout-choice${draggingId === graph.id ? ' dragging' : ''}`} data-graph-id={graph.id} onDragOver={(event) => { if (draggingId && draggingId !== graph.id) { event.preventDefault(); event.dataTransfer.dropEffect = 'move' } }} onDrop={(event) => { event.preventDefault(); onDrop(event.dataTransfer.getData('text/plain'), graph.id) }}>
+    <button type="button" draggable className="figure-layout-drag-handle" aria-label={`Drag ${graph.name} to reorder figure`} onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', graph.id); onDragStart(graph.id) }} onDragEnd={onDragEnd}>⋮⋮</button>
+    <label><input type="checkbox" checked onChange={onToggle} />{graph.name}</label>
+    {index > 0 && <button type="button" aria-label={`Move ${graph.name} earlier`} onClick={onMoveEarlier}>↑</button>}
+  </div>
+}
 
 export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, initialProjectFile, initialSavePrompt = false }: { onClose: () => void; autosaveStatus: string; initialProjectPath?: string; initialProjectFile?: File; initialSavePrompt?: boolean }) {
   const state = useBuilderStore()
@@ -21,6 +43,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
   const projectInput = useRef<HTMLInputElement>(null)
   const sourceInput = useRef<HTMLInputElement>(null)
   const templateInput = useRef<HTMLInputElement>(null)
+  const layoutPreviewRef = useRef<HTMLDivElement>(null)
   const [name, setName] = useState(projectName)
   const [graphName, setGraphName] = useState(activeGraphName)
   const [templateName, setTemplateName] = useState(activeGraphName)
@@ -33,6 +56,8 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
   const [width, setWidth] = useState(spec.graphWidth ?? 1200)
   const [height, setHeight] = useState(spec.graphHeight ?? 800)
   const [scale, setScale] = useState(2)
+  const [showLayout, setShowLayout] = useState(false)
+  const [draggingFigureId, setDraggingFigureId] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [updateInstalling, setUpdateInstalling] = useState(false)
   const [message, setMessage] = useState<string>()
@@ -66,7 +91,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     if (initialProjectPath || initialProjectFile) onClose()
   }
   const completeOpen = ({ project, dataset: nextDataset, nativePath }: PendingOpen) => {
-    openProject(project.name, nextDataset, project.graphs, project.activeGraphId, nativePath, project.data.mode)
+    openProject(project.name, nextDataset, project.graphs, project.activeGraphId, nativePath, project.data.mode, project.figureLayout)
     if (nativePath) rememberProject(nativePath, project.name)
     setPendingOpen(undefined); setPendingLinked(undefined)
     onClose()
@@ -80,7 +105,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     setBusy(true); setSaveError(undefined)
     try {
       const current = useBuilderStore.getState()
-      const backup = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded')
+      const backup = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded', current.figureLayout)
       if (isDesktop()) {
         const path = await saveCurrentDesktopProject(false, pendingOpen.nativePath)
         if (!path) { setSaveError('Saving was canceled. Your current project is still open.'); return }
@@ -94,6 +119,30 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
     finally { setBusy(false) }
   }
   const graphs = projectGraphs(state)
+  const figureLayout: FigureLayout = state.figureLayout ?? { title: 'Figure layout', graphIds: [activeGraphId], columns: 2, width: 1200, height: 900, includeGraphNames: true, pngScale: 1 }
+  const selectedLayoutGraphs = figureLayout.graphIds.map((id) => graphs.find((graph) => graph.id === id)).filter((graph): graph is (typeof graphs)[number] => Boolean(graph))
+  const changeLayout = (patch: Partial<FigureLayout>) => state.setFigureLayout({ ...figureLayout, ...patch })
+  const reorderLayout = (sourceId: string, targetId: string) => {
+    setDraggingFigureId(undefined)
+    const from = figureLayout.graphIds.indexOf(sourceId)
+    const to = figureLayout.graphIds.indexOf(targetId)
+    if (from < 0 || to < 0 || from === to) return
+    const ids = [...figureLayout.graphIds]
+    ids.splice(to, 0, ids.splice(from, 1)[0])
+    changeLayout({ graphIds: ids })
+  }
+  const exportLayout = async (format: ImageFormat) => {
+    if (!layoutPreviewRef.current || !selectedLayoutGraphs.length) return
+    setBusy(true); setMessage(undefined)
+    try {
+      if (!state.figureLayout) state.setFigureLayout(figureLayout)
+      const image = await renderFigureLayout(figureLayout, layoutPreviewRef.current, selectedLayoutGraphs.map((graph) => graph.name), format)
+      if (isDesktop()) { if (!await saveDesktopImage(`${safeFileName(figureLayout.title)}.${format}`, image, format)) return }
+      else downloadImage(`${safeFileName(figureLayout.title)}.${format}`, image)
+      setMessage(`Figure ${format.toUpperCase()} ${isDesktop() ? 'saved' : 'downloaded'} at ${figureLayout.width} × ${figureLayout.height}${format === 'png' ? ` (${figureLayout.pngScale ?? 1}× resolution)` : ''}.`)
+    } catch (error) { report(error) }
+    finally { setBusy(false) }
+  }
   const pendingDelete = graphs.find((graph) => graph.id === pendingDeleteId)
   const confirmDelete = () => {
     if (!pendingDeleteId || graphs.length <= 1) return
@@ -117,7 +166,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
         useBuilderStore.getState().setDatasetSource(selected.source)
       }
       const current = useBuilderStore.getState()
-      const project = makeProject(name, current.dataset, projectGraphs(current), current.activeGraphId, mode)
+      const project = makeProject(name, current.dataset, projectGraphs(current), current.activeGraphId, mode, current.figureLayout)
       const fingerprint = projectFingerprint({ ...current, projectName: project.name, projectMode: mode })
       if (isDesktop()) {
         const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project), 'graphbuilder')
@@ -136,7 +185,7 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
   const saveBeforeUpdate = async () => {
     try {
       const current = useBuilderStore.getState()
-      const project = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded')
+      const project = makeProject(current.projectName, current.dataset, projectGraphs(current), current.activeGraphId, 'embedded', current.figureLayout)
       const path = await saveDesktopText(`${safeFileName(project.name)}.graphbuilder`, projectJson(project), 'graphbuilder')
       if (!path) return false
       rememberProject(path, project.name)
@@ -274,13 +323,21 @@ export function ProjectModal({ onClose, autosaveStatus, initialProjectPath, init
       <header><div><span className="eyebrow">PROJECTS & EXPORT</span><h2 id="project-title">Projects</h2><p>Keep several named graphs with one dataset. Download a project to take it with you, or reopen one later.</p></div><button className="dialog-close" aria-label="Close projects" disabled={updateInstalling || Boolean(pendingOpen || openError)} onClick={onClose}>×</button></header>
       <div className="project-body">
         <section className="project-section"><h3>Project file</h3><span className="project-save-state">Current project: <strong>{state.projectMode === 'embedded' ? 'Embedded — includes data' : 'Linked — reconnects source'}</strong></span><label>Project name<input value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing && !busy) { event.preventDefault(); beginSave() } }} /></label><div className="project-actions"><label>Data in saved file<select value={mode} onChange={(event) => setMode(event.target.value as 'embedded' | 'linked')}><option value="embedded">Embedded — include data</option><option value="linked">Linked — reconnect source</option></select></label><button disabled={busy} onClick={beginSave}>{isDesktop() ? 'Save project…' : 'Download project'}</button><button disabled={busy} onClick={() => void chooseProject()}>Open project…</button></div>{mode === 'linked' && dataset.source?.fileName && <span className="project-save-state">Source location: <strong>{dataset.source.nativePath ?? `${dataset.source.fileName} (${isDesktop() ? 'choose its location when saving' : 'folder path unavailable in the browser'})`}</strong></span>}<small>Embedded projects preserve every data edit. Linked projects reopen the latest source and restore column settings and formulas, but not individual cell edits or excluded rows. All files stay on your computer. {autosaveStatus}</small></section>
-        {isDesktop() && <DesktopUpdater saveBeforeInstall={saveBeforeUpdate} onInstalling={setUpdateInstalling} />}
-        {recent.length > 0 && <section className="project-section"><div className="project-section-heading"><h3>Recent projects</h3><button className="clear-recent-button" disabled={busy} onClick={() => { clearRecentProjects(); setRecent([]); setMessage('Recent projects cleared. Your project files were not deleted.') }}>Clear recent projects</button></div><div className="project-graph-list">{recent.map((item) => <button key={item.path} title={item.path} disabled={busy} onClick={() => void readProject(undefined, item.path)}>{item.name}</button>)}</div></section>}
         {pendingLinked && pendingLinked.data.mode === 'linked' && <section className="project-section project-reconnect"><h3>Reconnect linked data</h3><p>{pendingLinked.data.source.fileName}{pendingLinked.data.source.sheetName ? ` · ${pendingLinked.data.source.sheetName}` : ''}</p><p className="source-last-path">Last found at {pendingLinked.data.source.nativePath ?? pendingLinked.data.source.fileName}{!pendingLinked.data.source.nativePath && <span> {isDesktop() ? '(folder path was not saved with this project)' : '(folder path unavailable in the browser)'}</span>}</p><div className="project-actions"><button disabled={busy} onClick={() => void chooseLinkedSource()}>Choose source file…</button><button onClick={() => { setPendingLinked(undefined); setPendingLinkedPath(undefined); setMessage('Linked project opening cancelled. Your current project is unchanged.'); if (initialProjectPath || initialProjectFile) onClose() }}>Cancel</button></div></section>}
         <section className="project-section"><h3>Graphs in this project</h3><div className="project-graph-list">{graphs.map((graph) => <div className="project-graph-item" key={graph.id}><button className={graph.id === activeGraphId ? 'active' : ''} disabled={graph.id === activeGraphId} onClick={() => { openGraph(graph.id); setGraphName(graph.name); setTemplateName(graph.name); setPendingDeleteId(undefined) }}>{graph.name}{graph.id === activeGraphId ? ' · open' : ''}</button><button className="project-delete-button" disabled={graphs.length === 1} aria-label={`Delete ${graph.name}`} title={graphs.length === 1 ? 'A project must have at least one graph' : `Delete ${graph.name}`} onClick={() => setPendingDeleteId(graph.id)}>Delete</button></div>)}</div>{pendingDelete && <div className="project-delete-confirm" role="group" aria-label="Confirm graph deletion"><span>Delete “{pendingDelete.name}” from this project?</span><button onClick={confirmDelete}>Delete graph</button><button onClick={() => setPendingDeleteId(undefined)}>Cancel</button></div>}<div className="project-actions"><button onClick={() => { newGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>New graph</button><button onClick={() => { duplicateGraph(); const next = useBuilderStore.getState().activeGraphName; setGraphName(next); setTemplateName(next) }}>Duplicate open graph</button></div><div className="project-actions"><label>Open graph name<input value={graphName} onChange={(event) => setGraphName(event.target.value)} /></label><button onClick={() => renameGraph(graphName)}>Rename</button></div></section>
+        {recent.length > 0 && <section className="project-section"><div className="project-section-heading"><h3>Recent projects</h3><button className="clear-recent-button" disabled={busy} onClick={() => { clearRecentProjects(); setRecent([]); setMessage('Recent projects cleared. Your project files were not deleted.') }}>Clear recent projects</button></div><div className="project-graph-list">{recent.map((item) => <button key={item.path} title={item.path} disabled={busy} onClick={() => void readProject(undefined, item.path)}>{item.name}</button>)}</div></section>}
+        <section className="project-section"><h3>Export open graph</h3><div className="project-dimensions"><label>Width (px)<DimensionInput value={width} min={320} max={6000} onCommit={setWidth} /></label><label>Height (px)<DimensionInput value={height} min={240} max={6000} onCommit={setHeight} /></label><label>PNG resolution<select value={scale} onChange={(event) => setScale(Number(event.target.value))}><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label></div><div className="project-actions"><button disabled={busy} onClick={() => void image('png')}>{isDesktop() ? 'Save PNG…' : 'Download PNG'}</button><button disabled={busy} onClick={() => void image('svg')}>{isDesktop() ? 'Save SVG…' : 'Download SVG'}</button><button disabled={busy} onClick={() => void clipboard()}>Copy PNG</button><button disabled={busy} onClick={() => void exportData()}>Export plotted data CSV</button></div><small>SVG is vector artwork that stays sharp when resized. PNG uses the chosen resolution. The export includes a printable legend.</small></section>
+        <section className="project-section"><div className="project-section-heading"><h3>Figure layout</h3><button onClick={() => setShowLayout((open) => !open)}>{showLayout ? 'Hide layout' : 'Open layout'}</button></div>{showLayout && <><p>Arrange up to four saved graphs on one page. The arrangement stays in the project file.</p><label>Page title<input value={figureLayout.title} onChange={(event) => changeLayout({ title: event.target.value })} /></label><div className="project-dimensions"><label>Columns<select value={figureLayout.columns} onChange={(event) => changeLayout({ columns: Number(event.target.value) as 1 | 2 })}><option value="1">One</option><option value="2">Two</option></select></label><label>Width (px)<DimensionInput value={figureLayout.width} min={320} max={6000} onCommit={(value) => changeLayout({ width: value })} /></label><label>Height (px)<DimensionInput value={figureLayout.height} min={240} max={6000} onCommit={(value) => changeLayout({ height: value })} /></label></div>
+            <div className="figure-layout-choices">
+              {selectedLayoutGraphs.map((graph, index) => <DraggableFigureGraph key={graph.id} graph={graph} index={index} draggingId={draggingFigureId} onDragStart={setDraggingFigureId} onDragEnd={() => setDraggingFigureId(undefined)} onDrop={reorderLayout} onToggle={() => changeLayout({ graphIds: figureLayout.graphIds.filter((id) => id !== graph.id) })} onMoveEarlier={() => reorderLayout(graph.id, figureLayout.graphIds[index - 1])} />)}
+              {graphs.filter((graph) => !figureLayout.graphIds.includes(graph.id)).map((graph) => <div className="figure-layout-choice" key={graph.id}><label><input type="checkbox" disabled={figureLayout.graphIds.length >= 4} onChange={() => changeLayout({ graphIds: [...figureLayout.graphIds, graph.id] })} />{graph.name}</label></div>)}
+            </div>
+        <label className="figure-layout-name-toggle"><input type="checkbox" checked={figureLayout.includeGraphNames !== false} onChange={(event) => changeLayout({ includeGraphNames: event.target.checked })} /><span>Include graph names above graphs</span></label>
+        <div ref={layoutPreviewRef} className="figure-layout-preview" style={{ gridTemplateColumns: `repeat(${Math.min(figureLayout.columns, Math.max(1, selectedLayoutGraphs.length))}, minmax(0, 1fr))` }}>{selectedLayoutGraphs.map((graph) => <div className={`figure-layout-panel${figureLayout.includeGraphNames === false ? ' without-names' : ''}`} data-graph-id={graph.id} data-legend-placement={graph.spec.legendPlacement ?? 'bottom'} key={graph.id}>{figureLayout.includeGraphNames !== false && <strong>{graph.name}</strong>}<GraphCanvas preview={{ spec: graph.spec, filters: graph.filters }} /></div>)}</div>
+        <div className="project-actions"><label>PNG resolution<select value={figureLayout.pngScale ?? 1} onChange={(event) => changeLayout({ pngScale: Number(event.target.value) as 1 | 2 | 3 })}><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label><button disabled={busy || !selectedLayoutGraphs.length} onClick={() => void exportLayout('png')}>{isDesktop() ? 'Save figure PNG…' : 'Download figure PNG'}</button><button disabled={busy || !selectedLayoutGraphs.length} onClick={() => void exportLayout('svg')}>{isDesktop() ? 'Save figure SVG…' : 'Download figure SVG'}</button></div><small>Graph edits update the page when you reopen it. PNG uses the chosen resolution; SVG stays sharp when resized. Graph titles remain visible when graph names are hidden.</small></>}</section>
         <section className="project-section"><h3>Reusable graph template</h3><p>Templates save the current graph and filters without data; import them with a dataset that has matching columns.</p><div className="project-actions"><label>Template name<input value={templateName} onChange={(event) => setTemplateName(event.target.value)} /></label><button onClick={() => void exportTemplate()}>{isDesktop() ? 'Save template…' : 'Download template'}</button><button disabled={busy} onClick={() => void chooseTemplate()}>Open template…</button></div></section>
         {legacyTemplates.length > 0 && <section className="project-section"><h3>Previous saved graphs</h3><p>Download each saved graph as a template before clearing this browser's data. Templates keep graph settings and filters, but need the original dataset when opened.</p><div className="project-graph-list">{legacyTemplates.map((template, index) => <div className="project-graph-item" key={`${template.name}-${index}`}><span>{template.name}</span><button onClick={() => downloadText(`${safeFileName(template.name)}.graphbuilder-template.json`, JSON.stringify(template, null, 2))}>Download template</button></div>)}</div></section>}
-        <section className="project-section"><h3>Export open graph</h3><div className="project-dimensions"><label>Width (px)<input type="number" min="320" max="6000" value={width} onChange={(event) => setWidth(Math.max(320, Math.min(6000, Number(event.target.value) || 320)))} /></label><label>Height (px)<input type="number" min="240" max="6000" value={height} onChange={(event) => setHeight(Math.max(240, Math.min(6000, Number(event.target.value) || 240)))} /></label><label>PNG resolution<select value={scale} onChange={(event) => setScale(Number(event.target.value))}><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option></select></label></div><div className="project-actions"><button disabled={busy} onClick={() => void image('png')}>{isDesktop() ? 'Save PNG…' : 'Download PNG'}</button><button disabled={busy} onClick={() => void image('svg')}>{isDesktop() ? 'Save SVG…' : 'Download SVG'}</button><button disabled={busy} onClick={() => void clipboard()}>Copy PNG</button><button disabled={busy} onClick={() => void exportData()}>Export plotted data CSV</button></div><small>SVG is vector artwork that stays sharp when resized. PNG uses the chosen resolution. The export includes a printable legend.</small></section>
+        {isDesktop() && <DesktopUpdater saveBeforeInstall={saveBeforeUpdate} onInstalling={setUpdateInstalling} />}
       </div>
       {message && <p className="project-message" role="status">{message}</p>}
       <input ref={projectInput} className="visually-hidden" type="file" tabIndex={-1} aria-label="Choose a project file" accept=".graphbuilder,.graphbuilder.json,.json" onChange={(event) => void readProject(event.target.files?.[0])} />

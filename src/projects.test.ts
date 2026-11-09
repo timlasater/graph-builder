@@ -6,6 +6,16 @@ import { makeProject, parseProject, projectJson, rebuildLinkedDataset } from './
 const graph = () => ({ id: 'one', name: 'Dose chart', spec: structuredClone(useBuilderStore.getState().spec), filters: [] })
 
 describe('project files', () => {
+  it('preserves the shared layer legend setting and rejects invalid values', () => {
+    const savedGraph = graph()
+    savedGraph.spec.sharedLayerLegend = false
+    const project = makeProject('Legends', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')
+    expect(parseProject(projectJson(project)).graphs[0].spec.sharedLayerLegend).toBe(false)
+    const invalid = JSON.parse(projectJson(project))
+    invalid.graphs[0].spec.sharedLayerLegend = 'yes'
+    expect(() => parseProject(JSON.stringify(invalid))).toThrow()
+  })
+
   it('round-trips an embedded project with rows, formulas, and graphs', () => {
     const dataset = structuredClone(sampleDataset)
     dataset.columns.push({ id: 'doubled', name: 'Doubled dose', dataType: 'number', modelingType: 'continuous', formula: '[dose] * 2' })
@@ -67,6 +77,24 @@ describe('project files', () => {
     expect(linked.data.mode === 'linked' && linked.data.source.nativePath).toBe(dataset.source.nativePath)
     const embedded = parseProject(projectJson(makeProject('Embedded', dataset, [graph()], 'one', 'embedded')))
     expect(embedded.data.mode === 'embedded' && embedded.data.dataset.source?.nativePath).toBeUndefined()
+  })
+
+  it('round-trips a paired plot and validates its subject ID column', () => {
+    const savedGraph = graph()
+    savedGraph.spec.layers = [{ id: 'paired', name: 'Paired plot', element: 'paired', pairId: 'prototype' }]
+    savedGraph.spec.activeLayerId = 'paired'
+    const project = makeProject('Paired study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')
+    expect(parseProject(projectJson(project)).graphs[0].spec.layers[0].pairId).toBe('prototype')
+    savedGraph.spec.layers[0].pairId = 'missing-column'
+    expect(() => parseProject(projectJson(makeProject('Paired study', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')))).toThrow('missing column')
+  })
+
+  it('preserves a figure layout and rejects missing graph references', () => {
+    const layout = { title: 'Results figure', graphIds: ['one'], columns: 1 as const, width: 1200, height: 800, includeGraphNames: false, pngScale: 2 as const }
+    const project = makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', layout)
+    expect(parseProject(projectJson(project)).figureLayout).toEqual(layout)
+    expect(() => makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', { ...layout, graphIds: ['missing'] })).toThrow('figure layout')
+    expect(() => makeProject('Figure study', structuredClone(sampleDataset), [graph()], 'one', 'embedded', { ...layout, pngScale: 4 as 1 })).toThrow('figure layout')
   })
 
   it('remembers skipped import rows in linked projects', () => {

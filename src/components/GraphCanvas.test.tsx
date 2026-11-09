@@ -8,10 +8,53 @@ import { GraphCanvas } from './GraphCanvas'
 const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown>; onTitleDoubleClick: (target: { kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }) => void } | undefined }))
 vi.mock('./PlotlyChart', () => ({ PlotlyChart: (props: typeof chart.props) => { chart.props = props; return <div data-testid="plot" /> } }))
 
+const desktop = vi.hoisted(() => ({ enabled: false }))
+vi.mock('../desktopFiles', () => ({ isDesktop: () => desktop.enabled }))
+
 const original = useBuilderStore.getState()
-afterEach(() => { cleanup(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
+afterEach(() => { cleanup(); desktop.enabled = false; vi.restoreAllMocks(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
 
 describe('GraphCanvas panels', () => {
+  it('links a two-group comparison result to the visible graph', () => {
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['A', 2], ['A', 3], ['B', 4], ['B', 5], ['B', 6]], 'Comparison')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: undefined, comparison: { method: 'welch', categoryA: 'A', categoryB: 'B', confidenceLevel: 0.95 } } })
+    render(<GraphCanvas />)
+    const annotations = chart.props!.layout.annotations as { text: string }[]
+    expect(annotations.some((annotation) => annotation.text.includes('B − A: 3') && annotation.text.includes('95% CI'))).toBe(true)
+  })
+
+  it('draws a nonlinear dose–response curve from positive X values', () => {
+    const dataset = datasetFromMatrix([['Dose', 'Response'], [0.25, 2.12], [0.5, 2.38], [1, 2.89], [2, 4.2], [4, 6.06], [8, 8.06], [16, 9.14], [32, 9.72]], 'Curve')
+    const [x, y] = dataset.columns
+    const layer = { id: 'curve', name: 'Curve fit', element: 'nonlinear' as const, nonlinearModel: 'doseResponse' as const, showEquation: true, showSampleSize: true, showRSquared: true }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: undefined, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    expect(chart.props!.data[0].mode).toBe('lines')
+    expect((chart.props!.data[0].x as number[]).length).toBe(150)
+    expect((chart.props!.data[0].y as number[])[0]).toBeLessThan((chart.props!.data[0].y as number[]).at(-1)!)
+    const annotations = chart.props!.layout.annotations as { text: string }[]
+    expect(annotations.some((annotation) => annotation.text.includes('ŷ =') && annotation.text.includes('R² =') && annotation.text.includes('n = 8'))).toBe(true)
+  })
+
+  it('draws one connected trace per subject and preserves source-row selection IDs', () => {
+    const dataset = datasetFromMatrix([
+      ['Subject', 'Visit', 'Value', 'Group'],
+      ['A', 'Before', 2, 'Drug'], ['B', 'Before', 3, 'Drug'], ['A', 'After', 5, 'Drug'], ['B', 'After', 6, 'Drug'],
+    ], 'Paired')
+    const [id, x, y, group] = dataset.columns
+    x.modelingType = 'nominal'
+    const layer = { id: 'paired', name: 'Paired plot', element: 'paired' as const, pairId: id.id }
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: group.id, layers: [layer], activeLayerId: layer.id } })
+    render(<GraphCanvas />)
+    const traces = chart.props!.data
+    expect(traces).toHaveLength(2)
+    expect(traces.map((trace) => trace.mode)).toEqual(['lines+markers', 'lines+markers'])
+    expect(traces.map((trace) => trace.y)).toEqual([[2, 5], [3, 6]])
+    expect(traces.map((trace) => trace.customdata)).toEqual([[dataset.rows[0].id, dataset.rows[2].id], [dataset.rows[1].id, dataset.rows[3].id]])
+    expect(traces.map((trace) => trace.showlegend)).toEqual([true, false])
+  })
+
   it('colors two Y variables differently, including with a Color grouping', () => {
     const dataset = datasetFromMatrix([['X', 'Left', 'Right', 'Group'], [1, 10, 1000, 'A'], [2, 20, 2000, 'B'], [3, 30, 3000, 'A']], 'Dual colors')
     const [x, left, right, group] = dataset.columns.map((column) => column.id)
@@ -192,6 +235,120 @@ describe('GraphCanvas panels', () => {
     render(<GraphCanvas />)
     expect(chart.props!.data.filter((trace) => trace.xaxis === 'x2').every((trace) => trace.type === 'box')).toBe(true)
     expect(new Set(chart.props!.data.filter((trace) => trace.xaxis === 'x2').flatMap((trace) => trace.x as string[]))).toEqual(new Set(['All observations']))
+  })
+
+  it('shares group names, colors, visibility and order across layers by default', () => {
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 3]], 'Layers')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [
+      { id: 'boxes', name: 'Boxes', element: 'box', colorHex: '#ff0000' },
+      { id: 'points', name: 'Points', element: 'points', colorHex: '#00ff00' },
+    ] } })
+    render(<GraphCanvas />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+    expect(chart.props!.data.map((trace) => trace.showlegend)).toEqual([true, true, false, false])
+    const groupA = () => chart.props!.data.filter((trace) => (trace.x as string[]).includes('A'))
+    expect(new Set(groupA().map((trace) => (trace.marker as { color: string }).color)).size).toBe(1)
+    fireEvent.change(screen.getByLabelText('Change color for A'), { target: { value: '#123456' } })
+    expect(groupA().every((trace) => (trace.marker as { color: string }).color === '#123456')).toBe(true)
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'A' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Rename A' }), { target: { value: 'Control' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Rename A' }))
+    expect(groupA().every((trace) => trace.name === 'Control')).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Control' }))
+    expect(groupA().every((trace) => trace.visible === 'legendonly')).toBe(true)
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Control' }), { key: 'ArrowRight' })
+    expect(chart.props!.data.map((trace) => trace.name)).toEqual(['B', 'Control', 'B', 'Control'])
+  })
+
+  it('allows separate legend entries and layer colors when sharing is disabled', () => {
+    useBuilderStore.setState({ spec: { ...original.spec, sharedLayerLegend: false, layers: [
+      { id: 'boxes', name: 'Boxes', element: 'box', colorHex: '#ff0000' },
+      { id: 'points', name: 'Points', element: 'points', colorHex: '#00ff00' },
+    ] } })
+    render(<GraphCanvas />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(6)
+    expect(chart.props!.data.every((trace) => trace.showlegend)).toBe(true)
+    expect((chart.props!.data[0].marker as { color: string }).color).toBe('#ff0000')
+    expect((chart.props!.data[3].marker as { color: string }).color).toBe('#00ff00')
+  })
+
+  it('does not merge matching values from different color variables', () => {
+    const dataset = datasetFromMatrix([['Group', 'Other', 'Value'], ['A', 'A', 1], ['B', 'B', 3]], 'Groups')
+    const [x, other, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [
+      { id: 'boxes', name: 'Boxes', element: 'box' },
+      { id: 'points', name: 'Points', element: 'points', color: other.id },
+    ] } })
+    render(<GraphCanvas />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    expect(chart.props!.data.every((trace) => trace.showlegend)).toBe(true)
+  })
+
+  it('updates box category labels without merging groups or changing their values', () => {
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['A', 2], ['B', 3], ['B', 4]], 'Boxes')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [{ id: 'box', name: 'Box', element: 'box' }] } })
+    render(<GraphCanvas />)
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'A' }))
+    const editor = screen.getByRole('textbox', { name: 'Rename A' })
+    fireEvent.change(editor, { target: { value: 'B' } })
+    fireEvent.blur(editor)
+    expect(chart.props!.layout.xaxis).toMatchObject({ tickvals: ['A', 'B'], ticktext: ['B', 'B'] })
+    expect(chart.props!.data.map((trace) => trace.x)).toEqual([['A', 'A'], ['B', 'B']])
+    expect(chart.props!.data[0].name).toBe('B')
+    expect(dataset.rows[0].values[x.id]).toBe('A')
+  })
+
+  it.each([
+    { side: 'left', dropX: 10, expected: ['B', 'A', 'C'] },
+    { side: 'right', dropX: 590, expected: ['A', 'C', 'B'] },
+    { side: 'left blank space', dropX: 150, expected: ['B', 'A', 'C'] },
+    { side: 'right blank space', dropX: 450, expected: ['A', 'C', 'B'] },
+    { side: 'outside the legend', dropX: 650, expected: ['A', 'B', 'C'] },
+  ])('moves a desktop label to the $side edge without an item under the pointer', ({ dropX, expected }) => {
+    desktop.enabled = true
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 2], ['C', 3]], 'Boxes')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [{ id: 'box', name: 'Box', element: 'box' }] } })
+    render(<GraphCanvas />)
+    const source = screen.getByRole('button', { name: 'B' })
+    const legend = screen.getByRole('list', { name: 'Graph series; drag to reorder' })
+    vi.spyOn(legend, 'getBoundingClientRect').mockReturnValue({ left: 0, right: 600, top: 0, bottom: 50 } as DOMRect)
+    legend.querySelectorAll('[data-legend-id]').forEach((entry, index) => {
+      vi.spyOn(entry, 'getBoundingClientRect').mockReturnValue({ left: 200 + index * 50, right: 250 + index * 50 } as DOMRect)
+    })
+    Object.defineProperty(source, 'setPointerCapture', { value: vi.fn(), configurable: true })
+    Object.defineProperty(document, 'elementFromPoint', { value: vi.fn(() => dropX > 600 ? null : legend), configurable: true })
+    vi.stubGlobal('PointerEvent', MouseEvent)
+    fireEvent.pointerDown(source, { button: 0, clientX: 275, clientY: 25 })
+    fireEvent.pointerMove(source, { clientX: dropX, clientY: 25 })
+    fireEvent.pointerUp(source, { clientX: dropX, clientY: 25 })
+    fireEvent.click(source)
+    expect(chart.props!.layout.xaxis).toMatchObject({ categoryarray: expected })
+    expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
+    vi.unstubAllGlobals()
+  })
+
+  it('reorders desktop box categories with pointer dragging without hiding a series', () => {
+    desktop.enabled = true
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 2]], 'Boxes')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [{ id: 'box', name: 'Box', element: 'box' }] } })
+    render(<GraphCanvas />)
+    const source = screen.getByRole('button', { name: 'A' })
+    const target = screen.getByRole('button', { name: 'B' })
+    Object.defineProperty(source, 'setPointerCapture', { value: vi.fn(), configurable: true })
+    Object.defineProperty(document, 'elementFromPoint', { value: vi.fn(() => target), configurable: true })
+    // jsdom does not supply PointerEvent coordinates by default.
+    vi.stubGlobal('PointerEvent', MouseEvent)
+    fireEvent.pointerDown(source, { button: 0, clientX: 0, clientY: 0 })
+    fireEvent.pointerMove(source, { clientX: 100, clientY: 0 })
+    fireEvent.pointerUp(source, { clientX: 100, clientY: 0 })
+    fireEvent.click(source)
+    expect(chart.props!.layout.xaxis).toMatchObject({ categoryarray: ['B', 'A'] })
+    expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
+    vi.unstubAllGlobals()
   })
 
   it('renames a legend entry on double-click without hiding it', () => {
