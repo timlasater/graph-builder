@@ -101,3 +101,7 @@ Image exports reserve space between a bottom legend and the X-axis title, includ
 **Projects & export** sections appear in this order: Project file, Graphs in this project, Recent projects (when available), Export open graph, Figure layout, Reusable graph template, and Desktop updates (Windows only). Older saved graphs appear beside the template section when available.
 
 With multiple layers, **Properties → Marks and colors → One legend entry per group across layers** is enabled by default, including for older projects. Layers using the same Color and Overlay variables share one entry per group and matching palette colors. Rename, recolor, hide/show, highlight, and reorder that entry to affect the group across layers. Shared colors override individual layer colors; when existing entries disagree, the first layer’s custom group name and color are used. Turn the option off for separate layer entries and colors. Different grouping variables and layers without Color or Overlay stay separate. The setting is stored in projects and graph templates, and shared legends are included in PNG, SVG, clipboard, and figure-layout exports.
+
+Appearance controls are consolidated: **Marks and colors** includes the marker size slider, and **Axes and categories** includes **Show grid lines**. The shared-layer legend checkbox and its text are left-aligned on one row.
+
+**Figure size and theme** is the final section at the bottom of the Properties panel, after **Axes and categories** and **Marks and colors**.

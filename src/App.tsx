@@ -524,12 +524,6 @@ function App() {
               </div>)}</>}
               <ReferenceControls spec={spec} updateSpec={updateSpec} />
             </CollapsibleSection>
-            <CollapsibleSection title="Marks">
-              <label className="range-label"><span>Marker size</span><output>{spec.markerSize}px</output><input type="range" min="4" max="18" value={spec.markerSize} onChange={(event) => updateSpec({ markerSize: Number(event.target.value) })} /></label>
-            </CollapsibleSection>
-            <CollapsibleSection title="Axes">
-              <label className="toggle-row"><span>Show grid lines</span><input type="checkbox" checked={spec.showGrid} onChange={(event) => updateSpec({ showGrid: event.target.checked })} /></label>
-            </CollapsibleSection>
             <AppearanceControls />
           </aside>}
         </main>
