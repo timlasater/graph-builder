@@ -208,3 +208,5 @@ On startup, autosaved projects containing only unchanged built-in example data r
 In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.
 
 The desktop **Project saved** banner fades and disappears after four seconds. Save errors stay visible until dismissed. This only changes the notification; saving and exports work as before.
+
+Image exports reserve space between a bottom legend and the X-axis title, including angled category labels and legends that wrap onto multiple rows. This applies to PNG, SVG, copied images, and figure-layout images. At small output sizes the plot area becomes smaller to fit the labels; increase the figure dimensions for more plotting space. Project saving is unchanged.

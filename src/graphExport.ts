@@ -15,7 +15,7 @@ const exportLayout = (figure: Figure, width: number, height: number, compact: bo
     ...figure.layout,
     width, height, autosize: false,
     showlegend: placement !== 'hidden',
-    legend: placement === 'right' ? { orientation: 'v', x: 1.02, y: 1, xanchor: 'left', yanchor: 'top' } : placement === 'top' ? { orientation: 'h', x: 0, y: 1.12, xanchor: 'left', yanchor: 'bottom' } : { orientation: 'h', x: 0, y: -0.18, xanchor: 'left', yanchor: 'top' },
+    legend: placement === 'right' ? { orientation: 'v', x: 1.02, y: 1, xanchor: 'left', yanchor: 'top' } : placement === 'top' ? { orientation: 'h', x: 0, y: 1.12, xanchor: 'left', yanchor: 'bottom' } : { orientation: 'h', x: 0, y: 12 / height, yref: 'container', xanchor: 'left', yanchor: 'bottom' },
     margin: compact
       ? { ...originalMargin, b: placement === 'bottom' ? 78 : originalMargin?.b ?? 44, r: placement === 'right' ? 120 : originalMargin?.r ?? 24, t: placement === 'top' ? 86 : originalMargin?.t ?? 58 }
       : { ...originalMargin, b: placement === 'bottom' ? Math.max(originalMargin?.b ?? 54, 130) : originalMargin?.b ?? 54, r: placement === 'right' ? Math.max(originalMargin?.r ?? 24, 160) : originalMargin?.r ?? 24, t: placement === 'top' ? Math.max(originalMargin?.t ?? 100, 145) : originalMargin?.t ?? 100 },
@@ -37,6 +37,21 @@ export const renderFigureDataImage = async (figure: Figure, format: ImageFormat,
   document.body.appendChild(container)
   try {
     await Plotly.newPlot(container, figure.data, exportLayout(figure, width, height, compact), { staticPlot: true, displayModeBar: false })
+    if (figure.legendPlacement === 'bottom') {
+      // Measure actual text after layout: angled ticks and wrapped legends vary by font and size.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const legend = container.querySelector('.legend')?.getBoundingClientRect()
+        const labels = Array.from(container.querySelectorAll('.xtitle, [class^="x"][class$="title"], .xtick text, [class^="x"][class$="tick"] text'))
+        if (!legend || !labels.length) break
+        const bottom = Math.max(...labels.map((label) => label.getBoundingClientRect().bottom))
+        const overlap = bottom + 12 - legend.top
+        if (overlap <= 0) break
+        const plot = container as HTMLDivElement & { _fullLayout?: { _size?: { b: number } } }
+        const margin = plot._fullLayout?._size?.b
+        if (margin === undefined) break
+        await Plotly.relayout(container, { 'margin.b': Math.ceil(margin + overlap) })
+      }
+    }
     return await Plotly.toImage(container, { format, width, height, scale: format === 'svg' ? 1 : scale })
   } finally {
     Plotly.purge(container)
