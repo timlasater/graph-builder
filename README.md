@@ -97,3 +97,5 @@ In the desktop legend, drag a name to the empty space at the far left or right a
 The desktop **Project saved** banner fades and disappears after four seconds. Save errors stay visible until dismissed. This only changes the notification; saving and exports work as before.
 
 Image exports reserve space between a bottom legend and the X-axis title, including angled category labels and legends that wrap onto multiple rows. This applies to PNG, SVG, copied images, and figure-layout images. At small output sizes the plot area becomes smaller to fit the labels; increase the figure dimensions for more plotting space. Project saving is unchanged.
+
+**Projects & export** sections appear in this order: Project file, Graphs in this project, Recent projects (when available), Export open graph, Figure layout, Reusable graph template, and Desktop updates (Windows only). Older saved graphs appear beside the template section when available.
