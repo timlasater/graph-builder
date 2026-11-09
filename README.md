@@ -3,20 +3,20 @@
 Graph Builder is a local-first scientific graphing application for Windows and modern desktop browsers. It lets users import tabular data, map columns to graph roles, combine plot layers, inspect and filter observations, and export figures or reusable projects. The bundled dataset is synthetic demonstration data; it is not research data.
 
 - [Try the browser app](https://timothylasater.com/graph-builder/app/)
-- [Download the Windows installer (0.1.4)](https://github.com/timlasater/graph-builder/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe)
+- [Download the latest Windows release](https://github.com/timlasater/graph-builder/releases/latest)
 - [Read the complete user guide](docs/user-guide.md)
-- [Preview the v0.2.0 feature workflows](docs/v0.2.0-feature-guide.md)
-- [Read the 0.1.4 release notes](docs/release-0.1.4-notes.md)
-- [0.1.4 Windows release test plan](docs/release-0.1.4-test-plan.md)
+- [Read the v0.2.0 feature workflows](docs/v0.2.0-feature-guide.md)
+- [Read the 0.2.0 release notes](docs/release-0.2.0-notes.md)
+- [0.2.0 Windows release checks](docs/release-0.2.0-notes.md#release-checks)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)
 
 ![Graph Builder workspace with synthetic example measurements and a scatter graph](docs/screenshots/workspace.png)
 
 *The workspace with the built-in synthetic example data.*
 
-## In development on the v0.2.0 branch
+## Version 0.2.0
 
-The branch adds paired plots, two-group comparisons, nonlinear dose–response and exponential decay fits, and a page layout for combining saved graphs. These features are not yet in the 0.1.4 installer or public browser app. See the [v0.2.0 feature guide](docs/v0.2.0-feature-guide.md) for sample data, steps, and current limits.
+Version 0.2.0 adds paired plots, two-group comparisons, nonlinear dose–response and exponential decay fits, and a page layout for combining saved graphs. The browser workflow deploys main; the signed Windows workflow creates a draft release for asset inspection before publication. See the [v0.2.0 feature guide](docs/v0.2.0-feature-guide.md) for sample data, steps, and current limits.
 
 ## Architecture
 

@@ -85,7 +85,7 @@ test('figure layout combines saved graphs in a PNG and project file', async ({ p
   const handles = page.locator('.figure-layout-drag-handle')
   await handles.nth(3).dragTo(handles.first())
   await expect(page.locator('.figure-layout-panel').first()).toHaveAttribute('data-graph-id', originalOrder[3]!)
-  await page.getByRole('combobox', { name: 'PNG resolution' }).first().selectOption('2')
+  await page.locator('.project-section').filter({ has: page.getByRole('heading', { name: 'Figure layout', exact: true }) }).getByRole('combobox', { name: 'PNG resolution' }).selectOption('2')
   const pngDownload = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download figure PNG' }).click()
   const png = await pngDownload

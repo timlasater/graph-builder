@@ -1,5 +1,7 @@
 # Graph Builder user guide
 
+Version 0.2.0 includes paired plots, group comparisons, nonlinear curves, figure layouts, and shared legends across layers. See the [release notes](release-0.2.0-notes.md) and [feature guide](v0.2.0-feature-guide.md).
+
 Graph Builder makes graphs from a table of measurements. It runs as a Windows app or in a desktop browser. Imported data stays on your computer. The built-in example is **synthetic practice data**, made for learning the controls and unrelated to a research study. Save an embedded project before importing new data or choosing **Reset example** if you want to keep your work.
 
 ## Contents

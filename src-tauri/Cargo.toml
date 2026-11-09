@@ -1,6 +1,6 @@
 [package]
 name = "graph-builder"
-version = "0.1.4"
+version = "0.2.0"
 description = "Offline scientific graph builder"
 authors = ["Graph Builder contributors"]
 edition = "2021"

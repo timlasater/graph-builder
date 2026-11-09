@@ -50,7 +50,7 @@ try {
   assert.equal(await hero.evaluate((element) => getComputedStyle(element).backgroundPositionY), '60px')
   assert.ok(await hero.evaluate((element) => element.getBoundingClientRect().height) <= await page.evaluate(() => innerHeight))
   assert.equal(await page.getByRole('link', { name: 'Read the user guide' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder/blob/main/docs/user-guide.md')
-  const installerUrl = 'https://github.com/timlasater/graph-builder/releases/download/desktop-v0.1.4/Graph.Builder_0.1.4_x64-setup.exe'
+  const installerUrl = 'https://github.com/timlasater/graph-builder/releases/latest'
   assert.equal(await page.getByRole('link', { name: 'Download Windows installer' }).getAttribute('href'), installerUrl)
   assert.equal(await page.getByRole('link', { name: 'GitHub repository' }).getAttribute('href'), 'https://github.com/timlasater/graph-builder')
   if (process.env.GB_CAPTURE_PAGES === '1') {
