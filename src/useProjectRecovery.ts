@@ -2,6 +2,13 @@ import { useEffect, useState } from 'react'
 import { makeProject, type ProjectFile } from './projects'
 import { clearRecovery, readRecovery, saveRecovery } from './recovery'
 import { projectGraphs, useBuilderStore } from './store'
+import { sampleDataset } from './sampleData'
+
+const restoreProject = (saved: ProjectFile) => {
+  if (saved.data.mode !== 'embedded') return
+  useBuilderStore.getState().openProject(saved.name, saved.data.dataset, saved.graphs, saved.activeGraphId, undefined, 'embedded', saved.figureLayout)
+  useBuilderStore.getState().markProjectSaved(undefined)
+}
 
 export function useProjectRecovery() {
   const [recovery, setRecovery] = useState<ProjectFile>()
@@ -14,7 +21,9 @@ export function useProjectRecovery() {
       if (!active) return
       const current = useBuilderStore.getState()
       const unchanged = saved?.data.mode === 'embedded' && saved.name === current.projectName && saved.activeGraphId === current.activeGraphId && JSON.stringify(saved.data.dataset) === JSON.stringify(current.dataset) && JSON.stringify(saved.graphs) === JSON.stringify(projectGraphs(current))
-      if (saved?.data.mode === 'embedded' && !unchanged) { setRecovery(saved); setStatus(`Autosave from ${new Date(saved.savedAt).toLocaleString()} is available.`) }
+      const exampleOnly = saved?.data.mode === 'embedded' && JSON.stringify(saved.data.dataset) === JSON.stringify(sampleDataset)
+      if (exampleOnly) { if (!unchanged) restoreProject(saved!); setChecked(true); setStatus('Autosave is on.') }
+      else if (saved?.data.mode === 'embedded' && !unchanged) { setRecovery(saved); setStatus(`Autosave from ${new Date(saved.savedAt).toLocaleString()} is available.`) }
       else { setChecked(true); setStatus('Autosave is on.') }
     }).catch(() => { if (active) { setChecked(true); setStatus('Local recovery could not be read; your current work is unchanged.') } })
     return () => { active = false }
@@ -43,8 +52,7 @@ export function useProjectRecovery() {
 
   const restore = () => {
     if (!recovery || recovery.data.mode !== 'embedded') return
-    useBuilderStore.getState().openProject(recovery.name, recovery.data.dataset, recovery.graphs, recovery.activeGraphId, undefined, 'embedded', recovery.figureLayout)
-    useBuilderStore.getState().markProjectSaved(undefined)
+    restoreProject(recovery)
     setRecovery(undefined); setChecked(true); setStatus('Autosaved project restored.')
   }
   const dismiss = async () => {
