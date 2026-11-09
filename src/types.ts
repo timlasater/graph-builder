@@ -117,6 +117,7 @@ export interface GraphSpec {
   palette?: string[]
   theme?: 'light' | 'dark' | 'paper'
   legendPlacement?: 'bottom' | 'top' | 'right' | 'hidden'
+  sharedLayerLegend?: boolean
   seriesNames?: Record<string, string>
   legendOrder?: string[]
   seriesColors?: Record<string, string>

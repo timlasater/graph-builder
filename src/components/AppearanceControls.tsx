@@ -46,6 +46,7 @@ export function AppearanceControls() {
       <label>Custom colors (hex, comma separated)<input value={customColors} placeholder="#0f6c75, #ef8354" onChange={(event) => setCustomColors(event.target.value)} onBlur={() => { if (!customColors.trim()) return; const colors = customColors.split(',').map((value) => value.trim()); if (colors.every((value) => /^#[0-9a-fA-F]{6}$/.test(value))) { set('palette', colors); setPaletteError('') } else setPaletteError('Use six-digit hex colors, separated by commas (for example #0072b2, #e69f00).') }} /></label>
       {paletteError && <small className="setting-warning" role="alert">{paletteError}</small>}
       <label>Legend placement<select value={spec.legendPlacement ?? 'bottom'} onChange={(event) => set('legendPlacement', event.target.value as GraphSpec['legendPlacement'])}><option value="bottom">Below graph</option><option value="top">Above graph</option><option value="right">Right of graph</option><option value="hidden">Hide legend</option></select></label>
+      {spec.layers.length > 1 && <label><input type="checkbox" checked={spec.sharedLayerLegend !== false} onChange={(event) => set('sharedLayerLegend', event.target.checked)} />One legend entry per group across layers</label>}
     </CollapsibleSection>
   </>
 }

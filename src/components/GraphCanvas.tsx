@@ -121,13 +121,16 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
   if (!facets.some((facet) => spec.layers.some((layer) => pairsFor(layer, facet).length))) return <div className="empty-canvas"><div className="empty-illustration">↗</div><h2>Build a graph</h2><p>{requiresYAssignment(spec.layers) ? 'Assign Y, and X for plots other than a Y-only box plot.' : 'Assign a numeric variable to X.'}</p></div>
   const legendEntries = new Set<string>()
   const legendItems = new Map<string, LegendItem>()
+  const sharedStyles = new Map<string, { color: string; name: string; customName?: string }>()
   const fitAnnotations: unknown[] = []
   const statisticsWarnings = new Set<string>()
   const fitAnnotationCounts = new Map<number, number>()
   const data = facets.flatMap((facet, facetIndex) => spec.layers.flatMap((layer, layerIndex) => pairsFor(layer, facet).flatMap(({ xColumn, yColumn }) => {
     const colorColumn = columnFor(layer.color ?? spec.color); const overlayColumn = columnFor(spec.overlay)
     const availableKeys = [...new Set(facet.rows.map((row) => [colorColumn && String(row.values[colorColumn.id]), overlayColumn && String(row.values[overlayColumn.id])].filter(Boolean).join(' · ') || 'All observations'))]
-    const legendIdFor = (key: string) => [layer.id, xColumn.id, yColumn.id, key].join('::')
+    const sharedLegend = spec.layers.length > 1 && spec.sharedLayerLegend !== false && Boolean(colorColumn || overlayColumn)
+    const legacyLegendIdFor = (key: string) => [layer.id, xColumn.id, yColumn.id, key].join('::')
+    const legendIdFor = (key: string) => sharedLegend ? `group::${JSON.stringify([colorColumn?.id ?? '', overlayColumn?.id ?? '', key])}` : legacyLegendIdFor(key)
     const keyByLegendId = new Map(availableKeys.map((key) => [legendIdFor(key), key]))
     const keys = orderByPreference([...keyByLegendId.keys()], spec.legendOrder).map((id) => keyByLegendId.get(id)!)
     return keys.flatMap<unknown>((key) => {
@@ -139,11 +142,17 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
       const yIndex = sharedY.findIndex((column) => column.id === yColumn.id)
       const pairedY = sharedY.length === 2 && yIndex >= 0 && !layer.y && !splitY && !spec.panels?.length
       const paletteIndex = colorColumn ? colorIndex : collated ? sharedY.findIndex((column) => column.id === yColumn.id) : layerIndex + Math.max(0, availableKeys.indexOf(key))
-      const color = spec.seriesColors?.[legendId] ?? (pairedY ? pairedYColor(palette, yIndex, colorColumn ? colorIndex : Math.max(0, availableKeys.indexOf(key))) : (collated ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length])
+      const legacyId = legacyLegendIdFor(key)
+      const previousStyle = sharedStyles.get(legendId)
+      const sharedColorIndex = colorColumn ? colorIndex : uniqueValues(includedRows, overlayColumn?.id).indexOf(key)
+      const color = sharedLegend ? previousStyle?.color ?? spec.seriesColors?.[legendId] ?? spec.seriesColors?.[legacyId] ?? palette[Math.max(0, sharedColorIndex) % palette.length] : spec.seriesColors?.[legendId] ?? (pairedY ? pairedYColor(palette, yIndex, colorColumn ? colorIndex : Math.max(0, availableKeys.indexOf(key))) : (collated ? undefined : layer.colorHex) ?? palette[paletteIndex % palette.length])
       const nameParts = [facet.custom && facet.label, spec.layers.length > 1 && layer.name, (facet.custom || sharedX.length > 1 || sharedY.length > 1) && `${yColumn.name} vs ${xColumn.name}`, key].filter(Boolean)
-      const legendKey = spec.seriesNames?.[legendId] || nameParts.join(' · '); const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
+      const customName = sharedLegend ? previousStyle?.customName ?? spec.seriesNames?.[legendId] ?? spec.seriesNames?.[legacyId] : spec.seriesNames?.[legendId]
+      const legendKey = sharedLegend ? previousStyle?.name ?? (customName || key) : customName || nameParts.join(' · ')
+      if (sharedLegend && !previousStyle) sharedStyles.set(legendId, { color, name: legendKey, customName })
+      const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
       const xValues = [...new Set(rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id]))))]
-      if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined, xCategoryLabel: colorColumn?.id === xColumn.id && !overlayColumn ? spec.seriesNames?.[legendId] : undefined })
+      if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined, xCategoryLabel: colorColumn?.id === xColumn.id && !overlayColumn ? customName : undefined })
       const base = { name: legendKey, legendgroup: legendId, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: dualY && yColumn.id === sharedY[1].id ? 'y2' : axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: layer.lineStyle ?? spec.lineStyle ?? (overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid') }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
       if (layer.element === 'paired') {
         const idColumn = columnFor(layer.pairId)

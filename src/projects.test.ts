@@ -6,6 +6,16 @@ import { makeProject, parseProject, projectJson, rebuildLinkedDataset } from './
 const graph = () => ({ id: 'one', name: 'Dose chart', spec: structuredClone(useBuilderStore.getState().spec), filters: [] })
 
 describe('project files', () => {
+  it('preserves the shared layer legend setting and rejects invalid values', () => {
+    const savedGraph = graph()
+    savedGraph.spec.sharedLayerLegend = false
+    const project = makeProject('Legends', structuredClone(sampleDataset), [savedGraph], 'one', 'embedded')
+    expect(parseProject(projectJson(project)).graphs[0].spec.sharedLayerLegend).toBe(false)
+    const invalid = JSON.parse(projectJson(project))
+    invalid.graphs[0].spec.sharedLayerLegend = 'yes'
+    expect(() => parseProject(JSON.stringify(invalid))).toThrow()
+  })
+
   it('round-trips an embedded project with rows, formulas, and graphs', () => {
     const dataset = structuredClone(sampleDataset)
     dataset.columns.push({ id: 'doubled', name: 'Doubled dose', dataType: 'number', modelingType: 'continuous', formula: '[dose] * 2' })

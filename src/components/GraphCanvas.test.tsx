@@ -237,6 +237,54 @@ describe('GraphCanvas panels', () => {
     expect(new Set(chart.props!.data.filter((trace) => trace.xaxis === 'x2').flatMap((trace) => trace.x as string[]))).toEqual(new Set(['All observations']))
   })
 
+  it('shares group names, colors, visibility and order across layers by default', () => {
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 3]], 'Layers')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [
+      { id: 'boxes', name: 'Boxes', element: 'box', colorHex: '#ff0000' },
+      { id: 'points', name: 'Points', element: 'points', colorHex: '#00ff00' },
+    ] } })
+    render(<GraphCanvas />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
+    expect(chart.props!.data.map((trace) => trace.showlegend)).toEqual([true, true, false, false])
+    const groupA = () => chart.props!.data.filter((trace) => (trace.x as string[]).includes('A'))
+    expect(new Set(groupA().map((trace) => (trace.marker as { color: string }).color)).size).toBe(1)
+    fireEvent.change(screen.getByLabelText('Change color for A'), { target: { value: '#123456' } })
+    expect(groupA().every((trace) => (trace.marker as { color: string }).color === '#123456')).toBe(true)
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'A' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Rename A' }), { target: { value: 'Control' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Rename A' }))
+    expect(groupA().every((trace) => trace.name === 'Control')).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Control' }))
+    expect(groupA().every((trace) => trace.visible === 'legendonly')).toBe(true)
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Control' }), { key: 'ArrowRight' })
+    expect(chart.props!.data.map((trace) => trace.name)).toEqual(['B', 'Control', 'B', 'Control'])
+  })
+
+  it('allows separate legend entries and layer colors when sharing is disabled', () => {
+    useBuilderStore.setState({ spec: { ...original.spec, sharedLayerLegend: false, layers: [
+      { id: 'boxes', name: 'Boxes', element: 'box', colorHex: '#ff0000' },
+      { id: 'points', name: 'Points', element: 'points', colorHex: '#00ff00' },
+    ] } })
+    render(<GraphCanvas />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(6)
+    expect(chart.props!.data.every((trace) => trace.showlegend)).toBe(true)
+    expect((chart.props!.data[0].marker as { color: string }).color).toBe('#ff0000')
+    expect((chart.props!.data[3].marker as { color: string }).color).toBe('#00ff00')
+  })
+
+  it('does not merge matching values from different color variables', () => {
+    const dataset = datasetFromMatrix([['Group', 'Other', 'Value'], ['A', 'A', 1], ['B', 'B', 3]], 'Groups')
+    const [x, other, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [
+      { id: 'boxes', name: 'Boxes', element: 'box' },
+      { id: 'points', name: 'Points', element: 'points', color: other.id },
+    ] } })
+    render(<GraphCanvas />)
+    expect(screen.getAllByRole('listitem')).toHaveLength(4)
+    expect(chart.props!.data.every((trace) => trace.showlegend)).toBe(true)
+  })
+
   it('updates box category labels without merging groups or changing their values', () => {
     const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['A', 2], ['B', 3], ['B', 4]], 'Boxes')
     const [x, y] = dataset.columns

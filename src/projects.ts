@@ -53,6 +53,7 @@ const validSpec = (value: unknown): value is GraphSpec => {
   if (!['color', 'groupX', 'groupY', 'wrap', 'overlay', 'size', 'shape', 'weight', 'page', 'highlightedSeries', 'fontFamily', 'markerShape', 'lineStyle', 'errorColor', 'theme', 'legendPlacement', 'facetScale', 'categoryOrder'].every((key) => optionalString(value, key))) return false
   if (value.xDisplay !== undefined && !['together', 'subplots'].includes(String(value.xDisplay))) return false
   if (value.yDisplay !== undefined && !['together', 'subplots', 'collate', 'dual'].includes(String(value.yDisplay))) return false
+  if (value.sharedLayerLegend !== undefined && typeof value.sharedLayerLegend !== 'boolean') return false
   if (!['fontSize', 'graphWidth', 'graphHeight', 'aspectRatio', 'markerOpacity', 'markerJitter', 'barGap', 'barWidth', 'errorCap', 'errorThickness'].every((key) => optionalNumber(value, key))) return false
   if (value.subplotColumns !== undefined && (typeof value.subplotColumns !== 'number' || !Number.isInteger(value.subplotColumns) || value.subplotColumns < 1)) return false
   if (!['manualCategories', 'palette', 'legendOrder', 'hiddenSeries'].every((key) => optionalStrings(value, key)) || !['seriesNames', 'seriesColors'].every((key) => optionalStringMap(value, key))) return false
