@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { isDesktop } from '../desktopFiles'
 import { requiresYAssignment } from '../compatibility'
 import { canUseDualYAxis } from '../dualYAxis'
 import { axisConfiguration, categoryTickLayout, orderedCategories, pairedYColor, palettes, themes } from '../appearance'
@@ -13,7 +14,7 @@ import { PlotlyChart, type PlotTitleTarget } from './PlotlyChart'
 
 const symbols = ['circle', 'square', 'diamond', 'cross', 'triangle-up', 'star', 'hexagon', 'triangle-down']
 interface Facet { label?: string; row: number; column: number; rows: DataRow[]; x?: DataColumn; y?: DataColumn; custom?: boolean; axisSplit?: boolean }
-interface LegendItem { id: string; label: string; color: string; xColumnId: string; xCategory?: string }
+interface LegendItem { id: string; label: string; color: string; xColumnId: string; xCategory?: string; xCategoryLabel?: string }
 const uniqueValues = (rows: DataRow[], columnId?: string) => columnId ? [...new Set(rows.map((row) => String(row.values[columnId])))] : ['']
 const scaleMarkerSizes = (values: unknown[], fallback: number) => {
   const numeric = values.map(Number); if (!numeric.every(Number.isFinite)) return values.map(() => fallback)
@@ -30,13 +31,31 @@ function LegendEntry({ item, index, items, hidden, highlighted, dimmed, onToggle
   const [draft, setDraft] = useState<string | null>(null)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipBlur = useRef(false)
+  const pointerDrag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const suppressClick = useRef(false)
   const clearClick = () => { if (clickTimer.current) clearTimeout(clickTimer.current); clickTimer.current = null }
   useEffect(() => clearClick, [])
   const commitRename = () => { if (skipBlur.current) { skipBlur.current = false; return }; if (draft !== null && draft.trim() !== item.label) onRename(draft.trim()); setDraft(null) }
-  return <div className={`interactive-legend-item ${hidden ? 'hidden' : ''} ${dimmed ? 'deemphasized' : ''}`} role="listitem" onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onDrop={(event) => { event.preventDefault(); onReorder(event.dataTransfer.getData('text/plain'), item.id) }}>
+  return <div className={`interactive-legend-item ${hidden ? 'hidden' : ''} ${dimmed ? 'deemphasized' : ''}`} role="listitem" data-legend-id={item.id} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = 'move' }} onDrop={(event) => { event.preventDefault(); onReorder(event.dataTransfer.getData('text/plain'), item.id) }}>
     <button className={`legend-highlight ${highlighted ? 'active' : ''}`} aria-label={`${highlighted ? 'Stop highlighting' : 'Highlight'} ${item.label}`} aria-pressed={highlighted} onClick={onHighlight}>●</button>
     <input className="legend-color" type="color" value={item.color} aria-label={`Change color for ${item.label}`} title={`Change color for ${item.label}`} onChange={(event) => onRecolor(event.currentTarget.value)} onBlur={(event) => onRecolor(event.currentTarget.value)} onClick={(event) => event.stopPropagation()} draggable={false} />
-    {draft !== null ? <input className="legend-rename" aria-label={`Rename ${item.label}`} title="Press Enter to save or Escape to cancel" value={draft} autoFocus onChange={(event) => setDraft(event.target.value)} onBlur={commitRename} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { skipBlur.current = true; setDraft(null) } }} /> : <button className="legend-label" draggable aria-pressed={!hidden} title={`${hidden ? 'Show' : 'Hide'} ${item.label}; double-click to rename; drag to reorder`} onDragStart={(event) => { clearClick(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onKeyDown={(event) => { if (event.key === 'F2') { event.preventDefault(); skipBlur.current = false; setDraft(item.label); return }; const targetIndex = event.key === 'ArrowLeft' ? index - 1 : event.key === 'ArrowRight' ? index + 1 : index; if (targetIndex !== index && items[targetIndex]) { event.preventDefault(); onReorder(item.id, items[targetIndex].id) } }} onClick={(event) => { clearClick(); if (event.detail === 0) onToggle(); else if (event.detail === 1) clickTimer.current = setTimeout(onToggle, 350) }} onDoubleClick={(event) => { event.preventDefault(); clearClick(); skipBlur.current = false; setDraft(item.label) }}>{item.label}</button>}
+    {draft !== null ? <input className="legend-rename" aria-label={`Rename ${item.label}`} title="Press Enter to save or Escape to cancel" value={draft} autoFocus onChange={(event) => setDraft(event.target.value)} onBlur={commitRename} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { skipBlur.current = true; setDraft(null) } }} /> : <button className="legend-label" draggable={!isDesktop()} onPointerDown={(event) => {
+      if (!isDesktop() || event.button !== 0) return
+      suppressClick.current = false
+      pointerDrag.current = { x: event.clientX, y: event.clientY, moved: false }
+      event.currentTarget.setPointerCapture(event.pointerId)
+    }} onPointerMove={(event) => {
+      const drag = pointerDrag.current
+      if (drag && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) > 5) { drag.moved = true; clearClick() }
+    }} onPointerUp={(event) => {
+      const drag = pointerDrag.current
+      pointerDrag.current = null
+      if (!drag?.moved) return
+      suppressClick.current = true
+      clearClick()
+      const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-legend-id]')?.getAttribute('data-legend-id')
+      if (target) onReorder(item.id, target)
+    }} onPointerCancel={() => { pointerDrag.current = null }} aria-pressed={!hidden} title={`${hidden ? 'Show' : 'Hide'} ${item.label}; double-click to rename; drag to reorder`} onDragStart={(event) => { clearClick(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', item.id) }} onKeyDown={(event) => { if (event.key === 'F2') { event.preventDefault(); skipBlur.current = false; setDraft(item.label); return }; const targetIndex = event.key === 'ArrowLeft' ? index - 1 : event.key === 'ArrowRight' ? index + 1 : index; if (targetIndex !== index && items[targetIndex]) { event.preventDefault(); onReorder(item.id, items[targetIndex].id) } }} onClick={(event) => { clearClick(); if (suppressClick.current) { suppressClick.current = false; return }; if (event.detail === 0) onToggle(); else if (event.detail === 1) clickTimer.current = setTimeout(onToggle, 350) }} onDoubleClick={(event) => { event.preventDefault(); clearClick(); skipBlur.current = false; setDraft(item.label) }}>{item.label}</button>}
   </div>
 }
 
@@ -116,7 +135,7 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
       const nameParts = [facet.custom && facet.label, spec.layers.length > 1 && layer.name, (facet.custom || sharedX.length > 1 || sharedY.length > 1) && `${yColumn.name} vs ${xColumn.name}`, key].filter(Boolean)
       const legendKey = spec.seriesNames?.[legendId] || nameParts.join(' · '); const showlegend = !legendEntries.has(legendId); legendEntries.add(legendId)
       const xValues = [...new Set(rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id]))))]
-      if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined })
+      if (showlegend) legendItems.set(legendId, { id: legendId, label: legendKey, color, xColumnId: xColumn.id, xCategory: xValues.length === 1 ? xValues[0] : undefined, xCategoryLabel: colorColumn?.id === xColumn.id && !overlayColumn ? spec.seriesNames?.[legendId] : undefined })
       const base = { name: legendKey, legendgroup: legendId, showlegend, visible: spec.hiddenSeries?.includes(legendId) ? 'legendonly' : true, opacity: spec.highlightedSeries && spec.highlightedSeries !== legendId ? 0.16 : 1, xaxis: axisNumber === 1 ? 'x' : `x${axisNumber}`, yaxis: dualY && yColumn.id === sharedY[1].id ? 'y2' : axisNumber === 1 ? 'y' : `y${axisNumber}`, line: { color, width: layer.lineWidth ?? 2.5, dash: layer.lineStyle ?? spec.lineStyle ?? (overlayColumn && availableKeys.indexOf(key) % 2 ? 'dash' : 'solid') }, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: %{x}<br>${yColumn.name}: %{y}<extra></extra>` }
       if (layer.element === 'paired') {
         const idColumn = columnFor(layer.pairId)
@@ -244,6 +263,9 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
     const naturalXCategories = categoricalX ? [boxCategoryColumn.name] : xColumn && (xColumn.modelingType !== 'continuous' || spec.layers.some((layer) => layer.element === 'box' || layer.element === 'bar')) ? stableCategoryOrder(includedRows.map((row) => row.values[xColumn.id]), xColumn).map(String) : undefined
     const preferredXCategories = xColumn ? orderedLegendItems.filter((item) => item.xColumnId === xColumn.id && item.xCategory !== undefined).map((item) => item.xCategory!) : []
     const xCategories = naturalXCategories && xColumn ? orderedCategories(includedRows, xColumn, spec, preferredXCategories, yColumn?.id) : naturalXCategories
+    // Keep category identities intact: duplicate display names must not merge boxes.
+    const categoryLabels = new Map(orderedLegendItems.filter((item) => item.xColumnId === xColumn?.id && item.xCategory !== undefined && item.xCategoryLabel).map((item) => [item.xCategory!, item.xCategoryLabel!]))
+    const categoryTicks = xCategories && categoryLabels.size ? { tickmode: 'array', tickvals: collateMeasures ? collateCategories.map((_, categoryIndex) => categoryIndex) : xCategories, ticktext: (collateMeasures ? collateCategories : xCategories).map((category) => categoryLabels.get(category) ?? category) } : {}
     const yCategories = yColumn && yColumn.modelingType !== 'continuous' ? stableCategoryOrder(includedRows.map((row) => row.values[yColumn.id]), yColumn).map(String) : undefined
     hasCategoricalX ||= Boolean(xCategories)
     const panelTraces = (data as { xaxis?: string; yaxis?: string; x?: unknown[]; y?: unknown[] }[]).filter((trace) => (trace.xaxis ?? 'x') === (number === 1 ? 'x' : `x${number}`))
@@ -256,7 +278,7 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
     axisError ??= rightYAxis?.error ? `Right Y axis: ${rightYAxis.error}` : undefined
     const xTitle = (facet.custom ? spec.panels?.[index]?.xAxisTitle : undefined) || spec.xAxis?.title || (facet.custom || facet.axisSplit && splitX ? xColumn ? columnLabel(xColumn) : boxCategoryColumn.name : sharedX.length ? sharedX.map(columnLabel).join(' / ') : boxCategoryColumn.name)
     const yTitle = (facet.custom ? spec.panels?.[index]?.yAxisTitle : undefined) || spec.yAxis?.title || (dualY ? columnLabel(sharedY[0]) : facet.custom || facet.axisSplit && splitY ? yColumn ? columnLabel(yColumn) : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : '' : spec.layers.every((layer) => layer.element === 'histogram') ? 'Count' : sharedY.map(columnLabel).join(' / '))
-    axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), type: collatedAxis ? 'linear' : xAxis.axis?.type, ...(collatedAxis ? { tickmode: 'array', tickvals: collateCategories.map((_, categoryIndex) => categoryIndex), ticktext: collateCategories, range: spec.xAxis?.reversed ? [collateCategories.length - 0.5, -0.5] : [-0.5, collateCategories.length - 0.5], autorange: false } : {}), domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && !splitX && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.axisSplit || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
+    axes[xKey] = { ...xAxis.axis, ...categoryTickLayout(xCategories), type: collatedAxis ? 'linear' : xAxis.axis?.type, ...(collatedAxis ? { tickmode: 'array', tickvals: collateCategories.map((_, categoryIndex) => categoryIndex), ticktext: collateCategories, range: spec.xAxis?.reversed ? [collateCategories.length - 0.5, -0.5] : [-0.5, collateCategories.length - 0.5], autorange: false } : {}), ...categoryTicks, domain: [xStart, xStart + cellWidth], anchor: number === 1 ? 'y' : `y${number}`, matches: !facet.custom && !splitX && spec.facetScale !== 'independent' && number > 1 ? 'x' : undefined, title: { text: facet.custom || facet.axisSplit || facet.row === facetRows - 1 ? xTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
     axes[yKey] = { ...yAxis.axis, domain: [yTop - cellHeight, yTop], anchor: number === 1 ? 'x' : `x${number}`, matches: !facet.custom && !splitY && spec.facetScale !== 'independent' && number > 1 ? 'y' : undefined, title: { text: facet.custom || facet.axisSplit || (!groupYColumn && facet.column === 0) ? yTitle : '', standoff: 12 }, gridcolor: spec.showGrid ? theme.grid : 'transparent', zeroline: false }
     if (dualY) axes.yaxis2 = { ...rightYAxis?.axis, overlaying: 'y', side: 'right', anchor: 'x', title: { text: spec.y2Axis?.title || columnLabel(sharedY[1]), standoff: 12 }, showgrid: false, zeroline: false }
     if (facet.label) { if (facet.custom) panelTitleAnnotations.set(annotations.length, spec.panels![index].id); annotations.push({ text: `<b>${facet.label}</b>`, x: 0.5, y: 1.04, xref: number === 1 ? 'x domain' : `x${number} domain`, yref: number === 1 ? 'y domain' : `y${number} domain`, xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 10, color: '#53656e' } }) }

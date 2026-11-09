@@ -8,8 +8,11 @@ import { GraphCanvas } from './GraphCanvas'
 const chart = vi.hoisted(() => ({ props: undefined as { data: Record<string, unknown>[]; layout: Record<string, unknown>; onTitleDoubleClick: (target: { kind: 'graph' | 'subtitle' | 'xAxis' | 'yAxis' | 'annotation'; axisNumber?: number; annotationIndex?: number; text: string; rect: { left: number; top: number; width: number; height: number } }) => void } | undefined }))
 vi.mock('./PlotlyChart', () => ({ PlotlyChart: (props: typeof chart.props) => { chart.props = props; return <div data-testid="plot" /> } }))
 
+const desktop = vi.hoisted(() => ({ enabled: false }))
+vi.mock('../desktopFiles', () => ({ isDesktop: () => desktop.enabled }))
+
 const original = useBuilderStore.getState()
-afterEach(() => { cleanup(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
+afterEach(() => { cleanup(); desktop.enabled = false; vi.restoreAllMocks(); vi.useRealTimers(); useBuilderStore.setState(original); chart.props = undefined })
 
 describe('GraphCanvas panels', () => {
   it('links a two-group comparison result to the visible graph', () => {
@@ -232,6 +235,42 @@ describe('GraphCanvas panels', () => {
     render(<GraphCanvas />)
     expect(chart.props!.data.filter((trace) => trace.xaxis === 'x2').every((trace) => trace.type === 'box')).toBe(true)
     expect(new Set(chart.props!.data.filter((trace) => trace.xaxis === 'x2').flatMap((trace) => trace.x as string[]))).toEqual(new Set(['All observations']))
+  })
+
+  it('updates box category labels without merging groups or changing their values', () => {
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['A', 2], ['B', 3], ['B', 4]], 'Boxes')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [{ id: 'box', name: 'Box', element: 'box' }] } })
+    render(<GraphCanvas />)
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'A' }))
+    const editor = screen.getByRole('textbox', { name: 'Rename A' })
+    fireEvent.change(editor, { target: { value: 'B' } })
+    fireEvent.blur(editor)
+    expect(chart.props!.layout.xaxis).toMatchObject({ tickvals: ['A', 'B'], ticktext: ['B', 'B'] })
+    expect(chart.props!.data.map((trace) => trace.x)).toEqual([['A', 'A'], ['B', 'B']])
+    expect(chart.props!.data[0].name).toBe('B')
+    expect(dataset.rows[0].values[x.id]).toBe('A')
+  })
+
+  it('reorders desktop box categories with pointer dragging without hiding a series', () => {
+    desktop.enabled = true
+    const dataset = datasetFromMatrix([['Group', 'Value'], ['A', 1], ['B', 2]], 'Boxes')
+    const [x, y] = dataset.columns
+    useBuilderStore.setState({ dataset, spec: { ...original.spec, x: [x.id], y: [y.id], color: x.id, layers: [{ id: 'box', name: 'Box', element: 'box' }] } })
+    render(<GraphCanvas />)
+    const source = screen.getByRole('button', { name: 'A' })
+    const target = screen.getByRole('button', { name: 'B' })
+    Object.defineProperty(source, 'setPointerCapture', { value: vi.fn(), configurable: true })
+    Object.defineProperty(document, 'elementFromPoint', { value: vi.fn(() => target), configurable: true })
+    // jsdom does not supply PointerEvent coordinates by default.
+    vi.stubGlobal('PointerEvent', MouseEvent)
+    fireEvent.pointerDown(source, { button: 0, clientX: 0, clientY: 0 })
+    fireEvent.pointerMove(source, { clientX: 100, clientY: 0 })
+    fireEvent.pointerUp(source, { clientX: 100, clientY: 0 })
+    fireEvent.click(source)
+    expect(chart.props!.layout.xaxis).toMatchObject({ categoryarray: ['B', 'A'] })
+    expect(useBuilderStore.getState().spec.hiddenSeries).toBeUndefined()
+    vi.unstubAllGlobals()
   })
 
   it('renames a legend entry on double-click without hiding it', () => {
