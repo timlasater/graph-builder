@@ -1,5 +1,5 @@
 import { compareCategories } from '../comparisons'
-import { rowMatchesFilters } from '../store'
+import { getGraphRows } from '../store'
 import type { Dataset, GraphComparison, GraphSpec, RowFilter } from '../types'
 
 const fmt = (value: number) => Number(value.toPrecision(4)).toString()
@@ -8,8 +8,7 @@ const pLabel = (value: number) => value < 0.0001 ? '< 0.0001' : fmt(value)
 export function ComparisonControls({ dataset, spec, filters, updateSpec }: { dataset: Dataset; spec: GraphSpec; filters: RowFilter[]; updateSpec: (patch: Partial<GraphSpec>) => void }) {
   const x = dataset.columns.find((column) => column.id === spec.x[0])
   const y = dataset.columns.find((column) => column.id === spec.y[0])
-  const page = dataset.columns.find((column) => column.id === spec.page)
-  const rows = dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, filters) && (!page || spec.pageValue === undefined || row.values[page.id] === spec.pageValue))
+  const rows = getGraphRows(dataset, spec, filters)
   const categories = x ? [...new Set(rows.map((row) => row.values[x.id]).filter((value) => value !== null).map((value) => String(x.valueLabels?.[String(value)] ?? value)))] : []
   const comparison = spec.comparison
   const patch = (changes: Partial<GraphComparison>) => comparison && updateSpec({ comparison: { ...comparison, ...changes } })
