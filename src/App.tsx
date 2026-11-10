@@ -91,6 +91,7 @@ function App() {
   const { dataset, spec, filters, projectName, activeGraphName, past, future, selectedColumn, compatibilityMessage, compatibilityMessageTransient, moveAssignment, setSelectedColumn, addLayer, removeLayer, updateLayer, setActiveLayer, swapAxes, applySuggestion, setPageValue, clearCompatibilityMessage, updateSpec, setDataset, updateColumn, setValueLabels, undo, redo, resetToExample } = useBuilderStore()
   const [dataTableView, setDataTableView] = useState<'default' | 'quality' | null>(null)
   const [showProjects, setShowProjects] = useState(false)
+  const [refreshSourceRequest, setRefreshSourceRequest] = useState(false)
   const [showSavePrompt, setShowSavePrompt] = useState(false)
   const [showUserGuide, setShowUserGuide] = useState(false)
   const [showShortcutHelp, setShowShortcutHelp] = useState(false)
@@ -157,6 +158,7 @@ function App() {
       event.preventDefault()
       if (event.repeat) return
       if (shortcut === 'projects') setShowProjects(true)
+      else if (shortcut === 'refreshSource') { if (useBuilderStore.getState().projectMode === 'linked') { setRefreshSourceRequest(true); setShowProjects(true) } }
       else if (shortcut === 'newGraph') useBuilderStore.getState().newGraph()
       else if (shortcut === 'dataTable') setDataTableView('default')
       else setShowShortcutHelp(true)
@@ -529,7 +531,7 @@ function App() {
         </main>
       </div>
       {dataTableView && <DataTableModal openQuality={dataTableView === 'quality'} onClose={() => setDataTableView(null)} />}
-      {(showProjects || projectPathToOpen || projectDropRequest) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : projectDropRequest ? `drop:${projectDropRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} initialProjectFile={projectDropRequest?.file} initialSavePrompt={showSavePrompt} onClose={() => { setShowSavePrompt(false); if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else if (projectDropRequest) setProjectDropRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
+      {(showProjects || projectPathToOpen || projectDropRequest) && <ProjectModal key={openingAssociatedProject ? `associated:${associatedProject.path}` : projectOpenRequest ? `shortcut:${projectOpenRequest.id}` : projectDropRequest ? `drop:${projectDropRequest.id}` : 'manual'} initialProjectPath={projectPathToOpen} initialProjectFile={projectDropRequest?.file} initialSavePrompt={showSavePrompt} initialRefresh={refreshSourceRequest} onClose={() => { setRefreshSourceRequest(false); setShowSavePrompt(false); if (openingAssociatedProject) associatedProject.finish(); else if (projectOpenRequest) setProjectOpenRequest(undefined); else if (projectDropRequest) setProjectDropRequest(undefined); else setShowProjects(false) }} autosaveStatus={recovery.status} />}
       {showUserGuide && <Suspense fallback={<div className="modal-backdrop" role="status">Opening user guide…</div>}><UserGuide onClose={() => setShowUserGuide(false)} /></Suspense>}
       {showShortcutHelp && <ShortcutHelp desktop={desktop} onClose={() => setShowShortcutHelp(false)} onFullGuide={() => { setShowShortcutHelp(false); setShowUserGuide(true) }} />}
       {recovery.recovery && <div className="modal-backdrop recovery-backdrop"><section ref={recoveryDialogRef} className="sheet-dialog" role="dialog" aria-modal="true" aria-labelledby="recovery-title" tabIndex={-1}><span className="eyebrow">LOCAL RECOVERY</span><h2 id="recovery-title">Continue your autosaved project?</h2><p>“{recovery.recovery.name}” was saved locally on {new Date(recovery.recovery.savedAt).toLocaleString()}. {associatedProject.path ? 'Restore it to continue with its data and graphs before opening the selected project, or discard its changes and open the selected project.' : 'Restore it to continue with its data and graphs, or start with the current example.'} Nothing is uploaded.</p><div className="project-actions"><button onClick={recovery.restore}>Restore project</button><button onClick={() => void recovery.dismiss()}>{associatedProject.path ? 'Discard changes and open selected project' : 'Start with example'}</button></div></section></div>}

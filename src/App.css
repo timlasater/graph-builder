@@ -218,6 +218,7 @@
 .project-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .clear-recent-button { padding: 3px 6px; border: 1px solid #c8d3d7; border-radius: 4px; background: white; color: #526770; cursor: pointer; font-size: 9px; }
 .project-section p, .project-section small { margin: 0; color: #63747d; font-size: 11px; line-height: 1.45; }
+.project-section .setting-help { font-size: 9px; line-height: 1.3; }
 .project-section label { display: grid; gap: 4px; min-width: 120px; color: #526770; font-size: 11px; font-weight: 600; }
 .project-section input, .project-section select { height: 32px; min-width: 0; padding: 0 8px; border: 1px solid #c8d3d7; border-radius: 5px; background: white; color: var(--ink); }
 .project-actions, .project-dimensions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }

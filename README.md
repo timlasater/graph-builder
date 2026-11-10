@@ -80,6 +80,12 @@ Imports accept CSV, TSV, TXT, XLSX, and XLS, with a worksheet selector when need
 
 Annotations can be supplied as tagged rows in a data table or in a `Graph Annotations` Excel worksheet. The exact columns and examples are documented in the [user guide](docs/user-guide.md#annotations-in-imported-files). Example files are in `examples/` and `test-data/`.
 
+### Refresh linked source data
+
+For an open linked project, use **Projects & export → Refresh linked source**, or press **Ctrl+Shift+R** in the Windows app outside dialogs and text fields. Confirm to reload the latest source rows for every graph. The Windows app reads the remembered source path; if the file moved or cannot be read, choose it again. In a browser, choose the source file each time. Canceling, an unreadable file, or incompatible columns leaves the current data unchanged.
+
+Refresh keeps graph settings, filters, column settings, formulas, and figure layouts. It replaces local cell edits and row exclusions, recalculates formulas, and requires the original compatible columns and data types. Close Projects & export and use **Undo** to restore the previous data. Refresh never writes to the source or project file. Save afterward to keep any new source location; a linked save still stores settings and a source link, while an embedded save and image/data exports use the refreshed data.
+
 ## Project status
 
 Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The [0.1.4 Windows release](https://github.com/timlasater/graph-builder/releases/tag/desktop-v0.1.4) is published with its installer, update signature, and updater manifest. The user reports completing the 0.1.4 candidate tests, live download and browser checks, installed update choices, and clean-install and uninstall checks. See the [0.1.4 release notes](docs/release-0.1.4-notes.md) and [test plan](docs/release-0.1.4-test-plan.md). macOS and Linux releases await testing on those platforms.
