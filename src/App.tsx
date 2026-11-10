@@ -1,5 +1,5 @@
 import { closestCenter, DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core'
-import { lazy, Suspense, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { DataTableModal } from './components/DataTableModal'
@@ -129,6 +129,11 @@ function App() {
   const activeLayer = spec.layers.find((layer) => layer.id === spec.activeLayerId) ?? spec.layers[0]
   const pageColumn = columnFor(spec.page)
   const { values: pageValues, index: pageIndex } = getPageSelection(dataset, spec, filters)
+  const canStepPage = pageValues.length > 1
+  const stepPage = useCallback((direction: -1 | 1) => {
+    const nextIndex = (pageIndex + direction + pageValues.length) % pageValues.length
+    setPageValue(pageValues[nextIndex])
+  }, [pageIndex, pageValues, setPageValue])
 
   useEffect(() => {
     const handlePageKey = (event: KeyboardEvent) => {
@@ -137,14 +142,13 @@ function App() {
       if (document.querySelector('.modal-backdrop, [aria-modal="true"]')) return
       const target = event.target
       if (target instanceof Element && target.closest('input, textarea, select, [contenteditable], [role="slider"], [role="grid"]')) return
-      const nextIndex = pageIndex + (event.key === 'ArrowLeft' ? -1 : 1)
-      if (pageIndex < 0 || nextIndex < 0 || nextIndex >= pageValues.length) return
+      if (!canStepPage) return
       event.preventDefault()
-      setPageValue(pageValues[nextIndex])
+      stepPage(event.key === 'ArrowLeft' ? -1 : 1)
     }
     window.addEventListener('keydown', handlePageKey)
     return () => window.removeEventListener('keydown', handlePageKey)
-  }, [pageIndex, pageValues, setPageValue])
+  }, [canStepPage, stepPage])
   const visibleColumns = dataset.columns.filter((column) => column.name.toLocaleLowerCase().includes(variableSearch.toLocaleLowerCase()))
   const suggestionX = columnsFor(activeLayer?.x ? [activeLayer.x] : spec.x); const suggestionY = columnsFor(activeLayer?.y ? [activeLayer.y] : spec.y)
   const suggestionRows = getGraphRows(dataset, spec, filters)
@@ -444,12 +448,12 @@ function App() {
               <button className="suggest-button" onClick={applySuggestion} disabled={suggestionMatches} title={suggestionHelp} aria-label={suggestionHelp}><span>✦</span>{suggestionMatches ? `${elementLabel(suggestion.element)} suggested` : `Suggest ${elementLabel(suggestion.element)}`}</button>
               <div className="toolbar-spacer" />
               {pageColumn && <div className="page-stepper">
-                <button aria-label="Previous page" disabled={pageIndex <= 0} onClick={() => setPageValue(pageValues[pageIndex - 1])}>‹</button>
+                <button aria-label="Previous page" disabled={!canStepPage} onClick={() => stepPage(-1)}>‹</button>
                 <label>{pageColumn.name}<select disabled={pageIndex < 0} value={pageIndex} onChange={(event) => setPageValue(pageValues[Number(event.target.value)])}>
                   {pageIndex < 0 && <option value={-1}>No matching pages</option>}
                   {pageValues.map((value, index) => <option key={index} value={index}>{String(value)}</option>)}
                 </select></label>
-                <button aria-label="Next page" disabled={pageIndex < 0 || pageIndex >= pageValues.length - 1} onClick={() => setPageValue(pageValues[pageIndex + 1])}>›</button>
+                <button aria-label="Next page" disabled={!canStepPage} onClick={() => stepPage(1)}>›</button>
               </div>}
             </div>
             <div className="graph-builder-grid" style={{ overflowX: canvasSize.width || spec.graphWidth ? 'auto' : 'hidden', overflowY: canvasSize.height || spec.graphHeight || spec.aspectRatio || (customPanelHeight && customPanelHeight > 620) ? 'auto' : 'hidden', gridTemplateColumns: `clamp(104px, 11vw, 132px) ${canvasSize.width || spec.graphWidth ? `${canvasSize.width ?? spec.graphWidth}px` : 'minmax(280px, 1fr)'} clamp(116px, 10vw, 140px)`, gridTemplateRows: `58px ${canvasSize.height || spec.graphHeight || spec.aspectRatio ? `${canvasSize.height ?? spec.graphHeight ?? Math.round((canvasSize.width ?? spec.graphWidth ?? 700) / (spec.aspectRatio ?? 1.5))}px` : customPanelHeight ? `${Math.max(620, customPanelHeight)}px` : 'clamp(300px, calc(100vh - 267px), 620px)'} 64px` }}>

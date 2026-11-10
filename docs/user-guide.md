@@ -61,7 +61,7 @@ Drag from **Variables** into a role box, or move a label between boxes. X is the
 | Page | Show one category at a time. Use the dropdown, arrow buttons, or Left and Right Arrow keys to switch pages. |
 | Filter | Keep selected rows visible in both graph and table. |
 
-A filter on the Page column hides excluded values from the dropdown and both sets of arrows. If the current page is filtered out, the graph shows the first available page. If every value is filtered out, the selector shows “No matching pages” and navigation is disabled. Projects save the chosen page and filters. Exports use the page shown on the graph.
+A filter on the Page column hides excluded values from the dropdown and both sets of arrows. The buttons and keys wrap from the last available page to the first and from the first to the last. If the current page is filtered out, the graph shows the first available page. If every value is filtered out, the selector shows “No matching pages” and navigation is disabled. Projects save the chosen page and filters. Exports use the page shown on the graph.
 
 Some roles cannot be combined. Graph Builder explains a conflict and may move an earlier assignment. **Swap X/Y** exchanges the two axes. **Suggest** chooses a suitable plot for the current variables; click it to apply the suggestion. **Undo** and **Redo** reverse or restore recent changes. **Reset example** returns to the original synthetic dataset; use **Undo** to return to the previous project while the app remains open.
 

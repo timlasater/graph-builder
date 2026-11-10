@@ -117,7 +117,7 @@ test('figure layout combines saved graphs in a PNG and project file', async ({ p
   expect(saved.figureLayout.pngScale).toBe(2)
 })
 
-test('page navigation skips filtered values and handles an empty filter result', async ({ page }) => {
+test('page navigation wraps through filtered values and handles an empty filter result', async ({ page }) => {
   await page.goto('/')
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({
@@ -137,14 +137,20 @@ test('page navigation skips filtered values and handles an empty filter result',
   await page.getByRole('button', { name: 'Apply filter' }).click()
   await expect(selector.locator('option')).toHaveText(['Beta', 'Delta'])
   await expect(selector.locator('option:checked')).toHaveText('Beta')
-  await expect(previous).toBeDisabled()
+  await previous.click()
+  await expect(selector.locator('option:checked')).toHaveText('Delta')
+  await next.click()
+  await expect(selector.locator('option:checked')).toHaveText('Beta')
   await next.click()
   await expect(selector.locator('option:checked')).toHaveText('Delta')
   await page.keyboard.press('ArrowLeft')
   await expect(selector.locator('option:checked')).toHaveText('Beta')
   await page.keyboard.press('ArrowRight')
   await expect(selector.locator('option:checked')).toHaveText('Delta')
-  await expect(next).toBeDisabled()
+  await page.keyboard.press('ArrowRight')
+  await expect(selector.locator('option:checked')).toHaveText('Beta')
+  await page.keyboard.press('ArrowLeft')
+  await expect(selector.locator('option:checked')).toHaveText('Delta')
 
   await filter.click()
   await page.getByRole('button', { name: 'Deselect all' }).click()
