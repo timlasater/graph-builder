@@ -70,6 +70,7 @@ interface BuilderState {
   clearRowSelection: () => void
   setDataset: (dataset: Dataset) => void
   setDatasetSource: (source: DatasetSource) => void
+  refreshLinkedDataset: (dataset: Dataset) => void
   applyGraphTemplate: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
   openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, projectPath?: string, projectMode?: 'embedded' | 'linked', figureLayout?: FigureLayout) => void
   setProjectPath: (path?: string) => void
@@ -218,6 +219,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   clearRowSelection: () => set({ selectedRowIds: [] }),
   setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, projectPath: undefined, projectMode: 'embedded', savedProjectFingerprint: undefined, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], figureLayout: undefined, filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
   setDatasetSource: (source) => set((state) => withHistory(state, { dataset: { ...state.dataset, source } })),
+  refreshLinkedDataset: (dataset) => set((state) => withHistory(state, { dataset, selectedRowIds: [], selectedColumn: undefined, compatibilityMessage: undefined, compatibilityMessageTransient: false })),
   applyGraphTemplate: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, compatibilityMessageTransient: false, selectedColumn: undefined })),
   openProject: (projectName, dataset, graphs, activeGraphId, projectPath, projectMode = 'embedded', figureLayout) => set((state) => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]

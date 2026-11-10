@@ -11,7 +11,7 @@ describe('shortcut help by platform', () => {
     const dialog = within(screen.getByRole('dialog', { name: 'Keyboard shortcuts' }))
     expect(dialog.getByText('Ctrl+Z / Ctrl+Y')).toBeTruthy()
     expect(dialog.getByText('?')).toBeTruthy()
-    for (const shortcut of ['Ctrl+N', 'Ctrl+D', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+E', 'Mouse Back / Forward']) {
+    for (const shortcut of ['Ctrl+N', 'Ctrl+D', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+Shift+R', 'Ctrl+E', 'Mouse Back / Forward']) {
       expect(dialog.queryByText(shortcut)).toBeNull()
     }
   })
@@ -19,7 +19,7 @@ describe('shortcut help by platform', () => {
   it('keeps the full Windows shortcut list', () => {
     render(<ShortcutHelp desktop onClose={vi.fn()} onFullGuide={vi.fn()} />)
     const dialog = within(screen.getByRole('dialog', { name: 'Keyboard shortcuts' }))
-    for (const shortcut of ['Ctrl+N', 'Ctrl+D', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+E', 'Ctrl+Z / Ctrl+Y', 'Mouse Back / Forward', '?']) {
+    for (const shortcut of ['Ctrl+N', 'Ctrl+D', 'Ctrl+O', 'Ctrl+S', 'Ctrl+Shift+S', 'Ctrl+Shift+R', 'Ctrl+E', 'Ctrl+Z / Ctrl+Y', 'Mouse Back / Forward', '?']) {
       expect(dialog.getByText(shortcut)).toBeTruthy()
     }
   })

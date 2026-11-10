@@ -146,6 +146,12 @@ Press **Ctrl+O** in the Windows app to choose either a data file or a `.graphbui
 
 Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. The top-bar **Save PNG** uses the current graph size at 2× resolution.
 
+### Refresh linked source data
+
+For an open linked project, use **Projects & export → Refresh linked source**, or press **Ctrl+Shift+R** in the Windows app outside dialogs and text fields. Confirm to reload the latest source rows for every graph. The Windows app reads the remembered source path; if the file moved or cannot be read, choose it again. In a browser, choose the source file each time. Canceling, an unreadable file, or incompatible columns leaves the current data unchanged.
+
+Refresh keeps graph settings, filters, column settings, formulas, and figure layouts. It replaces local cell edits and row exclusions, recalculates formulas, and requires the original compatible columns and data types. Close Projects & export and use **Undo** to restore the previous data. Refresh never writes to the source or project file. Save afterward to keep any new source location; a linked save still stores settings and a source link, while an embedded save and image/data exports use the refreshed data.
+
 ## Annotations in imported files
 
 Imported annotation rows create reference lines and acceptance regions without adding measurements. Coordinates must be numeric. Header names and type/axis values are case-insensitive.
@@ -179,6 +185,7 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 | Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
+| Ctrl+Shift+R | In the Windows app, refresh the open linked project from its source file, outside dialogs and text fields. |
 | Ctrl+E | In the Windows app, open **Projects & export** when focus is outside an editable field or dialog. |
 | ? | Show a compact list of keyboard shortcuts in the browser or Windows app. The top bar also has a **Keyboard shortcuts** button. |
 
