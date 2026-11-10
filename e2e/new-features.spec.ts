@@ -7,7 +7,7 @@ async function importCsv(page: Page, name: string) {
   await page.getByRole('button', { name: 'Import selected data' }).click()
 }
 
-async function assign(page: Page, column: string, role: 'x' | 'y') {
+async function assign(page: Page, column: string, role: 'x' | 'y' | 'page') {
   const assigned = page.locator(`.${role}-zone button[aria-label^="Remove"]`)
   while (await assigned.count()) await assigned.first().click()
   await page.locator('.variable-list').getByRole('button', { name: column, exact: true }).click()
@@ -115,4 +115,42 @@ test('figure layout combines saved graphs in a PNG and project file', async ({ p
   expect(saved.figureLayout.graphIds[0]).toBe(originalOrder[3])
   expect(saved.figureLayout.includeGraphNames).toBe(false)
   expect(saved.figureLayout.pngScale).toBe(2)
+})
+
+test('page navigation skips filtered values and handles an empty filter result', async ({ page }) => {
+  await page.goto('/')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({
+    name: 'pages.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('Group,X,Y\nAlpha,1,2\nBeta,2,3\nGamma,3,4\nDelta,4,5\n'),
+  })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
+  await assign(page, 'Group', 'page')
+  const selector = page.locator('.page-stepper select')
+  const previous = page.getByRole('button', { name: 'Previous page' })
+  const next = page.getByRole('button', { name: 'Next page' })
+  const filter = page.getByRole('button', { name: 'Filter selected column' })
+  await filter.click()
+  await page.getByRole('checkbox', { name: /^Alpha/ }).uncheck()
+  await page.getByRole('checkbox', { name: /^Gamma/ }).uncheck()
+  await page.getByRole('button', { name: 'Apply filter' }).click()
+  await expect(selector.locator('option')).toHaveText(['Beta', 'Delta'])
+  await expect(selector.locator('option:checked')).toHaveText('Beta')
+  await expect(previous).toBeDisabled()
+  await next.click()
+  await expect(selector.locator('option:checked')).toHaveText('Delta')
+  await page.keyboard.press('ArrowLeft')
+  await expect(selector.locator('option:checked')).toHaveText('Beta')
+  await page.keyboard.press('ArrowRight')
+  await expect(selector.locator('option:checked')).toHaveText('Delta')
+  await expect(next).toBeDisabled()
+
+  await filter.click()
+  await page.getByRole('button', { name: 'Deselect all' }).click()
+  await page.getByRole('button', { name: 'Apply filter' }).click()
+  await expect(selector).toBeDisabled()
+  await expect(selector.locator('option')).toHaveText('No matching pages')
+  await expect(previous).toBeDisabled()
+  await expect(next).toBeDisabled()
 })

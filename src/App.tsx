@@ -22,7 +22,7 @@ import { canUseDualYAxis } from './dualYAxis'
 import { saveCurrentDesktopProject } from './projectSave'
 import { navigationShortcut } from './navigationShortcuts'
 import { stackCompatibility } from './plotTransforms'
-import { rowMatchesFilters, useBuilderStore } from './store'
+import { getGraphRows, getPageSelection, useBuilderStore } from './store'
 import { useProjectRecovery } from './useProjectRecovery'
 import { useAssociatedProjects } from './useAssociatedProjects'
 import { useDialogFocus } from './useDialogFocus'
@@ -128,11 +128,26 @@ function App() {
   const singleton = (id?: string) => columnsFor(id ? [id] : [])
   const activeLayer = spec.layers.find((layer) => layer.id === spec.activeLayerId) ?? spec.layers[0]
   const pageColumn = columnFor(spec.page)
-  const pageValues = pageColumn ? [...new Map(dataset.rows.map((row) => [String(row.values[pageColumn.id]), row.values[pageColumn.id]])).values()] : []
-  const pageIndex = pageValues.findIndex((value) => value === spec.pageValue)
+  const { values: pageValues, index: pageIndex } = getPageSelection(dataset, spec, filters)
+
+  useEffect(() => {
+    const handlePageKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+      if (document.querySelector('.modal-backdrop, [aria-modal="true"]')) return
+      const target = event.target
+      if (target instanceof Element && target.closest('input, textarea, select, [contenteditable], [role="slider"], [role="grid"]')) return
+      const nextIndex = pageIndex + (event.key === 'ArrowLeft' ? -1 : 1)
+      if (pageIndex < 0 || nextIndex < 0 || nextIndex >= pageValues.length) return
+      event.preventDefault()
+      setPageValue(pageValues[nextIndex])
+    }
+    window.addEventListener('keydown', handlePageKey)
+    return () => window.removeEventListener('keydown', handlePageKey)
+  }, [pageIndex, pageValues, setPageValue])
   const visibleColumns = dataset.columns.filter((column) => column.name.toLocaleLowerCase().includes(variableSearch.toLocaleLowerCase()))
   const suggestionX = columnsFor(activeLayer?.x ? [activeLayer.x] : spec.x); const suggestionY = columnsFor(activeLayer?.y ? [activeLayer.y] : spec.y)
-  const suggestionRows = dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, filters) && (!spec.page || spec.pageValue === undefined || row.values[spec.page] === spec.pageValue))
+  const suggestionRows = getGraphRows(dataset, spec, filters)
   const suggestion = suggestElement(suggestionX, suggestionY, suggestionRows); const suggestionMatches = activeLayer?.element === suggestion.element
   const suggestionHelp = `${suggestionMatches ? 'Already using' : `Use ${elementLabel(suggestion.element)}`}: ${suggestion.reason}`
   const stackCheck = stackCompatibility(suggestionRows, activeLayer?.x ?? spec.x[0], activeLayer?.color ?? spec.color ?? spec.overlay)
@@ -428,7 +443,14 @@ function App() {
               {(canvasSize.width || canvasSize.height || spec.graphWidth || spec.graphHeight || spec.aspectRatio) && <button onClick={() => { setCanvasSize({}); updateSpec({ graphWidth: undefined, graphHeight: undefined, aspectRatio: undefined }) }} title="Return the graph canvas to the available workspace size"><span>⊞</span>Fit canvas</button>}
               <button className="suggest-button" onClick={applySuggestion} disabled={suggestionMatches} title={suggestionHelp} aria-label={suggestionHelp}><span>✦</span>{suggestionMatches ? `${elementLabel(suggestion.element)} suggested` : `Suggest ${elementLabel(suggestion.element)}`}</button>
               <div className="toolbar-spacer" />
-              {pageColumn && <div className="page-stepper"><button disabled={pageIndex <= 0} onClick={() => setPageValue(pageValues[pageIndex - 1])}>‹</button><label>{pageColumn.name}<select value={String(spec.pageValue ?? pageValues[0] ?? '')} onChange={(event) => setPageValue(pageValues.find((value) => String(value) === event.target.value))}>{pageValues.map((value) => <option key={String(value)} value={String(value)}>{String(value)}</option>)}</select></label><button disabled={pageIndex >= pageValues.length - 1} onClick={() => setPageValue(pageValues[pageIndex + 1])}>›</button></div>}
+              {pageColumn && <div className="page-stepper">
+                <button aria-label="Previous page" disabled={pageIndex <= 0} onClick={() => setPageValue(pageValues[pageIndex - 1])}>‹</button>
+                <label>{pageColumn.name}<select disabled={pageIndex < 0} value={pageIndex} onChange={(event) => setPageValue(pageValues[Number(event.target.value)])}>
+                  {pageIndex < 0 && <option value={-1}>No matching pages</option>}
+                  {pageValues.map((value, index) => <option key={index} value={index}>{String(value)}</option>)}
+                </select></label>
+                <button aria-label="Next page" disabled={pageIndex < 0 || pageIndex >= pageValues.length - 1} onClick={() => setPageValue(pageValues[pageIndex + 1])}>›</button>
+              </div>}
             </div>
             <div className="graph-builder-grid" style={{ overflowX: canvasSize.width || spec.graphWidth ? 'auto' : 'hidden', overflowY: canvasSize.height || spec.graphHeight || spec.aspectRatio || (customPanelHeight && customPanelHeight > 620) ? 'auto' : 'hidden', gridTemplateColumns: `clamp(104px, 11vw, 132px) ${canvasSize.width || spec.graphWidth ? `${canvasSize.width ?? spec.graphWidth}px` : 'minmax(280px, 1fr)'} clamp(116px, 10vw, 140px)`, gridTemplateRows: `58px ${canvasSize.height || spec.graphHeight || spec.aspectRatio ? `${canvasSize.height ?? spec.graphHeight ?? Math.round((canvasSize.width ?? spec.graphWidth ?? 700) / (spec.aspectRatio ?? 1.5))}px` : customPanelHeight ? `${Math.max(620, customPanelHeight)}px` : 'clamp(300px, calc(100vh - 267px), 620px)'} 64px` }}>
               <div className="filter-zone"><FilterDropZone activeCount={filters.length} onEdit={() => setShowActiveFilters(true)} /></div>
