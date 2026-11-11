@@ -20,6 +20,8 @@ Version 0.2.0 adds paired plots, two-group comparisons, nonlinear dose–respons
 
 A filter on the Page column hides excluded values from the page selector. Use the arrow buttons or Left and Right Arrow keys to move between available pages. Navigation wraps from the last page to the first and back.
 
+Press **Ctrl+Alt+P** to export the open graph as a PNG at 2× resolution using the default export dimensions for that graph.
+
 ## Architecture
 
 The UI is React and TypeScript, built with Vite and packaged for Windows with Tauri 2. Zustand stores the dataset, graph specification, filters, project state, and undo history. Plotly renders graphs from a renderer-independent specification. AG Grid provides the editable data table. Papa Parse and SheetJS handle text and spreadsheet imports; dnd-kit handles variable and layer dragging.

@@ -108,6 +108,7 @@ function App() {
     return () => clearTimeout(timer)
   }, [projectSaveStatus, projectSaveSucceeded])
   const projectSaveInProgress = useRef(false)
+  const pngSaveInProgress = useRef(false)
   const [savingPng, setSavingPng] = useState(false)
   const [pngError, setPngError] = useState<string>()
   const [linkError, setLinkError] = useState<string>()
@@ -170,6 +171,19 @@ function App() {
   const projectPathToOpen = openingAssociatedProject ? associatedProject.path : projectOpenRequest?.path
   const documentTitle = `${projectName} · ${activeGraphName}`
 
+  const savePng = useCallback(async () => {
+    if (pngSaveInProgress.current) return
+    pngSaveInProgress.current = true
+    setSavingPng(true); setPngError(undefined)
+    try {
+      const image = await renderGraphImage('png', spec.graphWidth ?? 1200, spec.graphHeight ?? 800, 2)
+      const filename = `${safeFileName(activeGraphName)}.png`
+      if (desktop) await saveDesktopImage(filename, image, 'png')
+      else downloadImage(filename, image)
+    } catch (error) { setPngError(error instanceof Error ? error.message : 'The PNG could not be saved.') }
+    finally { pngSaveInProgress.current = false; setSavingPng(false) }
+  }, [activeGraphName, desktop, spec.graphWidth, spec.graphHeight])
+
   useEffect(() => {
     const handleNavigationShortcut = (event: KeyboardEvent) => {
       const shortcut = navigationShortcut(event, desktop, Boolean(document.querySelector('[aria-modal="true"]')))
@@ -179,12 +193,13 @@ function App() {
       if (shortcut === 'projects') setShowProjects(true)
       else if (shortcut === 'refreshSource') { if (useBuilderStore.getState().projectMode === 'linked') { setRefreshSourceRequest(true); setShowProjects(true) } }
       else if (shortcut === 'newGraph') useBuilderStore.getState().newGraph()
+      else if (shortcut === 'quickPng') void savePng()
       else if (shortcut === 'dataTable') setDataTableView('default')
       else setShowShortcutHelp(true)
     }
     window.addEventListener('keydown', handleNavigationShortcut)
     return () => window.removeEventListener('keydown', handleNavigationShortcut)
-  }, [desktop])
+  }, [desktop, savePng])
 
   useEffect(() => {
     if (!compatibilityMessage || !compatibilityMessageTransient) return
@@ -289,17 +304,6 @@ function App() {
     setLinkError(undefined)
     try { await openUrl(repositoryUrl) }
     catch (error) { setLinkError(error instanceof Error ? error.message : 'The GitHub repository could not be opened.') }
-  }
-
-  const savePng = async () => {
-    setSavingPng(true); setPngError(undefined)
-    try {
-      const image = await renderGraphImage('png', spec.graphWidth ?? 1200, spec.graphHeight ?? 800, 2)
-      const filename = `${safeFileName(activeGraphName)}.png`
-      if (isDesktop()) await saveDesktopImage(filename, image, 'png')
-      else downloadImage(filename, image)
-    } catch (error) { setPngError(error instanceof Error ? error.message : 'The PNG could not be saved.') }
-    finally { setSavingPng(false) }
   }
 
   useEffect(() => {
@@ -412,7 +416,7 @@ function App() {
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragCancel={() => { setDragColumnId(undefined); setDragElement(undefined) }} onDragEnd={handleDragEnd}>
       <div className="app-shell">
         <header className="topbar">
-          <div className="brand">{desktop ? <span className="brand-home"><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span></span> : <a className="brand-home" href={import.meta.env.BASE_URL}><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span></a>}<button className="brand-setup" onClick={() => setShowUserGuide(true)}>User guide</button><button className="brand-setup shortcut-help-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => setShowShortcutHelp(true)}>?</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Save the open graph as a 2× PNG">{savingPng ? 'Saving…' : 'Save PNG'}</button>{!desktop && <span className="document-name" title={documentTitle}><span className="status-dot" /><span className="document-name-text">{documentTitle}</span></span>}</div>
+          <div className="brand">{desktop ? <span className="brand-home"><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span></span> : <a className="brand-home" href={import.meta.env.BASE_URL}><span className="brand-mark"><img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" /></span><span>Graph Builder</span></a>}<button className="brand-setup" onClick={() => setShowUserGuide(true)}>User guide</button><button className="brand-setup shortcut-help-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" onClick={() => setShowShortcutHelp(true)}>?</button><button className="brand-setup" onClick={() => setShowProjects(true)}>Projects & export</button><button className="brand-setup" disabled={savingPng} onClick={() => void savePng()} title="Save the open graph as a 2× PNG (Ctrl+Alt+P)" aria-keyshortcuts="Control+Alt+P">{savingPng ? 'Saving…' : 'Save PNG'}</button>{!desktop && <span className="document-name" title={documentTitle}><span className="status-dot" /><span className="document-name-text">{documentTitle}</span></span>}</div>
           <div className="toolbar-actions">
             <button className="panel-toggle" aria-pressed={panelVisibility.variables} onClick={() => setPanelVisibility((current) => ({ ...current, variables: !current.variables }))} title={`${panelVisibility.variables ? 'Hide' : 'Show'} Variables panel`}>☰ <span>Variables</span></button>
             <button className="panel-toggle" aria-pressed={panelVisibility.properties} onClick={() => setPanelVisibility((current) => ({ ...current, properties: !current.properties }))} title={`${panelVisibility.properties ? 'Hide' : 'Show'} Properties panel`}><span>Properties</span> ◫</button>

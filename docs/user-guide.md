@@ -146,7 +146,7 @@ In the Windows app, press **Ctrl+S** to save an embedded copy of the current pro
 
 Press **Ctrl+O** in the Windows app to choose either a data file or a `.graphbuilder` project from one file dialog. Data files follow the usual import and worksheet steps; project files show the save-or-cancel prompt before replacing the open project.
 
-Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. The top-bar **Save PNG** uses the current graph size at 2× resolution.
+Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. **Save PNG** and **Ctrl+Alt+P** export the open graph at 2× resolution using its configured dimensions, or 1200 × 800 when no size is set. Windows opens a save dialog and the browser downloads the file.
 
 ### Refresh linked source data
 
@@ -188,6 +188,7 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 | Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
 | Ctrl+Shift+R | In the Windows app, refresh the open linked project from its source file, outside dialogs and text fields. |
+| Ctrl+Alt+P | Export the open graph as a PNG at default settings outside editable fields and dialogs. |
 | Ctrl+E | In the Windows app, open **Projects & export** when focus is outside an editable field or dialog. |
 | ? | Show a compact list of keyboard shortcuts in the browser or Windows app. The top bar also has a **Keyboard shortcuts** button. |
 

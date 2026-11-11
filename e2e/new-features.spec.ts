@@ -160,3 +160,15 @@ test('page navigation wraps through filtered values and handles an empty filter 
   await expect(previous).toBeDisabled()
   await expect(next).toBeDisabled()
 })
+
+test('quick PNG shortcut downloads the open graph at default settings', async ({ page }) => {
+  await page.goto('/')
+  await expect.poll(() => page.locator('.plotly-chart').evaluate((node) => Boolean((node as HTMLElement & { data?: unknown[] }).data?.length))).toBe(true)
+  const download = page.waitForEvent('download')
+  await page.keyboard.press('Control+Alt+p')
+  const png = await download
+  expect(png.suggestedFilename()).toMatch(/\.png$/)
+  const bytes = await readFile(await png.path())
+  expect(bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+  expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([2400, 1600])
+})

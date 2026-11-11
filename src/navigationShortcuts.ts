@@ -1,4 +1,4 @@
-export type NavigationShortcut = 'projects' | 'newGraph' | 'dataTable' | 'refreshSource' | 'help'
+export type NavigationShortcut = 'projects' | 'newGraph' | 'dataTable' | 'refreshSource' | 'quickPng' | 'help'
 
 export function navigationShortcut(event: KeyboardEvent, desktop: boolean, modalOpen: boolean): NavigationShortcut | undefined {
   if (modalOpen) return undefined
@@ -8,6 +8,7 @@ export function navigationShortcut(event: KeyboardEvent, desktop: boolean, modal
   if (desktop && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'n') return 'newGraph'
   if (desktop && event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'd') return 'dataTable'
   if (desktop && event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey && event.key.toLowerCase() === 'e') return 'projects'
+  if (event.ctrlKey && event.altKey && !event.shiftKey && !event.metaKey && event.key.toLowerCase() === 'p') return 'quickPng'
   if (!event.ctrlKey && !event.altKey && !event.metaKey && (event.key === '?' || event.key === '/' && event.shiftKey)) return 'help'
   return undefined
 }
