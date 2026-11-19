@@ -228,15 +228,8 @@ export function GraphCanvas({ preview }: { preview?: { spec: GraphSpec; filters:
       }
       if (layer.element === 'box') {
         const categories = rows.map((row) => xColumn === boxCategoryColumn ? boxCategoryColumn.name : String(displayValue(xColumn, row.values[xColumn.id])))
-        const measurementCounts: Record<string, number> = {}
         const positions = collated ? collatedX(categories) : categories
-        rows.forEach((row, index) => {
-          if (Number.isFinite(numericOrNaN(row.values[yColumn.id]))) {
-            const position = String(positions[index])
-            measurementCounts[position] = (measurementCounts[position] ?? 0) + 1
-          }
-        })
-        return { ...base, meta: { measurementCounts }, type: 'box', x: collated ? collatedX(categories) : categories, y: rows.map((row) => row.values[yColumn.id] === null ? Number.NaN : Number(row.values[yColumn.id])), customdata: rows.map((row, index) => collated ? [row.id, categories[index]] : row.id), width: collated ? collatedWidth * 0.75 : undefined, marker: { color, size: layer.markerSize ?? spec.markerSize, symbol: layer.markerShape ?? spec.markerShape ?? 'circle', opacity: spec.markerOpacity ?? 0.82 }, line: { color, width: layer.lineWidth ?? 2 }, quartilemethod: 'linear', boxpoints: layer.boxPoints === 'none' ? false : layer.boxPoints ?? 'outliers', jitter: layer.boxPoints === 'all' ? spec.markerJitter ?? 0.28 : 0, pointpos: 0, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: ${collated ? '%{customdata[1]}' : '%{x}'}<br>${yColumn.name}: %{y}<br>Row: ${collated ? '%{customdata[0]}' : '%{customdata}'}<extra></extra>` }
+        return { ...base, type: 'box', x: positions, y: rows.map((row) => numericOrNaN(row.values[yColumn.id])), customdata: rows.map((row, index) => collated ? [row.id, categories[index]] : row.id), width: collated ? collatedWidth * 0.75 : undefined, marker: { color, size: layer.markerSize ?? spec.markerSize, symbol: layer.markerShape ?? spec.markerShape ?? 'circle', opacity: spec.markerOpacity ?? 0.82 }, line: { color, width: layer.lineWidth ?? 2 }, quartilemethod: 'linear', boxpoints: layer.boxPoints === 'none' ? false : layer.boxPoints ?? 'outliers', jitter: layer.boxPoints === 'all' ? spec.markerJitter ?? 0.28 : 0, pointpos: 0, hovertemplate: `<b>${legendKey}</b><br>${xColumn.name}: ${collated ? '%{customdata[1]}' : '%{x}'}<br>${yColumn.name}: %{y}<br>Row: ${collated ? '%{customdata[0]}' : '%{customdata}'}<extra></extra>` }
       }
       if (layer.element === 'bar') {
         const errorType = (layer.summaryInput === 'precomputed' || (layer.barAggregation ?? 'mean') === 'mean') && !layer.stack ? layer.errorBar ?? 'none' : 'none'

@@ -173,12 +173,12 @@ test('quick PNG shortcut downloads the open graph at default settings', async ({
   expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([2400, 1600])
 })
 
-test('hovering a box shows its valid measurement count', async ({ page }) => {
+test('box hover and clicks show and select the corresponding measurements', async ({ page }) => {
   await page.goto('/')
   page.once('dialog', (dialog) => dialog.accept())
   await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({
     name: 'box-count.csv', mimeType: 'text/csv',
-    buffer: Buffer.from('Group,Value\nA,1\nA,2\nA,3\nA,4\nA,100\nA,\nB,10\nB,20\nB,30\n'),
+    buffer: Buffer.from('Group,Value\nA,1\nA,11\nA,21\nA,31\nA,150\nA,\nB,10\nB,20\nB,30\n'),
   })
   await page.getByRole('button', { name: 'Import selected data' }).click()
   await assign(page, 'Group', 'x')
@@ -196,4 +196,39 @@ test('hovering a box shows its valid measurement count', async ({ page }) => {
   await expect(page.getByRole('status').filter({ hasText: 'Measurements (n): 3' })).toBeVisible()
   await page.mouse.move(0, 0)
   await expect(page.locator('.measurement-count-hover')).toHaveCount(0)
+  const clickBox = async (index: number, target: 'body' | 'median' | 'quartile') => {
+    await expect(async () => {
+      await page.mouse.move(0, 0)
+      const point = await boxes.nth(index).evaluate((node, part) => {
+        const path = node as SVGPathElement
+        const [median, quartile] = [...path.getAttribute('d')!.matchAll(/M([^,]+),([^A-Z]+)/g)]
+        const right = Number(path.getAttribute('d')!.match(/H([^A-Z]+)/)![1])
+        const local = new DOMPoint((Number(median[1]) + right) / 2,
+          part === 'median' ? Number(median[2]) : part === 'quartile' ? Number(quartile[2]) : (Number(median[2]) + Number(quartile[2])) / 2)
+        return local.matrixTransform(path.getScreenCTM()!).toJSON()
+      }, target)
+      await page.mouse.move(point.x, point.y)
+      await expect(page.locator('.measurement-count-hover')).toHaveText(index === 0 ? 'Measurements (n): 5' : 'Measurements (n): 3', { timeout: 350 })
+      await page.mouse.click(point.x, point.y)
+    }).toPass({ timeout: 5000 })
+  }
+  const selection = page.locator('.graph-selection-bar')
+  await clickBox(0, 'body')
+  await expect(selection).toContainText('5 source rows selected')
+  await clickBox(0, 'median')
+  await expect(selection).toContainText('1 source row selected')
+  await clickBox(1, 'quartile')
+  await expect(selection).toContainText('2 source rows selected')
+  await expect(async () => {
+    const outlier = await page.locator('.boxlayer g.points path.point').first().boundingBox()
+    const x = outlier!.x + outlier!.width / 2
+    const y = outlier!.y + outlier!.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.click(x, y)
+    await expect(selection).toContainText('1 source row selected', { timeout: 350 })
+  }).toPass({ timeout: 5000 })
+  await page.getByRole('button', { name: 'View data table' }).first().click()
+  await expect(page.locator('.linked-row-selected')).toHaveCount(1)
+  await expect(page.locator('.linked-row-selected')).toContainText('150')
+
 })
