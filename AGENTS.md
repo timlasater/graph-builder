@@ -1,6 +1,6 @@
 # Project agent policy
 
-- Work on a side branch by default, including roadmap phases. Start new work from an up-to-date `main` unless continuing an existing feature branch. Keep `main` unchanged until the branch is reviewed and merged.
+- Build all new features, including roadmap phases, directly on the shared next-version branch. Check local branches and `origin` for an existing next-version branch and continue work there. If none exists, start from an up-to-date `main` and create one by incrementing the last number of the latest released version, for example `v0.2.0` to `codex/v0.2.1`. Use one branch for all features in that release. Keep `main` unchanged until the branch is reviewed and merged.
 - Before handing off completed code work, run the relevant tests and build checks, commit the changes, and push the side branch to `origin`.
 - Update the project documentation and the user guide for every new feature. Describe how to use it, its important limits, and any changed save or export behavior.
 - Keep unrelated user changes out of commits. If the working tree contains unrelated changes, preserve them and call them out before committing.

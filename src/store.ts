@@ -70,6 +70,7 @@ interface BuilderState {
   clearRowSelection: () => void
   setDataset: (dataset: Dataset) => void
   setDatasetSource: (source: DatasetSource) => void
+  refreshLinkedDataset: (dataset: Dataset) => void
   applyGraphTemplate: (spec: GraphSpec, filters: RowFilter[], dataset?: Dataset) => void
   openProject: (name: string, dataset: Dataset, graphs: GraphDocument[], activeGraphId: string, projectPath?: string, projectMode?: 'embedded' | 'linked', figureLayout?: FigureLayout) => void
   setProjectPath: (path?: string) => void
@@ -133,6 +134,21 @@ export const rowMatchesFilters = (row: Dataset['rows'][number], filters: RowFilt
   if (!Number.isFinite(left) || !Number.isFinite(right)) return false
   return filter.operator === 'gt' ? left > right : filter.operator === 'gte' ? left >= right : filter.operator === 'lt' ? left < right : left <= right
 })
+
+export function getPageSelection(dataset: Dataset, spec: GraphSpec, filters: RowFilter[]) {
+  const columnId = spec.page
+  if (!columnId) return { values: [], index: -1 }
+  const pageFilters = filters.filter((filter) => filter.columnId === columnId)
+  const values = [...new Set(dataset.rows.filter((row) => rowMatchesFilters(row, pageFilters)).map((row) => row.values[columnId]))]
+  const selected = values.findIndex((value) => value === spec.pageValue)
+  return { values, index: selected < 0 && values.length > 0 ? 0 : selected }
+}
+
+export function getGraphRows(dataset: Dataset, spec: GraphSpec, filters: RowFilter[]) {
+  const { values, index } = getPageSelection(dataset, spec, filters)
+  const page = spec.page
+  return dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, filters) && (!page || (index >= 0 && row.values[page] === values[index])))
+}
 
 export const moveRoleAssignment = (spec: GraphSpec, columnId: string, toRole?: GraphRole, fromRole?: GraphRole, targetIndex?: number, columns: DataColumn[] = sampleDataset.columns, rows = sampleDataset.rows): GraphSpec => {
   const column = columns.find((item) => item.id === columnId)
@@ -206,7 +222,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
     const xIds = activeLayer?.x ? [activeLayer.x] : state.spec.x; const yIds = activeLayer?.y ? [activeLayer.y] : state.spec.y
     const x = xIds.map((id) => state.dataset.columns.find((column) => column.id === id)).filter((column): column is DataColumn => Boolean(column))
     const y = yIds.map((id) => state.dataset.columns.find((column) => column.id === id)).filter((column): column is DataColumn => Boolean(column))
-    const rows = state.dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, state.filters) && (!state.spec.page || state.spec.pageValue === undefined || row.values[state.spec.page] === state.spec.pageValue))
+    const rows = getGraphRows(state.dataset, state.spec, state.filters)
     const suggestion = suggestElement(x, y, rows); const message = `${elementLabel(suggestion.element)} suggested: ${suggestion.reason}`
     if (!activeLayer || activeLayer.element === suggestion.element) return { compatibilityMessage: `Already using ${message.toLocaleLowerCase()}`, compatibilityMessageTransient: true }
     return withHistory(state, { compatibilityMessage: message, compatibilityMessageTransient: true, spec: { ...state.spec, layers: state.spec.layers.map((layer) => layer.id === state.spec.activeLayerId ? { ...layer, element: suggestion.element, name: layerName(suggestion.element) } : layer) } })
@@ -218,6 +234,7 @@ export const useBuilderStore = create<BuilderState>((set) => ({
   clearRowSelection: () => set({ selectedRowIds: [] }),
   setDataset: (dataset) => set((state) => { const spec = defaultGraphSpec(dataset); return withHistory(state, { dataset, spec, projectName: dataset.name, projectPath: undefined, projectMode: 'embedded', savedProjectFingerprint: undefined, activeGraphId: 'graph-1', activeGraphName: spec.title, otherGraphs: [], figureLayout: undefined, filters: [], selectedColumn: undefined, selectedRowIds: [] }) }),
   setDatasetSource: (source) => set((state) => withHistory(state, { dataset: { ...state.dataset, source } })),
+  refreshLinkedDataset: (dataset) => set((state) => withHistory(state, { dataset, selectedRowIds: [], selectedColumn: undefined, compatibilityMessage: undefined, compatibilityMessageTransient: false })),
   applyGraphTemplate: (spec, filters, dataset) => set((state) => withHistory(state, { dataset: dataset ?? state.dataset, spec: structuredClone(spec), filters: structuredClone(filters), compatibilityMessage: undefined, compatibilityMessageTransient: false, selectedColumn: undefined })),
   openProject: (projectName, dataset, graphs, activeGraphId, projectPath, projectMode = 'embedded', figureLayout) => set((state) => {
     const active = graphs.find((graph) => graph.id === activeGraphId) ?? graphs[0]

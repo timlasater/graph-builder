@@ -58,8 +58,10 @@ Drag from **Variables** into a role box, or move a label between boxes. X is the
 | Shape | Vary point symbols by category. |
 | Size | Scale point size from a numeric variable. |
 | Frequency | Treat a positive count as repeated observations in supported summaries. |
-| Page | Show one category at a time; use the selector above the graph to change the page. |
+| Page | Show one category at a time. Use the dropdown, arrow buttons, or Left and Right Arrow keys to switch pages. |
 | Filter | Keep selected rows visible in both graph and table. |
+
+A filter on the Page column hides excluded values from the dropdown and both sets of arrows. The buttons and keys wrap from the last available page to the first and from the first to the last. If the current page is filtered out, the graph shows the first available page. If every value is filtered out, the selector shows “No matching pages” and navigation is disabled. Projects save the chosen page and filters. Exports use the page shown on the graph.
 
 Some roles cannot be combined. Graph Builder explains a conflict and may move an earlier assignment. **Swap X/Y** exchanges the two axes. **Suggest** chooses a suitable plot for the current variables; click it to apply the suggestion. **Undo** and **Redo** reverse or restore recent changes. **Reset example** returns to the original synthetic dataset; use **Undo** to return to the previous project while the app remains open.
 
@@ -99,7 +101,7 @@ The result shows the mean difference **B minus A**, a confidence interval (a ran
 
 ## Filters and linked selection
 
-Drag a variable to **Filter**, or select it and choose **Filter selected column** under **Selected column**. For categories, search the values and tick those to keep. For numeric or date columns, choose bounds, missing values, or non-missing values. **Apply filter** updates graph and table; **Clear filter** removes that rule. Click the filled Filter box to review, edit, remove, or clear all active filters. Filters hide rows from the current view; they do not delete them. The data table's Filters menu offers additional rule types.
+Drag a variable to **Filter**, or select it and choose **Filter selected column** under **Selected column**. For categories, search the values and tick those to keep. The number beside each option counts rows that pass the filters on other columns. Options with zero matching rows remain available, and the filter you are editing does not affect its own counts. For numeric or date columns, choose bounds, missing values, or non-missing values. **Apply filter** updates graph and table; **Clear filter** removes that rule. Click the filled Filter box to review, edit, remove, or clear all active filters. Filters hide rows from the current view; they do not delete them. The data table's Filters menu offers additional rule types.
 
 Clicking a plotted observation can highlight its source row in the data table when that plot has a direct row link. Some summaries combine rows and therefore cannot map to a single source row. Exclusion changes calculations; selection only highlights.
 
@@ -144,7 +146,13 @@ In the Windows app, press **Ctrl+S** to save an embedded copy of the current pro
 
 Press **Ctrl+O** in the Windows app to choose either a data file or a `.graphbuilder` project from one file dialog. Data files follow the usual import and worksheet steps; project files show the save-or-cancel prompt before replacing the open project.
 
-Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. The top-bar **Save PNG** uses the current graph size at 2× resolution.
+Under **Export open graph**, set width and height in pixels. Save or download PNG, choose 1×–3× image resolution, or export SVG for scalable artwork. **Copy PNG** uses the clipboard when supported. **Export plotted data CSV** saves the currently plotted values and uncertainty, rather than the complete source table. **Save PNG** and **Ctrl+Alt+P** export the open graph at 2× resolution using its configured dimensions, or 1200 × 800 when no size is set. Windows opens a save dialog and the browser downloads the file.
+
+### Refresh linked source data
+
+For an open linked project, use **Projects & export → Refresh linked source**, or press **Ctrl+Shift+R** in the Windows app outside dialogs and text fields. Confirm to reload the latest source rows for every graph. The Windows app reads the remembered source path; if the file moved or cannot be read, choose it again. In a browser, choose the source file each time. Canceling, an unreadable file, or incompatible columns leaves the current data unchanged.
+
+Refresh keeps graph settings, filters, column settings, formulas, and figure layouts. It replaces local cell edits and row exclusions, recalculates formulas, and requires the original compatible columns and data types. Close Projects & export and use **Undo** to restore the previous data. Refresh never writes to the source or project file. Save afterward to keep any new source location; a linked save still stores settings and a source link, while an embedded save and image/data exports use the refreshed data.
 
 ## Annotations in imported files
 
@@ -179,6 +187,8 @@ Alternatively, put annotations in an Excel worksheet named `Graph Annotations`, 
 | Ctrl+Z / Ctrl+Y | Undo / redo a graph or project change when focus is outside an editable field or dialog. On macOS, use Command instead of Ctrl. |
 | Ctrl+S / Ctrl+Shift+S | In the Windows app, save the current project / save it to a new location when focus is outside an editable field or dialog. |
 | Ctrl+O | In the Windows app, choose a data file to import or a project file to open. |
+| Ctrl+Shift+R | In the Windows app, refresh the open linked project from its source file, outside dialogs and text fields. |
+| Ctrl+Alt+P | Export the open graph as a PNG at default settings outside editable fields and dialogs. |
 | Ctrl+E | In the Windows app, open **Projects & export** when focus is outside an editable field or dialog. |
 | ? | Show a compact list of keyboard shortcuts in the browser or Windows app. The top bar also has a **Keyboard shortcuts** button. |
 
@@ -205,7 +215,7 @@ The browser app needs a connection to load its code, but row data and local reco
 
 Legend corrections: In Windows desktop, drag a legend name onto another name to reorder it; Left/Right Arrow also works when the name is focused. When X and Color use the same category column, renaming a legend item also changes its X-axis label. Renames affect display labels, not source data, and identical names keep separate groups. With an Overlay or a different X variable, renaming changes the series name only. Legend names and order are saved with the graph and included in exports.
 
-On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. Project files and exports are unchanged.
+On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. If you opened a project from Windows File Explorer, choose **Discard changes and open selected project** to skip the autosaved work and continue opening that file. **Restore project** recovers the autosaved work first so you can save it before opening the selected file. Project files and exports are unchanged.
 
 In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.
 
@@ -218,3 +228,7 @@ Image exports reserve space between a bottom legend and the X-axis title, includ
 With multiple layers, **Properties → Marks and colors → One legend entry per group across layers** is enabled by default, including for older projects. Layers using the same Color and Overlay variables share one entry per group and matching palette colors. Rename, recolor, hide/show, highlight, and reorder that entry to affect the group across layers. Shared colors override individual layer colors; when existing entries disagree, the first layer’s custom group name and color are used. Turn the option off for separate layer entries and colors. Different grouping variables and layers without Color or Overlay stay separate. The setting is stored in projects and graph templates, and shared legends are included in PNG, SVG, clipboard, and figure-layout exports.
 
 **Figure size and theme** is the final section at the bottom of the Properties panel, after **Axes and categories** and **Marks and colors**.
+
+Hover over a box plot to see **Measurements (n)** in the upper-right corner of the graph alongside the quartile and whisker hover labels. This counts all finite measurements represented by that box, including outliers, after filters, excluded rows, Page selection, and panel grouping. Missing values are omitted. Summary bars and summary lines show **Measurements (n)** in their hover text, using the supplied sample size for precomputed summaries. Histogram hover labels show the bin count, or the sum of weights for weighted data. These hover readouts are interactive and are omitted from image exports.
+
+Click inside a box to select all measurements summarized by it, including outliers. Click an individual point to select its row. Click a median or quartile line to select the matching measurement or the two measurements immediately below and above an interpolated value. Open **Data table** to see the selected rows highlighted.

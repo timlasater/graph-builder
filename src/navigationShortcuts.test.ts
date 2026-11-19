@@ -27,6 +27,19 @@ describe('navigation shortcuts', () => {
     expect(navigationShortcut(event, true, true)).toBeUndefined()
   })
 
+  it('refreshes linked sources with Ctrl+Shift+R only outside desktop dialogs and editors', () => {
+    const event = new KeyboardEvent('keydown', { key: 'R', ctrlKey: true, shiftKey: true })
+    expect(navigationShortcut(event, true, false)).toBe('refreshSource')
+    expect(navigationShortcut(event, false, false)).toBeUndefined()
+    expect(navigationShortcut(event, true, true)).toBeUndefined()
+    expect(navigationShortcut(new KeyboardEvent('keydown', { key: 'r', ctrlKey: true }), true, false)).toBeUndefined()
+    const input = document.createElement('input')
+    let result: ReturnType<typeof navigationShortcut>
+    input.addEventListener('keydown', (e) => { result = navigationShortcut(e, true, false) })
+    input.dispatchEvent(event)
+    expect(result).toBeUndefined()
+  })
+
   it('opens help with ? but leaves typing and other dialogs alone', () => {
     const event = new KeyboardEvent('keydown', { key: '?', shiftKey: true })
     expect(navigationShortcut(event, true, false)).toBe('help')

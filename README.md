@@ -6,6 +6,7 @@ Graph Builder is a local-first scientific graphing application for Windows and m
 - [Download the latest Windows release](https://github.com/timlasater/graph-builder/releases/latest)
 - [Read the complete user guide](docs/user-guide.md)
 - [Read the v0.2.0 feature workflows](docs/v0.2.0-feature-guide.md)
+- [Read the 0.2.1 release notes](docs/release-0.2.1-notes.md)
 - [Read the 0.2.0 release notes](docs/release-0.2.0-notes.md)
 - [0.2.0 Windows release checks](docs/release-0.2.0-notes.md#release-checks)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)
@@ -17,6 +18,12 @@ Graph Builder is a local-first scientific graphing application for Windows and m
 ## Version 0.2.0
 
 Version 0.2.0 adds paired plots, two-group comparisons, nonlinear dose–response and exponential decay fits, and a page layout for combining saved graphs. The browser workflow deploys main; the signed Windows workflow creates a draft release for asset inspection before publication. See the [v0.2.0 feature guide](docs/v0.2.0-feature-guide.md) for sample data, steps, and current limits.
+
+A filter on the Page column hides excluded values from the page selector. Use the arrow buttons or Left and Right Arrow keys to move between available pages. Navigation wraps from the last page to the first and back.
+
+Press **Ctrl+Alt+P** to export the open graph as a PNG at 2× resolution using the default export dimensions for that graph.
+
+Category filter checklists show how many rows match each option after filters on other columns are applied.
 
 ## Architecture
 
@@ -80,6 +87,12 @@ Imports accept CSV, TSV, TXT, XLSX, and XLS, with a worksheet selector when need
 
 Annotations can be supplied as tagged rows in a data table or in a `Graph Annotations` Excel worksheet. The exact columns and examples are documented in the [user guide](docs/user-guide.md#annotations-in-imported-files). Example files are in `examples/` and `test-data/`.
 
+### Refresh linked source data
+
+For an open linked project, use **Projects & export → Refresh linked source**, or press **Ctrl+Shift+R** in the Windows app outside dialogs and text fields. Confirm to reload the latest source rows for every graph. The Windows app reads the remembered source path; if the file moved or cannot be read, choose it again. In a browser, choose the source file each time. Canceling, an unreadable file, or incompatible columns leaves the current data unchanged.
+
+Refresh keeps graph settings, filters, column settings, formulas, and figure layouts. It replaces local cell edits and row exclusions, recalculates formulas, and requires the original compatible columns and data types. Close Projects & export and use **Undo** to restore the previous data. Refresh never writes to the source or project file. Save afterward to keep any new source location; a linked save still stores settings and a source link, while an embedded save and image/data exports use the refreshed data.
+
 ## Project status
 
 Browser graphing and the Windows desktop application are implemented. The signed 0.1.2 → 0.1.3 desktop update was verified; that result is recorded in the [Windows validation history](docs/phase-10-manual-checks.md). The [0.1.4 Windows release](https://github.com/timlasater/graph-builder/releases/tag/desktop-v0.1.4) is published with its installer, update signature, and updater manifest. The user reports completing the 0.1.4 candidate tests, live download and browser checks, installed update choices, and clean-install and uninstall checks. See the [0.1.4 release notes](docs/release-0.1.4-notes.md) and [test plan](docs/release-0.1.4-test-plan.md). macOS and Linux releases await testing on those platforms.
@@ -90,7 +103,7 @@ Open an issue with steps to reproduce, an expected result, and the observed resu
 
 Legend corrections: In Windows desktop, drag a legend name onto another name to reorder it; Left/Right Arrow also works when the name is focused. When X and Color use the same category column, renaming a legend item also changes its X-axis label. Renames affect display labels, not source data, and identical names keep separate groups. With an Overlay or a different X variable, renaming changes the series name only. Legend names and order are saved with the graph and included in exports.
 
-On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. Project files and exports are unchanged.
+On startup, autosaved projects containing only unchanged built-in example data reopen quietly, including customized graphs. Recovery copies with imported data or changes to example data still show **Continue your autosaved project?**. If you opened a project from Windows File Explorer, choose **Discard changes and open selected project** to skip the autosaved work and continue opening that file. **Restore project** recovers the autosaved work first so you can save it before opening the selected file. Project files and exports are unchanged.
 
 In the desktop legend, drag a name to the empty space at the far left or right and release to move it first or last. Drops must stay inside the legend area; dropping onto another item still reorders relative to that item. The order is saved with the graph and used in exports.
 
@@ -105,3 +118,7 @@ With multiple layers, **Properties → Marks and colors → One legend entry per
 Appearance controls are consolidated: **Marks and colors** includes the marker size slider, and **Axes and categories** includes **Show grid lines**. The shared-layer legend checkbox and its text are left-aligned on one row.
 
 **Figure size and theme** is the final section at the bottom of the Properties panel, after **Axes and categories** and **Marks and colors**.
+
+Hover over a box plot to see **Measurements (n)** in the upper-right corner of the graph alongside the quartile and whisker hover labels. This counts all finite measurements represented by that box, including outliers, after filters, excluded rows, Page selection, and panel grouping. Missing values are omitted. Summary bars and summary lines show **Measurements (n)** in their hover text, using the supplied sample size for precomputed summaries. Histogram hover labels show the bin count, or the sum of weights for weighted data. These hover readouts are interactive and are omitted from image exports.
+
+Click inside a box to select all measurements summarized by it, including outliers. Click an individual point to select its row. Click a median or quartile line to select the matching measurement or the two measurements immediately below and above an interpolated value. Open **Data table** to see the selected rows highlighted.

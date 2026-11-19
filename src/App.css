@@ -218,6 +218,7 @@
 .project-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .clear-recent-button { padding: 3px 6px; border: 1px solid #c8d3d7; border-radius: 4px; background: white; color: #526770; cursor: pointer; font-size: 9px; }
 .project-section p, .project-section small { margin: 0; color: #63747d; font-size: 11px; line-height: 1.45; }
+.project-section .setting-help { font-size: 9px; line-height: 1.3; }
 .project-section label { display: grid; gap: 4px; min-width: 120px; color: #526770; font-size: 11px; font-weight: 600; }
 .project-section input, .project-section select { height: 32px; min-width: 0; padding: 0 8px; border: 1px solid #c8d3d7; border-radius: 5px; background: white; color: var(--ink); }
 .project-actions, .project-dimensions { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
@@ -312,3 +313,8 @@
 .property-section .shared-legend-toggle { display: flex; align-items: flex-start; justify-content: flex-start; gap: 7px; text-align: left; }
 .property-section .shared-legend-toggle input { flex: 0 0 16px; width: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--teal); }
 .property-section .shared-legend-toggle span { flex: 1; min-width: 0; line-height: 16px; }
+
+.plotly-chart-wrap { position: relative; width: 100%; height: 100%; min-height: 0; }
+.measurement-count-hover { position: absolute; top: 8px; right: 8px; pointer-events: none; padding: 4px 7px; background: #fff; color: #183b43; border: 1px solid #bdd5d7; border-radius: 4px; font-size: 9px; line-height: 1.4; box-shadow: 0 1px 4px #0002; }
+
+.chart-with-legend .plotly-chart-wrap { flex: 1 1 auto; height: auto; display: flex; flex-direction: column; }

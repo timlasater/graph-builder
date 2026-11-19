@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import { useEffect, useMemo, useState } from 'react'
-import { useBuilderStore } from '../store'
+import { rowMatchesFilters, useBuilderStore } from '../store'
 import { useDialogFocus } from '../useDialogFocus'
 import type { CellValue, DataColumn, RowFilter } from '../types'
 
@@ -20,6 +20,17 @@ export function FilterPopup({ column, onClose }: { column: DataColumn; onClose: 
   const existing = filters.find((filter) => filter.columnId === column.id)
   const uniqueValues = useMemo(() => [...new Set(dataset.rows.map((row) => row.values[column.id]))], [column.id, dataset.rows])
   const checklist = (column.dataType !== 'number' && column.dataType !== 'date') || column.modelingType === 'nominal' || (column.modelingType === 'ordinal' && uniqueValues.length <= 10)
+  const availableCounts = useMemo(() => {
+    const counts = new Map<CellValue, number>()
+    if (!checklist) return counts
+    const otherFilters = filters.filter((filter) => filter.columnId !== column.id)
+    for (const row of dataset.rows) {
+      if (!rowMatchesFilters(row, otherFilters)) continue
+      const value = row.values[column.id]
+      counts.set(value, (counts.get(value) ?? 0) + 1)
+    }
+    return counts
+  }, [checklist, column.id, dataset.rows, filters])
   const [selected, setSelected] = useState<CellValue[]>(existing?.operator === 'in' ? existing.values ?? [] : uniqueValues)
   const [search, setSearch] = useState('')
   const [mode, setMode] = useState<'range' | 'missing' | 'present'>(existing?.operator === 'isMissing' ? 'missing' : existing?.operator === 'isNotMissing' ? 'present' : 'range')
@@ -59,7 +70,7 @@ export function FilterPopup({ column, onClose }: { column: DataColumn; onClose: 
   return <div className="modal-backdrop filter-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={dialogRef} className="filter-dialog" role="dialog" aria-modal="true" aria-labelledby="filter-title" tabIndex={-1}>
       <header><div><span className="eyebrow">FILTER</span><h2 id="filter-title">{column.name}</h2></div><button className="dialog-close" onClick={onClose} aria-label="Close filter">×</button></header>
-      {checklist ? <><div className="filter-select-actions"><input className="filter-level-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search levels" aria-label="Search filter levels" /><button onClick={() => setSelected(uniqueValues)}>Select all</button><button onClick={() => setSelected([])}>Deselect all</button></div><div className="filter-checklist">{visibleValues.map((value, index) => <label key={`${String(value)}-${index}`}><input type="checkbox" checked={selected.some((item) => sameValue(item, value))} onChange={(event) => setSelected(event.target.checked ? [...selected, value] : selected.filter((item) => !sameValue(item, value)))} /><span>{labelFor(column, value)}</span><small>{dataset.rows.filter((row) => row.values[column.id] === value).length}</small></label>)}</div></> : <div className="filter-bounds"><label>Values<select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="range">Inside bounds</option><option value="present">Non-missing only</option><option value="missing">Missing only</option></select></label>{mode === 'range' && (column.dataType === 'date' ? <><label>On or after<input type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} /></label><label>On or before<input type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} /></label></> : <><p>Keep values inside either or both bounds.</p><label>Greater than or equal to<input type="number" value={minimum} placeholder={numericValues.length ? String(Math.min(...numericValues)) : ''} onChange={(event) => setMinimum(event.target.value)} /></label><label>Less than or equal to<input type="number" value={maximum} placeholder={numericValues.length ? String(Math.max(...numericValues)) : ''} onChange={(event) => setMaximum(event.target.value)} /></label></>)}</div>}
+      {checklist ? <><div className="filter-select-actions"><input className="filter-level-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search levels" aria-label="Search filter levels" /><button onClick={() => setSelected(uniqueValues)}>Select all</button><button onClick={() => setSelected([])}>Deselect all</button></div><div className="filter-checklist">{visibleValues.map((value, index) => <label key={`${String(value)}-${index}`}><input type="checkbox" checked={selected.some((item) => sameValue(item, value))} onChange={(event) => setSelected(event.target.checked ? [...selected, value] : selected.filter((item) => !sameValue(item, value)))} /><span>{labelFor(column, value)}</span><small>{availableCounts.get(value) ?? 0}</small></label>)}</div></> : <div className="filter-bounds"><label>Values<select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="range">Inside bounds</option><option value="present">Non-missing only</option><option value="missing">Missing only</option></select></label>{mode === 'range' && (column.dataType === 'date' ? <><label>On or after<input type="datetime-local" value={start} onChange={(event) => setStart(event.target.value)} /></label><label>On or before<input type="datetime-local" value={end} onChange={(event) => setEnd(event.target.value)} /></label></> : <><p>Keep values inside either or both bounds.</p><label>Greater than or equal to<input type="number" value={minimum} placeholder={numericValues.length ? String(Math.min(...numericValues)) : ''} onChange={(event) => setMinimum(event.target.value)} /></label><label>Less than or equal to<input type="number" value={maximum} placeholder={numericValues.length ? String(Math.max(...numericValues)) : ''} onChange={(event) => setMaximum(event.target.value)} /></label></>)}</div>}
       <footer><button className="dialog-cancel" onClick={() => replaceFilter()}>Clear filter</button><span /><button className="dialog-cancel" onClick={onClose}>Cancel</button><button className="filter-apply" onClick={apply}>Apply filter</button></footer>
     </section>
   </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { nonlinearFit, type NonlinearModel } from '../nonlinearFit'
-import { rowMatchesFilters } from '../store'
+import { getGraphRows } from '../store'
 import type { Dataset, GraphLayer, GraphSpec, RowFilter } from '../types'
 
 const fmt = (value: number) => Number(value.toPrecision(4)).toString()
@@ -11,8 +11,7 @@ export function CurveFitControls({ dataset, spec, filters, layer, updateLayer }:
   const y = dataset.columns.find((column) => column.id === (layer.y ?? spec.y[0]))
   const color = dataset.columns.find((column) => column.id === (layer.color ?? spec.color))
   const overlay = dataset.columns.find((column) => column.id === spec.overlay)
-  const page = dataset.columns.find((column) => column.id === spec.page)
-  const rows = dataset.rows.filter((row) => !row.excluded && rowMatchesFilters(row, filters) && (!page || spec.pageValue === undefined || row.values[page.id] === spec.pageValue))
+  const rows = getGraphRows(dataset, spec, filters)
   const keyFor = (row: typeof rows[number]) => [color && String(row.values[color.id]), overlay && String(row.values[overlay.id])].filter(Boolean).join(' · ') || 'All observations'
   const groups = [...new Set(rows.map(keyFor))]
   const group = groups.includes(selectedSeries) ? selectedSeries : groups[0]
