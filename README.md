@@ -6,6 +6,7 @@ Graph Builder is a local-first scientific graphing application for Windows and m
 - [Download the latest Windows release](https://github.com/timlasater/graph-builder/releases/latest)
 - [Read the complete user guide](docs/user-guide.md)
 - [Read the v0.2.0 feature workflows](docs/v0.2.0-feature-guide.md)
+- [Read the 0.2.1 release notes](docs/release-0.2.1-notes.md)
 - [Read the 0.2.0 release notes](docs/release-0.2.0-notes.md)
 - [0.2.0 Windows release checks](docs/release-0.2.0-notes.md#release-checks)
 - [Report an issue](https://github.com/timlasater/graph-builder/issues)

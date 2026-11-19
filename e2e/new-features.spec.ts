@@ -232,3 +232,22 @@ test('box hover and clicks show and select the corresponding measurements', asyn
   await expect(page.locator('.linked-row-selected')).toContainText('150')
 
 })
+
+test('filter checklist counts reflect other active columns', async ({ page }) => {
+  await page.goto('/')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({
+    name: 'filter-counts.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('Group,Site,Value\nA,East,1\nA,West,2\nB,West,3\n'),
+  })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
+  const openFilter = async (column: string) => {
+    await page.locator('.variable-list').getByRole('button', { name: column, exact: true }).click()
+    await page.getByRole('button', { name: 'Filter selected column' }).click()
+  }
+  await openFilter('Site')
+  await page.getByRole('checkbox', { name: /^West/ }).uncheck()
+  await page.getByRole('button', { name: 'Apply filter' }).click()
+  await openFilter('Group')
+  await expect(page.locator('.filter-checklist small')).toHaveText(['1', '0'])
+})
