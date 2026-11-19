@@ -172,3 +172,28 @@ test('quick PNG shortcut downloads the open graph at default settings', async ({
   expect(bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
   expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([2400, 1600])
 })
+
+test('hovering a box shows its valid measurement count', async ({ page }) => {
+  await page.goto('/')
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.locator('input[type="file"][accept*=".csv"]').first().setInputFiles({
+    name: 'box-count.csv', mimeType: 'text/csv',
+    buffer: Buffer.from('Group,Value\nA,1\nA,2\nA,3\nA,4\nA,100\nA,\nB,10\nB,20\nB,30\n'),
+  })
+  await page.getByRole('button', { name: 'Import selected data' }).click()
+  await assign(page, 'Group', 'x')
+  await assign(page, 'Value', 'y')
+  await page.getByRole('combobox', { name: 'Element', exact: true }).selectOption('box')
+  const boxes = page.locator('.plotly-chart .boxlayer path.box')
+  await expect(boxes).toHaveCount(2)
+  // Hover inside the interquartile rectangle, away from the whisker line.
+  const first = await boxes.nth(0).boundingBox()
+  expect(first).toBeTruthy()
+  await page.mouse.move(first!.x + first!.width * 0.3, first!.y + first!.height * 0.5)
+  await expect(page.getByRole('status').filter({ hasText: 'Measurements (n): 5' })).toBeVisible()
+  const second = await boxes.nth(1).boundingBox()
+  await page.mouse.move(second!.x + second!.width * 0.3, second!.y + second!.height * 0.5)
+  await expect(page.getByRole('status').filter({ hasText: 'Measurements (n): 3' })).toBeVisible()
+  await page.mouse.move(0, 0)
+  await expect(page.locator('.measurement-count-hover')).toHaveCount(0)
+})

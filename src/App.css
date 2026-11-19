@@ -313,3 +313,8 @@
 .property-section .shared-legend-toggle { display: flex; align-items: flex-start; justify-content: flex-start; gap: 7px; text-align: left; }
 .property-section .shared-legend-toggle input { flex: 0 0 16px; width: 16px; height: 16px; margin: 0; padding: 0; accent-color: var(--teal); }
 .property-section .shared-legend-toggle span { flex: 1; min-width: 0; line-height: 16px; }
+
+.plotly-chart-wrap { position: relative; width: 100%; height: 100%; min-height: 0; }
+.measurement-count-hover { position: absolute; top: 8px; right: 8px; pointer-events: none; padding: 4px 7px; background: #fff; color: #183b43; border: 1px solid #bdd5d7; border-radius: 4px; font-size: 9px; line-height: 1.4; box-shadow: 0 1px 4px #0002; }
+
+.chart-with-legend .plotly-chart-wrap { flex: 1 1 auto; height: auto; display: flex; flex-direction: column; }

@@ -115,3 +115,5 @@ With multiple layers, **Properties → Marks and colors → One legend entry per
 Appearance controls are consolidated: **Marks and colors** includes the marker size slider, and **Axes and categories** includes **Show grid lines**. The shared-layer legend checkbox and its text are left-aligned on one row.
 
 **Figure size and theme** is the final section at the bottom of the Properties panel, after **Axes and categories** and **Marks and colors**.
+
+Hover over a box plot to see **Measurements (n)** in the upper-right corner of the graph alongside the quartile and whisker hover labels. This counts all finite measurements represented by that box, including outliers, after filters, excluded rows, Page selection, and panel grouping. Missing values are omitted. Summary bars and summary lines show **Measurements (n)** in their hover text, using the supplied sample size for precomputed summaries. Histogram hover labels show the bin count, or the sum of weights for weighted data. These hover readouts are interactive and are omitted from image exports.

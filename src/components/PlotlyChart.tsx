@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import Plotly from 'plotly.js-cartesian-dist-min'
 import { setExportFigure, type LegendPlacement } from '../graphExport'
 
@@ -16,11 +16,16 @@ interface PlotlyChartProps {
   registerExport?: boolean
 }
 
-interface PlotlyEventPoint { customdata?: unknown }
+interface PlotlyEventPoint {
+  customdata?: unknown
+  x?: string | number
+  fullData?: { type?: string; meta?: { measurementCounts?: Record<string, number> } }
+}
 interface PlotlyEvent { event?: MouseEvent; points?: PlotlyEventPoint[] }
 type PlotlyElement = HTMLDivElement & { on: (name: string, handler: (event: PlotlyEvent) => void) => void; removeListener: (name: string, handler: (event: PlotlyEvent) => void) => void }
 
 export function PlotlyChart({ data, layout, config, onPointClick, onSelection, onDeselect, onTitleDoubleClick, suspendRender = false, registerExport = true, legendPlacement = 'bottom' }: PlotlyChartProps) {
+  const [measurementCount, setMeasurementCount] = useState<number>()
   const containerRef = useRef<HTMLDivElement>(null)
 
   const titleDoubleClick = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -49,9 +54,20 @@ export function PlotlyChart({ data, layout, config, onPointClick, onSelection, o
     const clicked = (event: PlotlyEvent) => { const point = event.points?.[0]; if (point) onPointClick?.(point.customdata, Boolean(event.event?.ctrlKey || event.event?.metaKey || event.event?.shiftKey)) }
     const selected = (event: PlotlyEvent) => onSelection?.((event.points ?? []).map((point) => point.customdata))
     const deselected = () => onDeselect?.()
+    const unhovered = () => setMeasurementCount(undefined)
+    const hovered = (event: PlotlyEvent) => {
+      const point = event.points?.[0]
+      const count = point?.fullData?.type === 'box' && point.x !== undefined
+        ? point.fullData.meta?.measurementCounts?.[String(point.x)]
+        : undefined
+      setMeasurementCount(count)
+    }
+    unhovered()
     let active = true
     void Plotly.react(container, data, layout, config).then(() => {
       if (!active) return
+      container.on('plotly_hover', hovered)
+      container.on('plotly_unhover', unhovered)
       container.on('plotly_click', clicked)
       container.on('plotly_selected', selected)
       container.on('plotly_deselect', deselected)
@@ -59,6 +75,8 @@ export function PlotlyChart({ data, layout, config, onPointClick, onSelection, o
     return () => {
       active = false
       if (typeof container.removeListener === 'function') {
+        container.removeListener('plotly_hover', hovered)
+        container.removeListener('plotly_unhover', unhovered)
         container.removeListener('plotly_click', clicked)
         container.removeListener('plotly_selected', selected)
         container.removeListener('plotly_deselect', deselected)
@@ -81,5 +99,5 @@ export function PlotlyChart({ data, layout, config, onPointClick, onSelection, o
     }
   }, [])
 
-  return <div ref={containerRef} className="plotly-chart" onClickCapture={titleDoubleClick} />
+  return <div className="plotly-chart-wrap"><div ref={containerRef} className="plotly-chart" onClickCapture={titleDoubleClick} />{measurementCount !== undefined && <div className="measurement-count-hover" role="status">Measurements (n): {measurementCount}</div>}</div>
 }
