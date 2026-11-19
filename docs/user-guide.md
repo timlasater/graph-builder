@@ -101,7 +101,7 @@ The result shows the mean difference **B minus A**, a confidence interval (a ran
 
 ## Filters and linked selection
 
-Drag a variable to **Filter**, or select it and choose **Filter selected column** under **Selected column**. For categories, search the values and tick those to keep. For numeric or date columns, choose bounds, missing values, or non-missing values. **Apply filter** updates graph and table; **Clear filter** removes that rule. Click the filled Filter box to review, edit, remove, or clear all active filters. Filters hide rows from the current view; they do not delete them. The data table's Filters menu offers additional rule types.
+Drag a variable to **Filter**, or select it and choose **Filter selected column** under **Selected column**. For categories, search the values and tick those to keep. The number beside each option counts rows that pass the filters on other columns. Options with zero matching rows remain available, and the filter you are editing does not affect its own counts. For numeric or date columns, choose bounds, missing values, or non-missing values. **Apply filter** updates graph and table; **Clear filter** removes that rule. Click the filled Filter box to review, edit, remove, or clear all active filters. Filters hide rows from the current view; they do not delete them. The data table's Filters menu offers additional rule types.
 
 Clicking a plotted observation can highlight its source row in the data table when that plot has a direct row link. Some summaries combine rows and therefore cannot map to a single source row. Exclusion changes calculations; selection only highlights.
 

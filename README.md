@@ -22,6 +22,8 @@ A filter on the Page column hides excluded values from the page selector. Use th
 
 Press **Ctrl+Alt+P** to export the open graph as a PNG at 2× resolution using the default export dimensions for that graph.
 
+Category filter checklists show how many rows match each option after filters on other columns are applied.
+
 ## Architecture
 
 The UI is React and TypeScript, built with Vite and packaged for Windows with Tauri 2. Zustand stores the dataset, graph specification, filters, project state, and undo history. Plotly renders graphs from a renderer-independent specification. AG Grid provides the editable data table. Papa Parse and SheetJS handle text and spreadsheet imports; dnd-kit handles variable and layer dragging.
